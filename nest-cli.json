@@ -1,8 +1,77 @@
 {
   "$schema": "https://json.schemastore.org/nest-cli",
   "collection": "@nestjs/schematics",
-  "sourceRoot": "src",
+  "sourceRoot": "apps/gwai-pro-microservices/src",
   "compilerOptions": {
-    "deleteOutDir": true
+    "deleteOutDir": true,
+    "webpack": true,
+    "tsConfigPath": "apps/gwai-pro-microservices/tsconfig.app.json"
+  },
+  "monorepo": true,
+  "root": "apps/gwai-pro-microservices",
+  "projects": {
+    "users-service": {
+      "type": "application",
+      "root": "apps/users-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/users-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/users-service/tsconfig.app.json"
+      }
+    },
+    "booking-service": {
+      "type": "application",
+      "root": "apps/booking-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/booking-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/booking-service/tsconfig.app.json"
+      }
+    },
+    "payment-service": {
+      "type": "application",
+      "root": "apps/payment-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/payment-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/payment-service/tsconfig.app.json"
+      }
+    },
+    "api-gateway": {
+      "type": "application",
+      "root": "apps/api-gateway",
+      "entryFile": "main",
+      "sourceRoot": "apps/api-gateway/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/api-gateway/tsconfig.app.json"
+      }
+    },
+    "users": {
+      "type": "library",
+      "root": "libs/users",
+      "entryFile": "index",
+      "sourceRoot": "libs/users/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/users/tsconfig.lib.json"
+      }
+    },
+    "payments": {
+      "type": "library",
+      "root": "libs/payments",
+      "entryFile": "index",
+      "sourceRoot": "libs/payments/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/payments/tsconfig.lib.json"
+      }
+    },
+    "bookings": {
+      "type": "library",
+      "root": "libs/bookings",
+      "entryFile": "index",
+      "sourceRoot": "libs/bookings/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/bookings/tsconfig.lib.json"
+      }
+    }
   }
 }

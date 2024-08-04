@@ -16,6 +16,26 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "@app/users": [
+        "libs/users/src"
+      ],
+      "@app/users/*": [
+        "libs/users/src/*"
+      ],
+      "@app/payments": [
+        "libs/payments/src"
+      ],
+      "@app/payments/*": [
+        "libs/payments/src/*"
+      ],
+      "@app/bookings": [
+        "libs/bookings/src"
+      ],
+      "@app/bookings/*": [
+        "libs/bookings/src/*"
+      ]
+    }
   }
 }
