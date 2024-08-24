@@ -59,7 +59,7 @@ services:
       context: .
       dockerfile: ./Dockerfile
       args:
-        - APP_NAME=payemnt-service
+        - APP_NAME=payment-service
     command: yarn start:dev payment-service
     ports:
       - 3002:3002
@@ -111,13 +111,13 @@ services:
       - GOOGLE_CLIENT_ID=asdfoisdf
       - GOOGLE_CLIENT_SECRET=asdfkjaosdif
       - RABBITMQ_URL=amqp://rabbitmq:5672
-    volumes:        
+    volumes:
       - ./libs:/usr/src/app/libs
       - ./package.json:/usr/src/app/package.json
       - ./tsconfig.json:/usr/src/app/tsconfig.json
       - ./node_modules:/usr/src/app/node_modules
       - ./apps/users-service:/usr/src/app/apps/users-service
-    depends_on: 
+    depends_on:
       - users-db
       - redis
       - rabbitmq
