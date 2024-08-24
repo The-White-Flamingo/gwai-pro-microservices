@@ -5,17 +5,15 @@ import { AuthenticationController } from './authentication/authentication.contro
 import { AuthenticationService } from './authentication/authentication.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
-import jwtConfig from './config/jwt.config';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
-import { AccessTokenGuard } from './authentication/guards/access-token.guard';
-import { AuthenticationGuard } from './authentication/guards/authentication.guard';
-import { RefreshTokenIdsStorage } from './authentication/refresh-token-ids.storage';
-import { RolesGuard } from './authorization/guards/roles.guard';
+import { RefreshTokenIdsStorage } from './authentication/refresh-token-ids.storage';;
 import { OtpAuthenticationService } from './authentication/otp-authentication.service';
 import { GoogleAuthenticationService } from './authentication/social/google-authentication.service';
 import { GoogleAuthenticationController } from './authentication/social/google-authentication.controller';
 import { User } from '../users/entities/user.entity';
+import { AccessTokenGuard, AuthenticationGuard, RolesGuard } from '@app/iam';
+import jwtConfig from '@app/iam/config/jwt.config';
 
 @Module({
   imports: [
@@ -44,4 +42,4 @@ import { User } from '../users/entities/user.entity';
   ],
   controllers: [AuthenticationController, GoogleAuthenticationController]
 })
-export class IamModule {}
+export class IamModule { }

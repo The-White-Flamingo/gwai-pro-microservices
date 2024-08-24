@@ -29,6 +29,7 @@
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/swagger": "^7.4.0",
     "@nestjs/typeorm": "^10.0.2",
+    "amqp-connection-manager": "^4.1.14",
     "bcryptjs": "^2.4.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
@@ -48,10 +49,12 @@
     "@nestjs/testing": "^10.0.0",
     "@types/express": "^4.17.17",
     "@types/jest": "^29.5.2",
+    "@types/multer": "^1.4.12",
     "@types/node": "^20.3.1",
     "@types/supertest": "^6.0.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
+    "amqplib": "^0.10.4",
     "eslint": "^8.42.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.0",
@@ -88,7 +91,9 @@
     "moduleNameMapper": {
       "^@app/users(|/.*)$": "<rootDir>/libs/users/src/$1",
       "^@app/payments(|/.*)$": "<rootDir>/libs/payments/src/$1",
-      "^@app/bookings(|/.*)$": "<rootDir>/libs/bookings/src/$1"
+      "^@app/bookings(|/.*)$": "<rootDir>/libs/bookings/src/$1",
+      "^@app/iam(|/.*)$": "<rootDir>/libs/iam/src/$1",
+      "^@app/shared(|/.*)$": "<rootDir>/libs/shared/src/$1"
     }
   }
 }

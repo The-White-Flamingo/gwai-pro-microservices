@@ -72,6 +72,24 @@
       "compilerOptions": {
         "tsConfigPath": "libs/bookings/tsconfig.lib.json"
       }
+    },
+    "iam": {
+      "type": "library",
+      "root": "libs/iam",
+      "entryFile": "index",
+      "sourceRoot": "libs/iam/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/iam/tsconfig.lib.json"
+      }
+    },
+    "shared": {
+      "type": "library",
+      "root": "libs/shared",
+      "entryFile": "index",
+      "sourceRoot": "libs/shared/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/shared/tsconfig.lib.json"
+      }
     }
   }
 }

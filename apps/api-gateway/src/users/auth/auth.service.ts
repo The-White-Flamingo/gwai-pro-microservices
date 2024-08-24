@@ -1,26 +1,33 @@
-import { Injectable } from '@nestjs/common';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+import { RefreshTokenDto, SignInDto, SignUpDto } from '@app/iam';
+import { USERS_SERVICE } from '@app/shared';
+import { Inject, Injectable } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class AuthService {
-  create(createAuthDto: CreateAuthDto) {
-    return 'This action adds a new auth';
+  constructor(
+    @Inject(USERS_SERVICE) private readonly client: ClientProxy,
+  ) { }
+
+  async signUp(signUpDto: SignUpDto) {
+    const user = await lastValueFrom(
+      this.client.send('auth.signUp', signUpDto)
+    );
+    return user;
   }
 
-  findAll() {
-    return `This action returns all auth`;
+  async signIn(signInDto: SignInDto) {
+    const user = await lastValueFrom(
+      this.client.send('auth.signIn', signInDto)
+    );
+    return user;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
-  }
-
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+  async refreshTokens(refreshTokenDto: RefreshTokenDto) {
+    const user = await lastValueFrom(
+      this.client.send('auth.refreshTokens', refreshTokenDto)
+    );
+    return user;
   }
 }

@@ -35,6 +35,18 @@
       ],
       "@app/bookings/*": [
         "libs/bookings/src/*"
+      ],
+      "@app/iam": [
+        "libs/iam/src"
+      ],
+      "@app/iam/*": [
+        "libs/iam/src/*"
+      ],
+      "@app/shared": [
+        "libs/shared/src"
+      ],
+      "@app/shared/*": [
+        "libs/shared/src/*"
       ]
     }
   }

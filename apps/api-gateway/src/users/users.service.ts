@@ -1,26 +1,82 @@
-import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { SignUpDto } from '@app/iam';
+import { USERS_SERVICE } from '@app/shared';
+import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class UsersService {
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  constructor(
+    @Inject(USERS_SERVICE) private readonly client: ClientProxy
+  ) { }
+
+  async findAll() {
+    try {
+      const users = await lastValueFrom(
+        this.client.send('users.findAll', {})
+      );
+      return users;
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw new UnauthorizedException(error.message);
+      }
+      throw new BadRequestException(error.messsage);
+    }
   }
 
-  findAll() {
-    return `This action returns all users`;
+  async findOne(id: string) {
+    try {
+      const user = await lastValueFrom(
+        this.client.send('users.findOne', id)
+      );
+      return user;
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw new UnauthorizedException(error.message);
+      }
+      throw new BadRequestException(error.messsage);
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async orders(id: string) {
+    try {
+      const orders = await lastValueFrom(
+        this.client.send('users.orders', id)
+      );
+      return orders;
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw new UnauthorizedException(error.message);
+      }
+      throw new BadRequestException(error.messsage);
+    }
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(id: string, updateUserDto: SignUpDto) {
+    try {
+      const user = await lastValueFrom(
+        this.client.send('users.update', { id, ...updateUserDto })
+      );
+      return user;
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw new UnauthorizedException(error.message);
+      }
+      throw new BadRequestException(error.messsage);
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async remove(id: string) {
+    try {
+      const user = await lastValueFrom(
+        this.client.send('users.delete', id)
+      );
+      return user;
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw new UnauthorizedException(error.message);
+      }
+      throw new BadRequestException(error.messsage);
+    }
   }
 }

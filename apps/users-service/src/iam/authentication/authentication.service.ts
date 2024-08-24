@@ -2,17 +2,15 @@ import { BadRequestException, ConflictException, Inject, Injectable, Unauthorize
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { HashingService } from '../hashing/hashing.service';
-import { SignUpDto } from './dto/sign-up.dto';
-import { SignInDto } from './dto/sign-in.dto';
 import { JwtService } from '@nestjs/jwt';
-import jwtConfig from '../config/jwt.config';
 import { ConfigType } from '@nestjs/config';
-import { ActiveUserData } from '../interfaces/active-user-data.interface';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { ActiveUserData } from '../../../../../libs/iam/src/interfaces/active-user-data.interface';
 import { InvalidatedRefreshTokenError, RefreshTokenIdsStorage } from './refresh-token-ids.storage';
 import { randomUUID } from 'crypto';
 import { OtpAuthenticationService } from './otp-authentication.service';
 import { User } from '../../users/entities/user.entity';
+import jwtConfig from '@app/iam/config/jwt.config';
+import { RefreshTokenDto, SignInDto, SignUpDto } from '@app/iam';
 
 @Injectable()
 export class AuthenticationService {
