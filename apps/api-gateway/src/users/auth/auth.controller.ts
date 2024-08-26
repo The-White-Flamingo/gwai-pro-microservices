@@ -1,7 +1,7 @@
-import { Auth, AuthType, RefreshTokenDto, SignInDto, SignUpDto } from '@app/iam';
-import { Body, Controller, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { ActiveUser, ActiveUserData, Auth, AuthType, RefreshTokenDto, SignInDto, SignUpDto } from '@app/iam';
+import { Body, Controller, HttpCode, HttpStatus, Post, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('auth')
@@ -28,5 +28,16 @@ export class AuthController {
   @Post('refresh-tokens')
   refreshTokens(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.authenticationService.refreshTokens(refreshTokenDto);
+  }
+
+  @ApiBearerAuth()
+  @Auth(AuthType.Bearer)
+  @HttpCode(HttpStatus.OK)
+  @Post('2fa/generate')
+  async generateQrCode(
+    @ActiveUser() activeUser: ActiveUserData,
+    @Res() response: Response,
+  ) {
+
   }
 }
