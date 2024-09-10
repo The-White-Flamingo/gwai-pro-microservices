@@ -10,7 +10,7 @@ phases:
   pre_build:
     commands:
       - echo Running pre-build scripts...
-      - yarn build
+      # - yarn build
   build:
     commands:
       - echo Building Docker image...
