@@ -1,17 +1,31 @@
-FROM node:lts-alpine
+# Stage 1: Build the app
+FROM node:lts-alpine AS builder
 
 ARG APP_NAME
 
 WORKDIR /usr/src/app
 
-COPY package.json ./
+# Install dependencies
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile
 
-COPY yarn.lock ./
-
-RUN yarn install --production
-
+# Copy the rest of the application code and build the app
 COPY . .
-
 RUN yarn build ${APP_NAME}
 
-CMD [ "node", "dist/apps/${APP_NAME}/main.js" ]
+# Stage 2: Prepare the production image
+FROM node:lts-alpine
+
+ARG APP_NAME
+ENV NODE_ENV production
+
+WORKDIR /usr/src/app
+
+# Copy only production dependencies
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile --production
+
+# Copy the build artifacts from the builder stage
+COPY --from=builder /usr/src/app/dist /usr/src/app/dist
+
+CMD ["node", "dist/apps/${APP_NAME}/main.js"]

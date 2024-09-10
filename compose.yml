@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   api-gateway:
     build:
@@ -5,99 +7,72 @@ services:
       dockerfile: ./Dockerfile
       args:
         - APP_NAME=api-gateway
-    command: yarn start:dev api-gateway
     ports:
       - 3000:3000
     environment:
+      - NODE_ENV=production
       - JWT_TOKEN=XcJwVOuNBIngYy06oNgfjBmtVnD3trLw
       - JWT_TOKEN_AUDIENCE=user-service:3003
       - JWT_TOKEN_ISSUER=user-service:3003
       - JWT_ACCESS_TOKEN_TTL=3600
       - JWT_REFRESH_TOKEN_TTL=86400
       - RABBITMQ_URL=amqp://rabbitmq:5672
-    volumes:
-      - ./libs:/usr/src/app/libs
-      - ./package.json:/usr/src/app/package.json
-      - ./tsconfig.json:/usr/src/app/tsconfig.json
-      - ./node_modules:/usr/src/app/node_modules
-      - ./apps/api-gateway:/usr/src/app/apps/api-gateway
     depends_on:
       - rabbitmq
       - users-service
       - booking-service
       - payment-service
+
   booking-service:
     build:
       context: .
       dockerfile: ./Dockerfile
       args:
         - APP_NAME=booking-service
-    command: yarn start:dev booking-service
     ports:
       - 3001:3001
     environment:
+      - NODE_ENV=production
       - POSTGRES_HOST=bookings-db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=bookings
       - RABBITMQ_URL=amqp://rabbitmq:5672
-    volumes:
-      - ./libs:/usr/src/app/libs
-      - ./package.json:/usr/src/app/package.json
-      - ./tsconfig.json:/usr/src/app/tsconfig.json
-      - ./node_modules:/usr/src/app/node_modules
-      - ./apps/booking-service:/usr/src/app/apps/booking-service
     depends_on:
       - bookings-db
       - rabbitmq
-  bookings-db:
-    image: postgres:alpine
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=bookings
+
   payment-service:
     build:
       context: .
       dockerfile: ./Dockerfile
       args:
         - APP_NAME=payment-service
-    command: yarn start:dev payment-service
     ports:
       - 3002:3002
     environment:
+      - NODE_ENV=production
       - POSTGRES_HOST=payments-db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=payments
       - RABBITMQ_URL=amqp://rabbitmq:5672
-    volumes:
-      - ./libs:/usr/src/app/libs
-      - ./package.json:/usr/src/app/package.json
-      - ./tsconfig.json:/usr/src/app/tsconfig.json
-      - ./node_modules:/usr/src/app/node_modules
-      - ./apps/payment-service:/usr/src/app/apps/payment-service
     depends_on:
       - payments-db
       - rabbitmq
-  payments-db:
-    image: postgres:alpine
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=payments
+
   users-service:
     build:
       context: .
       dockerfile: ./Dockerfile
       args:
         - APP_NAME=users-service
-    command: yarn start:dev users-service
     ports:
       - 3003:3003
     environment:
+      - NODE_ENV=production
       - POSTGRES_HOST=users-db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=postgres
@@ -110,27 +85,35 @@ services:
       - JWT_REFRESH_TOKEN_TTL=86400
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - TFA_APP_NAME=maxet-authx
-      - GOOGLE_CLIENT_ID=asdfoisdf
-      - GOOGLE_CLIENT_SECRET=asdfkjaosdif
       - RABBITMQ_URL=amqp://rabbitmq:5672
-    volumes:
-      - ./libs:/usr/src/app/libs
-      - ./package.json:/usr/src/app/package.json
-      - ./tsconfig.json:/usr/src/app/tsconfig.json
-      - ./node_modules:/usr/src/app/node_modules
-      - ./apps/users-service:/usr/src/app/apps/users-service
     depends_on:
       - users-db
       - redis
       - rabbitmq
+
+  bookings-db:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=bookings
+
+  payments-db:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=payments
+
   users-db:
     image: postgres:alpine
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=users
+
   redis:
     image: redis:alpine
+
   rabbitmq:
     image: rabbitmq:alpine
