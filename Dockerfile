@@ -28,4 +28,5 @@ RUN yarn install --frozen-lockfile --production
 # Copy the build artifacts from the builder stage
 COPY --from=builder /usr/src/app/dist /usr/src/app/dist
 
-CMD ["node", "dist/apps/${APP_NAME}/main.js"]
+CMD ["sh", "-c", "node dist/apps/$APP_NAME/main.js"]
+
