@@ -1,38 +1,25 @@
 version: 0.2
 
 phases:
-  install:
-    commands:
-      - nohup /usr/local/bin/dockerd --host=unix:///var/run/docker.sock --host=tcp://127.0.0.1:2375 --storage-driver=overlay2 &
-      - timeout 15 sh -c "until docker info; do echo .; sleep 1; done"
-  
   pre_build:
-    commands:
-      - echo Logging in to Amazon ECR...
-      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 992382773921.dkr.ecr.us-east-1.amazonaws.com
-      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-      - IMAGE_TAG=${COMMIT_HASH:=latest}
-  
+   commands:
+    - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 992382773921.dkr.ecr.us-east-1.amazonaws.com
   build:
     commands:
-      - echo Build started on `date`
-      - echo Building the Docker image...
-      - docker build -t gwaipro/gwai-pro-microservices .
-      - docker tag gwaipro/gwai-pro-microservices:latest 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwaipro/gwai-pro-microservices:$IMAGE_TAG
-  
+      - docker build --build-arg APP_NAME=api-gateway -t gwai-pro/api-gateway .
+      - docker tag gwai-pro/api-gateway:latest 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/api-gateway:latest
+
+      - docker build --build-arg APP_NAME=user-service -t gwai-pro/user-service .
+      - docker tag gwai-pro/user-service:latest 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/user-service:latest
+
+      - docker build --build-arg APP_NAME=booking-service -t gwai-pro/booking-service .
+      - docker tag gwai-pro/booking-service:latest 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/booking-service:latest
+
+      - docker build --build-arg APP_NAME=payment-service -t gwai-pro/payment-service .
+      - docker tag gwai-pro/payment-service:latest 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/payment-service:latest
   post_build:
-    commands:
-      - echo Build completed on `date`
-      - echo Pushing Docker image to Amazon ECR...
-      - docker push 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwaipro/gwai-pro-microservices:$IMAGE_TAG
-      - printf '[{"name":"gwai-pro-microservices","imageUri":"%s"}]' 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwaipro/gwai-pro-microservices:$IMAGE_TAG > imagedefinitions.json
-
-artifacts:
-  files:
-    - imagedefinitions.json
-
-cache:
-  paths:
-    - '/root/.docker/cli-plugins'
-    - '/root/.npm/**/*'
-    - 'dist/**/*'
+   commands:
+    - docker push 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/api-gateway:latest
+    - docker push 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/user-service:latest
+    - docker push 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/booking-service:latest
+    - docker push 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/payment-service:latest

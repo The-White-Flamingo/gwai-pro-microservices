@@ -17,7 +17,7 @@ RUN yarn build ${APP_NAME}
 FROM node:lts-alpine
 
 ARG APP_NAME
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 WORKDIR /usr/src/app
 
@@ -28,5 +28,4 @@ RUN yarn install --frozen-lockfile --production
 # Copy the build artifacts from the builder stage
 COPY --from=builder /usr/src/app/dist /usr/src/app/dist
 
-CMD ["sh", "-c", "node dist/apps/$APP_NAME/main.js"]
-
+CMD ["sh", "-c", "node dist/apps/${APP_NAME}/main.js"]
