@@ -9,7 +9,7 @@ phases:
       - docker build --build-arg APP_NAME=api-gateway -t gwai-pro/api-gateway .
       - docker tag gwai-pro/api-gateway:latest 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/api-gateway:latest
 
-      - docker build --build-arg APP_NAME=user-service -t gwai-pro/users-service .
+      - docker build --build-arg APP_NAME=users-service -t gwai-pro/users-service .
       - docker tag gwai-pro/users-service:latest 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/users-service:latest
 
       - docker build --build-arg APP_NAME=booking-service -t gwai-pro/booking-service .
