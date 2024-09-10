@@ -15,8 +15,9 @@ phases:
     commands:
       - echo Building Docker image...
       - $(aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-1.amazonaws.com)
-      - docker build -t gwaipro-microservices:${CODEBUILD_RESOLVED_SOURCE_VERSION} .
+      - docker build --build-arg APP_NAME=${APP_NAME} -t gwaipro-microservices:${CODEBUILD_RESOLVED_SOURCE_VERSION} .
       - docker tag gwaipro-microservices:${CODEBUILD_RESOLVED_SOURCE_VERSION} <account-id>.dkr.ecr.us-east-1.amazonaws.com/gwaipro-microservices:${CODEBUILD_RESOLVED_SOURCE_VERSION}
+
   post_build:
     commands:
       - echo Pushing Docker image to ECR...
