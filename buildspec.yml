@@ -2,26 +2,34 @@ version: 0.2
 
 phases:
   install:
-    runtime-versions:
-      nodejs: 20
     commands:
+      # Ensure Docker Daemon is running
+      - nohup /usr/local/bin/dockerd --host=unix:///var/run/docker.sock --host=tcp://127.0.0.1:2375 --storage-driver=overlay2 &
+      - timeout 15 sh -c "until docker info; do echo .; sleep 1; done"
       - echo Installing dependencies...
       - yarn install
   pre_build:
     commands:
-      - echo Running pre-build scripts...
-      # - yarn build
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $REPOSITORY_URI
+      - export IMAGE_TAG=${CODEBUILD_RESOLVED_SOURCE_VERSION}
   build:
     commands:
-      - echo Building Docker image...
-      - $(aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-1.amazonaws.com)
-      - docker build --build-arg APP_NAME=${APP_NAME} -t gwaipro-microservices:${CODEBUILD_RESOLVED_SOURCE_VERSION} .
-      - docker tag gwaipro-microservices:${CODEBUILD_RESOLVED_SOURCE_VERSION} <account-id>.dkr.ecr.us-east-1.amazonaws.com/gwaipro-microservices:${CODEBUILD_RESOLVED_SOURCE_VERSION}
-
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker build --build-arg APP_NAME=${APP_NAME} -t $REPOSITORY_NAME:$IMAGE_TAG .
+      - docker tag $REPOSITORY_NAME:$IMAGE_TAG $REPOSITORY_URI:$IMAGE_TAG
   post_build:
     commands:
+      - echo Build completed on `date`
       - echo Pushing Docker image to ECR...
-      - docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/gwaipro-microservices:${CODEBUILD_RESOLVED_SOURCE_VERSION}
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - printf '[{"name":"main-service","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
 artifacts:
   files:
-    - '**/*'
+    - imagedefinitions.json
+cache:
+  paths:
+    - '/root/.docker/cli-plugins'
+    - '/root/.npm/**/*'
+    - 'dist/**/*'
