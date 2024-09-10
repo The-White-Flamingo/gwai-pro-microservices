@@ -87,11 +87,15 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - RABBITMQ_URL=amqp://rabbitmq:5672
+      - GOOGLE_CLIENT_ID=google-client-id
+      - GOOGLE_CLIENT_SECRET=google-client-secret
+      - TWILIO_ACCOUNT_SID=twilio-account-sid
+      - TWILIO_AUTH_TOKEN=twilio-auth-token
     depends_on:
       - users-db
       - redis
       - rabbitmq
-    command: sh -c "node dist/apps/user-service/main.js"
+    command: sh -c "node dist/apps/users-service/main.js"
 
   bookings-db:
     image: postgres:alpine
