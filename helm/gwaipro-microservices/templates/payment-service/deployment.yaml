@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: payment-service
-          image: 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/payment-service
+          image: 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/payment-service:latest
           ports:
             - containerPort: 3002
           env:

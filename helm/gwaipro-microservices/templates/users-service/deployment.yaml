@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: users-service
-          image: 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/users-service
+          image: 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/users-service:latest
           ports:
             - containerPort: 3003
           env:

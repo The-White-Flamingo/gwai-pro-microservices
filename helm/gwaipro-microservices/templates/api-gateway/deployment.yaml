@@ -14,8 +14,7 @@ spec:
     spec:
       containers:
         - name: api-gateway
-          image: 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/api-gateway
-          ports:
+          image: 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/users-service:latest
             - containerPort: 3000
           env:
             - name: RABBITMQ_URL
