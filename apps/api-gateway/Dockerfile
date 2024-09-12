@@ -1,9 +1,6 @@
 # Stage 1: Build the app
 FROM node:lts-alpine AS builder
 
-# Pass the service name as a build argument
-ARG APP_NAME
-
 # Set the working directory
 WORKDIR /usr/src/app
 
@@ -15,13 +12,12 @@ RUN yarn install --frozen-lockfile
 COPY . .
 
 # Build the specific service
-RUN yarn build ${APP_NAME}
+RUN yarn build api-gateway
 
 # Stage 2: Prepare the production image
 FROM node:lts-alpine
 
 # Set the service name as an argument and environment variable
-ARG APP_NAME
 ENV NODE_ENV=production
 
 # Set the working directory
@@ -35,4 +31,4 @@ RUN yarn install --frozen-lockfile --production
 COPY --from=builder /usr/src/app/dist /usr/src/app/dist
 
 # Start the application by pointing to the correct path in dist/apps
-CMD ["node", "dist/apps/${APP_NAME}/main.js"]
+CMD ["node", "dist/apps/api-gateway/main.js"]
