@@ -18,18 +18,29 @@ spec:
           ports:
             - containerPort: 3003
           env:
+            - name: APP_NAME
+              value: "users-service"
             - name: POSTGRES_HOST
               value: "users-db"
             - name: POSTGRES_PORT
               value: "5432"
             - name: POSTGRES_USER
-              value: "postgres"
+              valueFrom:
+                secretKeyRef:
+                  name: users-secrets
+                  key: POSTGRES_USER
             - name: POSTGRES_PASSWORD
-              value: "postgres"
+              valueFrom:
+                secretKeyRef:
+                  name: users-secrets
+                  key: POSTGRES_PASSWORD
             - name: POSTGRES_DB
               value: "users"
             - name: JWT_SECRET
-              value: "XcJwVOuNBIngYy06oNgfjBmtVnD3trLw"
+              valueFrom:
+                secretKeyRef:
+                  name: users-secrets
+                  key: JWT_SECRET
             - name: JWT_TOKEN_AUDIENCE
               value: "user-service:3003"
             - name: JWT_TOKEN_ISSUER
@@ -47,8 +58,26 @@ spec:
             - name: GOOGLE_CLIENT_ID
               value: "google-client-id"
             - name: GOOGLE_CLIENT_SECRET
-              value: "google-client-secret"
+              valueFrom:
+                secretKeyRef:
+                  name: users-secrets
+                  key: GOOGLE_CLIENT_SECRET
             - name: TWILIO_ACCOUNT_SID
               value: "twilio-account-sid"
             - name: TWILIO_AUTH_TOKEN
-              value: "twilio-auth-token"
+              valueFrom:
+                secretKeyRef:
+                  name: users-secrets
+                  key: TWILIO_AUTH_TOKEN
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3003
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3003
+            initialDelaySeconds: 10
+            periodSeconds: 5
