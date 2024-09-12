@@ -1,5 +1,5 @@
 # Stage 1: Build the app
-FROM node:lts-alpine AS builder
+FROM node:20-alpine AS builder
 
 # Pass the service name as a build argument
 ARG APP_NAME
@@ -18,7 +18,7 @@ COPY . .
 RUN yarn build ${APP_NAME}
 
 # Stage 2: Prepare the production image
-FROM node:lts-alpine
+FROM node:20-alpine
 
 # Set the service name as an argument and environment variable
 ARG APP_NAME
