@@ -7,21 +7,21 @@ phases:
       - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 992382773921.dkr.ecr.us-east-1.amazonaws.com
 
   build:
-    commands:
+     commands:
       - echo Build API Gateway service...
-      - docker build -f api-gateway/Dockerfile -t gwai-pro/api-gateway api-gateway
+      - docker build --build-arg APP_NAME=api-gateway -t gwai-pro/api-gateway . 
       - docker tag gwai-pro/api-gateway:latest 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/api-gateway:latest
 
       - echo Build Users service...
-      - docker build -f users-service/Dockerfile -t gwai-pro/users-service users-service
+      - docker build --build-arg APP_NAME=users-service -t gwai-pro/users-service . 
       - docker tag gwai-pro/users-service:latest 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/users-service:latest
 
       - echo Build Booking service...
-      - docker build -f booking-service/Dockerfile -t gwai-pro/booking-service booking-service
+      - docker build --build-arg APP_NAME=booking-service -t gwai-pro/booking-service . 
       - docker tag gwai-pro/booking-service:latest 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/booking-service:latest
 
       - echo Build Payment service...
-      - docker build -f payment-service/Dockerfile -t gwai-pro/payment-service payment-service
+      - docker build --build-arg APP_NAME=payment-service -t gwai-pro/payment-service . 
       - docker tag gwai-pro/payment-service:latest 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/payment-service:latest
 
   post_build:
