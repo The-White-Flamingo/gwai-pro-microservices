@@ -1,38 +1,19 @@
-# Stage 1: Build the app
-FROM node:lts-alpine AS builder
-
-# Pass the service name as a build argument
-ARG APP_NAME
-
-# Set the working directory
-WORKDIR /usr/src/app
-
-# Copy the package manager files and install dependencies
-COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile
-
-# Copy the entire application code, including the service being built
-COPY . .
-
-# Build the specific service
-RUN yarn build ${APP_NAME}
-
-# Stage 2: Prepare the production image
+# Dockerfile
 FROM node:lts-alpine
 
-# Set the service name as an argument and environment variable
 ARG APP_NAME
-ENV NODE_ENV=production
 
-# Set the working directory
 WORKDIR /usr/src/app
 
-# Copy only production dependencies
-COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile --production
+# Copy only necessary files
+COPY ./apps/$APP_NAME ./apps/$APP_NAME
+COPY ./package.json ./yarn.lock ./
 
-# Copy the build artifacts from the builder stage
-COPY --from=builder /usr/src/app/dist /usr/src/app/dist
+# Install dependencies
+RUN yarn install
 
-# Start the application by pointing to the correct path in dist/apps
-CMD ["node", "dist/apps/${APP_NAME}/main.js"]
+# Build the app (if necessary)
+RUN yarn build --workspace=$APP_NAME
+
+# Set the default command to start your app
+CMD ["node", "./apps/$APP_NAME/main.js"]
