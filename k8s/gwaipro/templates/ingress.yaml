@@ -1,0 +1,47 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gwaipro
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    kubernetes.io/ingress.class: alb
+spec:
+  rules:
+  - host: api.gwaipro.com
+    http:
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: api-gateway
+              port:
+                number: 3000
+        - path: /booking/
+          pathType: Prefix
+          backend:
+            service:
+              name: api-gateway
+              port:
+                number: 3000
+        - path: /payment/
+          pathType: Prefix
+          backend:
+            service:
+              name: api-gateway
+              port:
+                number: 3000
+        - path: /users/
+          pathType: Prefix
+          backend:
+            service:
+              name: api-gateway
+              port:
+                number: 3000
+        - path: /auth/
+          pathType: Prefix
+          backend:
+            service:
+              name: api-gateway
+              port:
+                number: 3000
