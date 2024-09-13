@@ -1,28 +1,23 @@
 # Stage 1: Build the app
 FROM node:lts-alpine AS builder
 
-# Pass the service name as a build argument
-ARG APP_NAME
-
 # Set the working directory
 WORKDIR /usr/src/app
 
-# Copy the package manager files and install dependencies
+# Copy the root package.json and yarn.lock files
 COPY package.json yarn.lock ./
+
+# Install dependencies
 RUN yarn install --frozen-lockfile
 
-# Copy the entire application code, including the service being built
+# Copy the entire application code
 COPY . .
 
 # Build the specific service
-RUN yarn build ${APP_NAME}
+RUN yarn build payment-service
 
 # Stage 2: Prepare the production image
 FROM node:lts-alpine
-
-# Set the service name as an argument and environment variable
-ARG APP_NAME
-ENV NODE_ENV=production
 
 # Set the working directory
 WORKDIR /usr/src/app
@@ -34,5 +29,5 @@ RUN yarn install --frozen-lockfile --production
 # Copy the build artifacts from the builder stage
 COPY --from=builder /usr/src/app/dist /usr/src/app/dist
 
-# Start the application by pointing to the correct path in dist/apps
-CMD ["node", "dist/apps/${APP_NAME}/main.js"]
+# Start the application
+CMD ["node", "dist/apps/payment-service/main.js"]

@@ -1,0 +1,35 @@
+# users-service-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: users-service
+  template:
+    metadata:
+      labels:
+        app: users-service
+    spec:
+      containers:
+      - name: users-service
+        image: 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/users-service:latest
+        ports:
+        - containerPort: 3003
+        env:
+        - name: RABBITMQ_URL
+          value: "amqp://guest:guest@rabbitmq-service:5672"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: users-service
+spec:
+  selector:
+    app: users-service
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3003
