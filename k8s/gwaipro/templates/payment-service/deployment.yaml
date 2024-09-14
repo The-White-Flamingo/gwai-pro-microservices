@@ -22,15 +22,15 @@ spec:
         - name: NODE_ENV
           value: "production"
         - name: POSTGRES_HOST
-          value: "payments-db.default.svc.cluster.local"
+          value: "gwaipro.c3iymmo2ikf2.us-east-1.rds.amazonaws.com"
         - name: POSTGRES_PORT
           value: "5432"
         - name: POSTGRES_USER
           value: "gwaipro"
         - name: POSTGRES_PASSWORD
-          value: "pass123"
+          value: "###gwaipRO24"
         - name: POSTGRES_DB
-          value: "payments"
+          value: "gwaipro-payments-db"
         - name: RABBITMQ_URL
           value: "amqp://gwaipro:pass123@rabbitmq.default.svc.cluster.local:5672"
 # ---

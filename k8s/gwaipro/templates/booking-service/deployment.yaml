@@ -22,7 +22,7 @@ spec:
         - name: NODE_ENV
           value: "production"
         - name: POSTGRES_HOST
-          value: "bookings-db.default.svc.cluster.local"
+          value: "gwaipro.c3iymmo2ikf2.us-east-1.rds.amazonaws.com"
         - name: POSTGRES_PORT
           value: "5432"
         - name: POSTGRES_USER
@@ -30,7 +30,7 @@ spec:
         - name: POSTGRES_PASSWORD
           value: "pass123"
         - name: POSTGRES_DB
-          value: "bookings"
+          value: "gwaipro-bookings-db"
         - name: RABBITMQ_URL
           value: "amqp://gwaipro:pass123@rabbitmq.default.svc.cluster.local:5672"
 # ---
