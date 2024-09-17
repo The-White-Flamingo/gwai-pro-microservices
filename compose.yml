@@ -2,7 +2,7 @@ services:
   api-gateway:
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: ./apps/api-gateway/Dockerfile
       args:
         - APP_NAME=api-gateway
     ports:
@@ -25,7 +25,7 @@ services:
   booking-service:
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: ./apps/booking-service/Dockerfile
       args:
         - APP_NAME=booking-service
     ports:
@@ -46,7 +46,7 @@ services:
   payment-service:
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: ./apps/payment-service/Dockerfile
       args:
         - APP_NAME=payment-service
     ports:
@@ -67,7 +67,7 @@ services:
   users-service:
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: ./apps/users-service/Dockerfile
       args:
         - APP_NAME=users-service
     ports:

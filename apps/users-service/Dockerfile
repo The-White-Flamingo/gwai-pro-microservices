@@ -1,5 +1,5 @@
 # Stage 1: Build the app
-FROM node:lts-alpine AS builder
+FROM node:alpine AS builder
 
 # Set the working directory
 WORKDIR /usr/src/app
@@ -17,7 +17,7 @@ COPY . .
 RUN yarn build users-service
 
 # Stage 2: Prepare the production image
-FROM node:lts-alpine
+FROM node:alpine
 
 # Set the working directory
 WORKDIR /usr/src/app
