@@ -4,30 +4,30 @@ phases:
   pre_build:
     commands:
       - echo Logging in to Amazon ECR...
-      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 992382773921.dkr.ecr.us-east-1.amazonaws.com
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 861276097496.dkr.ecr.us-east-1.amazonaws.com
 
   build:
     commands:
       - echo Build API Gateway service...
       - docker build -f apps/api-gateway/Dockerfile -t gwai-pro/api-gateway . 
-      - docker tag gwai-pro/api-gateway:latest 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/api-gateway:latest
-
-      - echo Build Users service...
-      - docker build -f apps/users-service/Dockerfile -t gwai-pro/users-service . 
-      - docker tag gwai-pro/users-service:latest 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/users-service:latest
+      - docker tag gwaipro/api-gateway:latest 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/api-gateway:latest
 
       - echo Build Booking service...
       - docker build -f apps/booking-service/Dockerfile -t gwai-pro/booking-service . 
-      - docker tag gwai-pro/booking-service:latest 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/booking-service:latest
+      - docker tag gwaipro/booking-service:latest 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/booking-service:latest
 
       - echo Build Payment service...
       - docker build -f apps/payment-service/Dockerfile -t gwai-pro/payment-service . 
-      - docker tag gwai-pro/payment-service:latest 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/payment-service:latest
+      - docker tag gwaipro/payment-service:latest 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/payment-service:latest
+
+      - echo Build Users service...
+      - docker build -f apps/users-service/Dockerfile -t gwai-pro/users-service . 
+      - docker tag gwaipro/users-service:latest 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/users-service:latest
 
   post_build:
     commands:
       - echo Pushing images to Amazon ECR...
-      - docker push 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/api-gateway:latest
-      - docker push 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/users-service:latest
-      - docker push 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/booking-service:latest
-      - docker push 992382773921.dkr.ecr.us-east-1.amazonaws.com/gwai-pro/payment-service:latest
+      - docker push 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/api-gateway:latest
+      - docker push 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/booking-service:latest
+      - docker push 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/payment-service:latest
+      - docker push 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/users-service:latest
