@@ -1,5 +1,5 @@
 # Stage 1: Build the app
-FROM node:alpine AS builder
+FROM public.ecr.aws/docker/library/node:lts-alpine AS builder
 
 # Set the working directory
 WORKDIR /usr/src/app
@@ -17,7 +17,7 @@ COPY . .
 RUN yarn build api-gateway
 
 # Stage 2: Prepare the production image
-FROM node:alpine
+FROM public.ecr.aws/docker/library/node:lts-alpine
 
 # Set the working directory
 WORKDIR /usr/src/app
