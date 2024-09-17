@@ -9,19 +9,19 @@ phases:
   build:
     commands:
       - echo Build API Gateway service...
-      - docker build -f apps/api-gateway/Dockerfile -t gwai-pro/api-gateway . 
+      - docker build -f apps/api-gateway/Dockerfile -t gwaipro/api-gateway . 
       - docker tag gwaipro/api-gateway:latest 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/api-gateway:latest
 
       - echo Build Booking service...
-      - docker build -f apps/booking-service/Dockerfile -t gwai-pro/booking-service . 
+      - docker build -f apps/booking-service/Dockerfile -t gwaipro/booking-service . 
       - docker tag gwaipro/booking-service:latest 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/booking-service:latest
 
       - echo Build Payment service...
-      - docker build -f apps/payment-service/Dockerfile -t gwai-pro/payment-service . 
+      - docker build -f apps/payment-service/Dockerfile -t gwaipro/payment-service . 
       - docker tag gwaipro/payment-service:latest 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/payment-service:latest
 
       - echo Build Users service...
-      - docker build -f apps/users-service/Dockerfile -t gwai-pro/users-service . 
+      - docker build -f apps/users-service/Dockerfile -t gwaipro/users-service . 
       - docker tag gwaipro/users-service:latest 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/users-service:latest
 
   post_build:
