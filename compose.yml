@@ -20,8 +20,7 @@ services:
       - users-service
       - booking-service
       - payment-service
-    command: sh -c "node dist/apps/api-gateway/main.js"
-
+    command: yarn start:dev api-gateway
   booking-service:
     build:
       context: .
@@ -41,7 +40,7 @@ services:
     depends_on:
       - bookings-db
       - rabbitmq
-    command: sh -c "node dist/apps/booking-service/main.js"
+    command: yarn start:dev booking-service
 
   payment-service:
     build:
@@ -62,7 +61,7 @@ services:
     depends_on:
       - payments-db
       - rabbitmq
-    command: sh -c "node dist/apps/payment-service/main.js"
+    command: yarn start:dev payment-service
 
   users-service:
     build:
@@ -95,7 +94,7 @@ services:
       - users-db
       - redis
       - rabbitmq
-    command: sh -c "node dist/apps/users-service/main.js"
+    command: yarn start:dev users-service
 
   bookings-db:
     image: postgres:alpine
