@@ -15,6 +15,12 @@ services:
       - JWT_ACCESS_TOKEN_TTL=3600
       - JWT_REFRESH_TOKEN_TTL=86400
       - RABBITMQ_URL=amqp://rabbitmq:5672
+    volumes:        
+      - ./libs:/usr/src/app/libs
+      - ./package.json:/usr/src/app/package.json
+      - ./tsconfig.json:/usr/src/app/tsconfig.json
+      - ./node_modules:/usr/src/app/node_modules
+      - ./apps/api-gateway:/usr/src/app/apps/api-gateway
     depends_on:
       - rabbitmq
       - users-service
@@ -38,6 +44,12 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=bookings
       - RABBITMQ_URL=amqp://rabbitmq:5672
+    volumes:        
+      - ./libs:/usr/src/app/libs
+      - ./package.json:/usr/src/app/package.json
+      - ./tsconfig.json:/usr/src/app/tsconfig.json
+      - ./node_modules:/usr/src/app/node_modules
+      - ./apps/booking-service:/usr/src/app/apps/booking-service
     depends_on:
       - bookings-db
       - rabbitmq
@@ -59,6 +71,12 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=payments
       - RABBITMQ_URL=amqp://rabbitmq:5672
+    volumes:        
+      - ./libs:/usr/src/app/libs
+      - ./package.json:/usr/src/app/package.json
+      - ./tsconfig.json:/usr/src/app/tsconfig.json
+      - ./node_modules:/usr/src/app/node_modules
+      - ./apps/payment-service:/usr/src/app/apps/payment-service
     depends_on:
       - payments-db
       - rabbitmq
@@ -91,6 +109,12 @@ services:
       - GOOGLE_CLIENT_SECRET=google-client-secret
       - TWILIO_ACCOUNT_SID=twilio-account-sid
       - TWILIO_AUTH_TOKEN=twilio-auth-token
+    volumes:        
+      - ./libs:/usr/src/app/libs
+      - ./package.json:/usr/src/app/package.json
+      - ./tsconfig.json:/usr/src/app/tsconfig.json
+      - ./node_modules:/usr/src/app/node_modules
+      - ./apps/users-service:/usr/src/app/apps/users-service
     depends_on:
       - users-db
       - redis
