@@ -2,13 +2,13 @@ services:
   api-gateway:
     build:
       context: .
-      dockerfile: ./apps/api-gateway/Dockerfile
+      dockerfile: ./Dockerfile
       args:
         - APP_NAME=api-gateway
     ports:
       - 3000:3000
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - JWT_TOKEN=XcJwVOuNBIngYy06oNgfjBmtVnD3trLw
       - JWT_TOKEN_AUDIENCE=user-service:3003
       - JWT_TOKEN_ISSUER=user-service:3003
@@ -21,16 +21,17 @@ services:
       - booking-service
       - payment-service
     command: yarn start:dev api-gateway
+
   booking-service:
     build:
       context: .
-      dockerfile: ./apps/booking-service/Dockerfile
+      dockerfile: ./Dockerfile
       args:
         - APP_NAME=booking-service
     ports:
       - 3001:3001
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - POSTGRES_HOST=bookings-db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=postgres
@@ -45,13 +46,13 @@ services:
   payment-service:
     build:
       context: .
-      dockerfile: ./apps/payment-service/Dockerfile
+      dockerfile: ./Dockerfile
       args:
         - APP_NAME=payment-service
     ports:
       - 3002:3002
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - POSTGRES_HOST=payments-db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=postgres
@@ -66,13 +67,13 @@ services:
   users-service:
     build:
       context: .
-      dockerfile: ./apps/users-service/Dockerfile
+      dockerfile: ./Dockerfile
       args:
         - APP_NAME=users-service
     ports:
       - 3003:3003
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - POSTGRES_HOST=users-db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=postgres
@@ -102,6 +103,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=bookings
+      - POSTGRES_HOST_AUTH_METHOD=trust
 
   payments-db:
     image: postgres:alpine
@@ -109,6 +111,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=payments
+      - POSTGRES_HOST_AUTH_METHOD=trust
 
   users-db:
     image: postgres:alpine
@@ -116,6 +119,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=users
+      - POSTGRES_HOST_AUTH_METHOD=trust     
 
   redis:
     image: redis:alpine
