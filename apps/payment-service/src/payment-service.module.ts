@@ -3,6 +3,7 @@ import { PaymentServiceController } from './payment-service.controller';
 import { PaymentServiceService } from './payment-service.service';
 import { PaymentsModule } from './payments/payments.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -16,7 +17,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
       autoLoadEntities: true,
       synchronize: true,
     }),
-    PaymentsModule
+    PaymentsModule,
+    HealthModule
   ],
   controllers: [PaymentServiceController],
   providers: [PaymentServiceService],

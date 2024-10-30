@@ -4,6 +4,7 @@ import { UsersServiceService } from './users-service.service';
 import { UsersModule } from './users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { IamModule } from './iam/iam.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { IamModule } from './iam/iam.module';
     }),
     IamModule,
     UsersModule,
+    HealthModule,
   ],
   controllers: [UsersServiceController],
   providers: [UsersServiceService],

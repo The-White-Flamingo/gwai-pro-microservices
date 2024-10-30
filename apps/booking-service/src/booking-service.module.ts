@@ -3,6 +3,7 @@ import { BookingServiceController } from './booking-service.controller';
 import { BookingServiceService } from './booking-service.service';
 import { BookingsModule } from './bookings/bookings.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -16,7 +17,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
       autoLoadEntities: true,
       synchronize: true,
     }),
-    BookingsModule
+    BookingsModule,
+    HealthModule
   ],
   controllers: [BookingServiceController],
   providers: [BookingServiceService],
