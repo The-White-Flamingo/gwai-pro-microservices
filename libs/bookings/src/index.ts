@@ -1,2 +1,2 @@
-export * from './bookings.module';
-export * from './bookings.service';
+export * from './dto/create-booking.dto';
+export * from './dto/update-booking.dto';
