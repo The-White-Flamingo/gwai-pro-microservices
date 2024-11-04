@@ -1,42 +1,30 @@
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { AuthenticationService } from './authentication.service';
-import { OtpAuthenticationService } from './otp-authentication.service';
-import { Response } from 'express';
-import { toFileStream } from 'qrcode';
-import { ActiveUser, ActiveUserData, Auth, AuthType, RefreshTokenDto, SignInDto, SignUpDto } from '@app/iam';
-import { MessagePattern, Payload } from '@nestjs/microservices';
-import { Controller } from '@nestjs/common';
+import { SignUpDto } from './dto/sign-up.dto';
+import { SignInDto } from './dto/sign-in.dto';
+import { Auth } from './decorators/auth.decorator';
+import { AuthType } from './enums/auth-type.enum';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @Auth(AuthType.None)
 @Controller('auth')
 export class AuthenticationController {
-    constructor(private readonly authenticationService: AuthenticationService, private readonly otpAuthenticationService: OtpAuthenticationService) { }
+    constructor(private readonly authenticationService: AuthenticationService) { }
 
-    @MessagePattern('auth.signUp')
-    signUp(@Payload() signUpDto: SignUpDto) {
+    @Post('sign-up')
+    async signUp(@Body() signUpDto: SignUpDto) {
         return this.authenticationService.signUp(signUpDto);
     }
 
-    @MessagePattern('auth.signIn')
-    signIn(@Payload() signInDto: SignInDto) {
+    @HttpCode(HttpStatus.OK)
+    @Post('sign-in')
+    signIn(@Body() signInDto: SignInDto) {
         return this.authenticationService.signIn(signInDto);
     }
 
-    @MessagePattern('auth.refreshTokens')
-    refreshTokens(@Payload() refreshTokenDto: RefreshTokenDto) {
+    @HttpCode(HttpStatus.OK)
+    @Post('refresh-tokens')
+    refreshTokens(@Body() refreshTokenDto: RefreshTokenDto) {
         return this.authenticationService.refreshTokens(refreshTokenDto);
     }
-
-    // @MessagePattern('2fa/generate')
-    // async generateQrCode(
-    //     @ActiveUser() activeUser: ActiveUserData,
-    //     @Res() response: Response,
-    // ) {
-    //     const { secret, uri } = await this.otpAuthenticationService.generateSecret(activeUser.email);
-
-    //     await this.otpAuthenticationService.enableTfaForUser(activeUser.email, secret);
-
-    //     response.type('png');
-
-    //     return toFileStream(response, uri);
-    // }
 }

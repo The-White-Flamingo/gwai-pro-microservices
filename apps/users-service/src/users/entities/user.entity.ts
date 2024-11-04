@@ -1,12 +1,13 @@
-import { Role } from "@app/users";
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinTable, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Role } from "../enums/role.enum";
+import { ApiKey } from "../api-keys/entities/api-key.entity";
 
 @Entity('users')
-export class User {
+export class User { 
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ unique: true })
+    @Column({unique: true})
     email: string;
 
     @Column({ nullable: true })
@@ -15,12 +16,10 @@ export class User {
     @Column('enum', { enum: Role, default: Role.Regular })
     role: Role;
 
-    @Column({ default: false })
-    isTfaEnabled: boolean;
-
-    @Column({ nullable: true })
-    tfaSecret: string;
-
     @Column({ nullable: true })
     googleId: string;
+
+    @JoinTable()
+    @OneToMany(() => ApiKey, (apiKey) => apiKey.user)
+    apiKeys: ApiKey[];
 }

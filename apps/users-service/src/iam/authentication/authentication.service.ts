@@ -2,14 +2,17 @@ import { BadRequestException, ConflictException, Inject, Injectable, Unauthorize
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { HashingService } from '../hashing/hashing.service';
+import { SignUpDto } from './dto/sign-up.dto';
+import { SignInDto } from './dto/sign-in.dto';
 import { JwtService } from '@nestjs/jwt';
+import jwtConfig from '../config/jwt.config';
 import { ConfigType } from '@nestjs/config';
-import { InvalidatedRefreshTokenError, RefreshTokenIdsStorage } from './refresh-token-ids.storage';
+import { ActiveUserData } from '../interfaces/active-user-data.interface';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { RefreshTokenIdsStorage } from './refresh-token-ids.storage';
 import { randomUUID } from 'crypto';
-import { OtpAuthenticationService } from './otp-authentication.service';
+import { InvalidateRefreshTokenError } from './errors/invalidate-refresh-token.error';
 import { User } from '../../users/entities/user.entity';
-import jwtConfig from '@app/iam/config/jwt.config';
-import { ActiveUserData, RefreshTokenDto, SignInDto, SignUpDto } from '@app/iam';
 
 @Injectable()
 export class AuthenticationService {
@@ -19,7 +22,6 @@ export class AuthenticationService {
         private readonly jwtService: JwtService,
         @Inject(jwtConfig.KEY) private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
         private readonly refreshTokenIdsStorage: RefreshTokenIdsStorage,
-        private readonly otpAuthenticationService: OtpAuthenticationService,
     ) { }
 
     async signUp(signUpDto: SignUpDto) {
@@ -35,7 +37,7 @@ export class AuthenticationService {
         } catch (error) {
             const pgUniqueViolationErrorCode = '23505';
             if (error.code === pgUniqueViolationErrorCode) {
-                throw new ConflictException();
+                throw new ConflictException('User already exists');
             }
             throw new BadRequestException(error.message);
         }
@@ -47,27 +49,16 @@ export class AuthenticationService {
         });
 
         if (!user) {
-            throw new UnauthorizedException('User does not exist');
+            throw new BadRequestException('User does not exist');
         }
 
-        const passwordIsValid = await this.hashingService.compare(
+        const isPasswordValid = await this.hashingService.compare(
             signInDto.password,
-            user.password,
+            user.password
         );
 
-        if (!passwordIsValid) {
-            throw new UnauthorizedException('Password does not match');
-        }
-
-        if (user.isTfaEnabled) {
-            const isValid = this.otpAuthenticationService.verifyCode(
-                signInDto.tfaCode,
-                user.tfaSecret,
-            );
-
-            if (!isValid) {
-                throw new UnauthorizedException('Invalid 2FA code');
-            }
+        if (!isPasswordValid) {
+            throw new BadRequestException('Password does not match');
         }
 
         return await this.generateTokens(user);
@@ -79,7 +70,10 @@ export class AuthenticationService {
             this.signToken<Partial<ActiveUserData>>(
                 user.id,
                 this.jwtConfiguration.accessTokenTtl,
-                { email: user.email, role: user.role }
+                {
+                    email: user.email,
+                    role: user.role,
+                }
             ),
             this.signToken(user.id, this.jwtConfiguration.refreshTokenTtl, {
                 refreshTokenId,
@@ -101,7 +95,7 @@ export class AuthenticationService {
             >(refreshTokenDto.refreshToken, {
                 secret: this.jwtConfiguration.secret,
                 audience: this.jwtConfiguration.audience,
-                issuer: this.jwtConfiguration.issuer
+                issuer: this.jwtConfiguration.issuer,
             });
 
             const user = await this.userRepository.findOneByOrFail({
@@ -116,15 +110,15 @@ export class AuthenticationService {
             if (isValid) {
                 await this.refreshTokenIdsStorage.invalidate(user.id);
             } else {
-                throw new Error('Refresh toekn is invalid');
+                throw new UnauthorizedException('Refresh token is invalid');
             }
 
-            return await this.generateTokens(user);
+            return this.generateTokens(user);
         } catch (error) {
-            if (error instanceof InvalidatedRefreshTokenError) {
+            if (error instanceof InvalidateRefreshTokenError) {
                 throw new UnauthorizedException('Access denied');
             }
-            throw new UnauthorizedException();
+            throw new UnauthorizedException(error.message);
         }
     }
 
@@ -138,7 +132,7 @@ export class AuthenticationService {
                 audience: this.jwtConfiguration.audience,
                 issuer: this.jwtConfiguration.issuer,
                 secret: this.jwtConfiguration.secret,
-                expiresIn: this.jwtConfiguration.accessTokenTtl,
+                expiresIn,
             }
         );
     }

@@ -1,24 +1,12 @@
-import { Injectable, OnApplicationBootstrap, OnApplicationShutdown } from "@nestjs/common";
+import { Inject, Injectable, OnApplicationBootstrap, OnApplicationShutdown } from "@nestjs/common";
 import { Redis } from "ioredis";
-
-// TODO: Move this to a dedicated file
-export class InvalidatedRefreshTokenError extends Error {}
+import { InvalidateRefreshTokenError } from "./errors/invalidate-refresh-token.error";
 
 @Injectable()
-export class RefreshTokenIdsStorage implements OnApplicationBootstrap, OnApplicationShutdown {
-    private redisClient: Redis;
-
-    onApplicationBootstrap() {
-        // TODO: Move this to a dedicated RedisModule
-        this.redisClient = new Redis({
-            host: process.env.REDIS_HOST,
-            port: +process.env.REDIS_PORT,
-        })
-    }
-
-    onApplicationShutdown(signal?: string) {
-       return this.redisClient.quit();
-    }
+export class RefreshTokenIdsStorage {
+    constructor(
+        @Inject('REDIS_CLIENT') private readonly redisClient: Redis,
+    ) { }
 
     async insert(userId: string, tokenId: string): Promise<void> {
         await this.redisClient.set(this.getKey(userId), tokenId);
@@ -26,18 +14,16 @@ export class RefreshTokenIdsStorage implements OnApplicationBootstrap, OnApplica
 
     async validate(userId: string, tokenId: string): Promise<boolean> {
         const storedId = await this.redisClient.get(this.getKey(userId));
-
         if (storedId !== tokenId) {
-            throw new InvalidatedRefreshTokenError();
+            throw new InvalidateRefreshTokenError();
         }
-
         return storedId === tokenId;
-     }
-    
-    async invalidate(userId: string): Promise<void> { 
+    }
+
+    async invalidate(userId: string): Promise<void> {
         await this.redisClient.del(this.getKey(userId));
     }
-    
+
     private getKey(userId: string): string {
         return `user-${userId}`;
     }

@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
-import { AuthModule } from './auth/auth.module';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { USERS_SERVICE } from '@app/shared';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -17,7 +17,7 @@ import { USERS_SERVICE } from '@app/shared';
         },
       },
     ]),
-    AuthModule
+    AuthModule,
   ],
   controllers: [UsersController],
   providers: [UsersService],
