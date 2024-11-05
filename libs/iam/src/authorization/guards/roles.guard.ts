@@ -6,11 +6,9 @@ import { Role } from '@app/users/enums/role.enum';
 import { ActiveUserData } from '@app/iam/interfaces/active-user-data.interface';
 import { REQUEST_USER_KEY } from 'apps/users-service/src/iam/iam.constants';
 
-
-
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) { }
+  constructor(private readonly reflector: Reflector) {}
 
   canActivate(
     context: ExecutionContext,
@@ -24,7 +22,9 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const user: ActiveUserData = context.switchToHttp().getRequest()[REQUEST_USER_KEY];
+    const user: ActiveUserData = context.switchToHttp().getRequest()[
+      REQUEST_USER_KEY
+    ];
 
     return contextRoles.some((role) => user.role === role);
   }

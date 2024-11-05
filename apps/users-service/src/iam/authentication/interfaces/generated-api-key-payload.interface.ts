@@ -1,4 +1,4 @@
 export interface GeneratedApiKeyPayload {
-    apiKey: string;
-    hashedKey: string;
+  apiKey: string;
+  hashedKey: string;
 }

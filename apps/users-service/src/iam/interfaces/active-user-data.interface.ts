@@ -1,9 +1,9 @@
-import { Role } from "../../users/enums/role.enum";
+import { Role } from '../../users/enums/role.enum';
 
 export interface ActiveUserData {
-    sub: string;
+  sub: string;
 
-    email: string;
+  email: string;
 
-    role: Role;
+  role: Role;
 }

@@ -4,12 +4,12 @@ import { compare, genSalt, hash } from 'bcryptjs';
 
 @Injectable()
 export class BcryptService implements HashingService {
-    async hash(data: string | Buffer): Promise<string> {
-        const salt = await genSalt();
-        return hash(data, salt);
-    }
+  async hash(data: string | Buffer): Promise<string> {
+    const salt = await genSalt();
+    return hash(data, salt);
+  }
 
-    compare(data: string | Buffer, encrypted: string): Promise<boolean> {
-        return compare(data, encrypted);
-    }
+  compare(data: string | Buffer, encrypted: string): Promise<boolean> {
+    return compare(data, encrypted);
+  }
 }

@@ -18,7 +18,7 @@ import { HealthModule } from './health/health.module';
       synchronize: true,
     }),
     BookingsModule,
-    HealthModule
+    HealthModule,
   ],
   controllers: [BookingServiceController],
   providers: [BookingServiceService],

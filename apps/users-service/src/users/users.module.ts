@@ -9,8 +9,13 @@ import { StudiosModule } from './studios/studios.module';
 import { ClientsModule } from './clients/clients.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, ApiKey]), MusiciansModule, StudiosModule, ClientsModule],
+  imports: [
+    TypeOrmModule.forFeature([User, ApiKey]),
+    MusiciansModule,
+    StudiosModule,
+    ClientsModule,
+  ],
   controllers: [UsersController],
   providers: [UsersService],
 })
-export class UsersModule { }
+export class UsersModule {}

@@ -18,7 +18,7 @@ import { HealthModule } from './health/health.module';
       synchronize: true,
     }),
     PaymentsModule,
-    HealthModule
+    HealthModule,
   ],
   controllers: [PaymentServiceController],
   providers: [PaymentServiceService],

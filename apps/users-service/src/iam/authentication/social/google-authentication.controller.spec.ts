@@ -9,7 +9,9 @@ describe('GoogleAuthenticationController', () => {
       controllers: [GoogleAuthenticationController],
     }).compile();
 
-    controller = module.get<GoogleAuthenticationController>(GoogleAuthenticationController);
+    controller = module.get<GoogleAuthenticationController>(
+      GoogleAuthenticationController,
+    );
   });
 
   it('should be defined', () => {

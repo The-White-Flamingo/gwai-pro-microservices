@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { CreateBookingDto, UpdateBookingDto } from '../../../../libs/bookings/src';
+import {
+  CreateBookingDto,
+  UpdateBookingDto,
+} from '../../../../libs/bookings/src';
 
 @Injectable()
 export class BookingsService {

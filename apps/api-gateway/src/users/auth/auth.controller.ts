@@ -1,5 +1,22 @@
-import { ActiveUser, ActiveUserData, Auth, AuthType, RefreshTokenDto, SignInDto, SignUpDto } from '@app/iam';
-import { Body, Controller, HttpCode, HttpStatus, Post, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
+import {
+  ActiveUser,
+  ActiveUserData,
+  Auth,
+  AuthType,
+  RefreshTokenDto,
+  SignInDto,
+  SignUpDto,
+} from '@app/iam';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Res,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -8,13 +25,14 @@ import { FileInterceptor } from '@nestjs/platform-express';
 @Auth(AuthType.None)
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly authenticationService: AuthService,
-  ) { }
+  constructor(private readonly authenticationService: AuthService) {}
 
   @Post('sign-up')
   @UseInterceptors(FileInterceptor('avatar'))
-  signUp(@Body() signUpDto: SignUpDto, @UploadedFile() file: Express.Multer.File) {
+  signUp(
+    @Body() signUpDto: SignUpDto,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
     // signUpDto.avatar = file?.buffer.toString('base64');
 
     return this.authenticationService.signUp(signUpDto);
@@ -37,7 +55,5 @@ export class AuthController {
   async generateQrCode(
     @ActiveUser() activeUser: ActiveUserData,
     @Res() response: Response,
-  ) {
-
-  }
+  ) {}
 }

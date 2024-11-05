@@ -29,7 +29,7 @@ import { ConfigModule } from '@nestjs/config';
       useClass: RolesGuard,
     },
     AccessTokenGuard,
-    ApiGatewayService
+    ApiGatewayService,
   ],
 })
-export class ApiGatewayModule { }
+export class ApiGatewayModule {}

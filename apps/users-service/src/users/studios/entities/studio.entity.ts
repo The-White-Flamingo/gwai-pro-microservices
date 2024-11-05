@@ -1,33 +1,37 @@
-import { Column, CreateDateColumn, Entity, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { User } from "../../entities/user.entity";
-import { Service } from "../enums/service.enum";
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  OneToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { User } from '../../entities/user.entity';
+import { Service } from '../enums/service.enum';
 
 @Entity('studios')
 export class Studio {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    @Column()
-    name: string;
+  @Column({ nullable: true })
+  name: string;
 
-    @Column()
-    contact: string;
+  @Column({ nullable: true })
+  contact: string;
 
-    @Column()
-    location: string;
+  @Column({ nullable: true })
+  location: string;
 
-    @Column()
-    dateOfBirth: Date;
-    
-    @Column('simple-array', { nullable: true })
-    services: Service[];
+  @Column('simple-array', { nullable: true })
+  services: Service[];
 
-    @CreateDateColumn()
-    createdAt: Date;
+  @CreateDateColumn()
+  createdAt: Date;
 
-    @UpdateDateColumn()
-    updatedAt: Date;
+  @UpdateDateColumn()
+  updatedAt: Date;
 
-    @OneToOne(() => User)
-    user: User;
+  @OneToOne(() => User)
+  user: User;
 }

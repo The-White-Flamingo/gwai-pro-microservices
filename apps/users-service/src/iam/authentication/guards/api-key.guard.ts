@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { ApiKeysService } from '../api-keys.service';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -11,12 +16,11 @@ import { ActiveUserData } from '../../interfaces/active-user-data.interface';
 export class ApiKeyGuard implements CanActivate {
   constructor(
     private readonly apiKeysService: ApiKeysService,
-    @InjectRepository(ApiKey) private readonly apiKeysRepository: Repository<ApiKey>,
+    @InjectRepository(ApiKey)
+    private readonly apiKeysRepository: Repository<ApiKey>,
   ) {}
 
-  async canActivate(
-    context: ExecutionContext,
-  ): Promise<boolean> {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
 
     const apiKey = this.extractKeyFromHeader(request);
@@ -30,7 +34,7 @@ export class ApiKeyGuard implements CanActivate {
     try {
       const apiKeyEntity = await this.apiKeysRepository.findOne({
         where: { uuid: apiKeyEntityId },
-        relations: { user: true }
+        relations: { user: true },
       });
       await this.apiKeysService.validate(apiKey, apiKeyEntity.key);
 
@@ -39,7 +43,6 @@ export class ApiKeyGuard implements CanActivate {
         email: apiKeyEntity.user.email,
         role: apiKeyEntity.user.role,
       } as ActiveUserData;
-
     } catch (error) {
       throw new UnauthorizedException();
     }

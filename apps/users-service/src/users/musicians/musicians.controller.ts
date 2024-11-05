@@ -25,7 +25,10 @@ export class MusiciansController {
 
   @MessagePattern('updateMusician')
   update(@Payload() updateMusicianDto: UpdateMusicianDto) {
-    return this.musiciansService.update(updateMusicianDto.id, updateMusicianDto);
+    return this.musiciansService.update(
+      updateMusicianDto.id,
+      updateMusicianDto,
+    );
   }
 
   @MessagePattern('removeMusician')

@@ -1,40 +1,47 @@
-import { Column, CreateDateColumn, Entity, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { User } from "../../entities/user.entity";
-import { Genre } from "../../enums/genre.enum";
-import { Interest } from "../../enums/interest.enum";
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  OneToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { User } from '../../entities/user.entity';
+import { Genre } from '../../enums/genre.enum';
+import { Interest } from '../../enums/interest.enum';
 
 @Entity('musicians')
 export class Musician {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    @Column()
-    firstName: string;
+  @Column({ nullable: true })
+  firstName: string;
 
-    @Column()
-    lastName: string;
+  @Column({ nullable: true })
+  lastName: string;
 
-    @Column()
-    contact: string;
+  @Column({ nullable: true })
+  contact: string;
 
-    @Column()
-    location: string;
+  @Column({ nullable: true })
+  location: string;
 
-    @Column()
-    dateOfBirth: Date;
+  @Column({ nullable: true })
+  dateOfBirth: Date;
 
-    @Column('simple-array', { nullable: true })
-    genres: Genre[];
+  @Column('simple-array', { nullable: true })
+  genres: Genre[];
 
-    @Column('simple-array', { nullable: true })
-    interests: Interest[];
+  @Column('simple-array', { nullable: true })
+  interests: Interest[];
 
-    @CreateDateColumn()
-    createdAt: Date;
+  @CreateDateColumn()
+  createdAt: Date;
 
-    @UpdateDateColumn()
-    updatedAt: Date;
+  @UpdateDateColumn()
+  updatedAt: Date;
 
-    @OneToOne(() => User)
-    user: User;
+  @OneToOne(() => User)
+  user: User;
 }

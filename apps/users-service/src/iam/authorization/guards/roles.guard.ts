@@ -8,7 +8,7 @@ import { ActiveUserData } from '../../interfaces/active-user-data.interface';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) { }
+  constructor(private readonly reflector: Reflector) {}
 
   canActivate(
     context: ExecutionContext,
@@ -22,7 +22,9 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const user: ActiveUserData = context.switchToHttp().getRequest()[REQUEST_USER_KEY];
+    const user: ActiveUserData = context.switchToHttp().getRequest()[
+      REQUEST_USER_KEY
+    ];
 
     return contextRoles.some((role) => user.role === role);
   }

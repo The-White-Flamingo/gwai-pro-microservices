@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CreatePaymentDto } from '../../../../libs/payments/src';

@@ -1,7 +1,7 @@
-import { Role } from "@app/users";
+import { Role } from '@app/users';
 
 export interface ActiveUserData {
-    sub: string;
-    email: string;
-    role: Role;
+  sub: string;
+  email: string;
+  role: Role;
 }

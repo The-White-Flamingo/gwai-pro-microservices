@@ -18,17 +18,20 @@ import { GoogleAuthenticationService } from './authentication/social/google-auth
 import { GoogleAuthenticationController } from './authentication/social/google-authentication.controller';
 import { User } from '../users/entities/user.entity';
 import { ApiKey } from '../users/api-keys/entities/api-key.entity';
+import { Client } from '../users/clients/entities/client.entity';
+import { Musician } from '../users/musicians/entities/musician.entity';
+import { Studio } from '../users/studios/entities/studio.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, ApiKey]),
+    TypeOrmModule.forFeature([User, Client, Musician, Studio, ApiKey]),
     JwtModule.registerAsync(jwtConfig.asProvider()),
     ConfigModule.forFeature(jwtConfig),
   ],
   providers: [
     {
       provide: HashingService,
-      useClass: BcryptService
+      useClass: BcryptService,
     },
     {
       provide: APP_GUARD,
@@ -45,6 +48,6 @@ import { ApiKey } from '../users/api-keys/entities/api-key.entity';
     ApiKeysService,
     GoogleAuthenticationService,
   ],
-  controllers: [AuthenticationController, GoogleAuthenticationController]
+  controllers: [AuthenticationController, GoogleAuthenticationController],
 })
-export class IamModule { }
+export class IamModule {}
