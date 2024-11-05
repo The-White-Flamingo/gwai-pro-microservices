@@ -1,7 +1,8 @@
-import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { User } from '../../entities/user.entity';
 import { Genre } from '../../enums/genre.enum';
 import { Interest } from '../../enums/interest.enum';
+import { KafkaJSStaleTopicMetadataAssignment } from '@nestjs/microservices/external/kafka.interface';
 
 @Entity('clients')
 export class Client {
@@ -30,5 +31,6 @@ export class Client {
   interests: Interest[];
 
   @OneToOne(() => User)
+  @JoinColumn()
   user: User;
 }

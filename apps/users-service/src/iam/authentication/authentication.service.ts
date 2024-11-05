@@ -54,18 +54,21 @@ export class AuthenticationService {
       await queryRunner.manager.save(user);
 
       if (signUpDto.role === Role.Client) {
-          const client = new Client();
-          client.user = user;
+        const client = this.clientRepository.create({
+            user,
+          });
 
         await queryRunner.manager.save(client);
       } else if (signUpDto.role === Role.Musician) {
-          const musician = new Musician();
-          musician.user = user;
+        const musician = this.musicianRepository.create({
+            user,
+          });
 
         await queryRunner.manager.save(musician);
       } else if (signUpDto.role === Role.Studio) {
-          const studio = new Studio();
-          studio.user = user;
+        const studio = this.studioRepository.create({
+            user,
+          });
 
         await queryRunner.manager.save(studio);
       } else {

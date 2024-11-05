@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -43,5 +44,6 @@ export class Musician {
   updatedAt: Date;
 
   @OneToOne(() => User)
+  @JoinColumn()
   user: User;
 }
