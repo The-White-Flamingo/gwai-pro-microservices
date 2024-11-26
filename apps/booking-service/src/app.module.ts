@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { BookingServiceController } from './booking-service.controller';
-import { BookingServiceService } from './booking-service.service';
+import { BookingServiceController } from './app.controller';
+import { BookingServiceService } from './app.service';
 import { BookingsModule } from './bookings/bookings.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HealthModule } from './health/health.module';
@@ -23,4 +23,4 @@ import { HealthModule } from './health/health.module';
   controllers: [BookingServiceController],
   providers: [BookingServiceService],
 })
-export class BookingServiceModule {}
+export class BookingServiceModule { }
