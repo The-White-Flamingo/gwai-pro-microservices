@@ -77,7 +77,10 @@ export class AuthenticationService {
 
       await queryRunner.commitTransaction();
 
-      return await this.generateTokens(user);
+      return {
+        status: true,
+        message: `${user.role} signed up successfully`
+      }
     } catch (error) {
       await queryRunner.rollbackTransaction();
       const mysqlUniqueViolationErrorCode = '1062';
