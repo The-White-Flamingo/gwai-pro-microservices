@@ -2,7 +2,8 @@ services:
   api-gateway:
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: ./apps/api-gateway/Dockerfile
+      target: development
       args:
         - APP_NAME=api-gateway
     ports:
@@ -12,7 +13,7 @@ services:
       - JWT_TOKEN=XcJwVOuNBIngYy06oNgfjBmtVnD3trLw
       - JWT_TOKEN_AUDIENCE=user-service:3003
       - JWT_TOKEN_ISSUER=user-service:3003
-      - JWT_ACCESS_TOKEN_TTL=3600
+      - JWT_ACCESS_TOKEN_TTL=36000
       - JWT_REFRESH_TOKEN_TTL=86400
       - RABBITMQ_URL=amqp://rabbitmq:5672
     volumes:        
@@ -31,7 +32,8 @@ services:
   booking-service:
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: ./apps/booking-service/Dockerfile
+      target: development
       args:
         - APP_NAME=booking-service
     ports:
@@ -58,7 +60,8 @@ services:
   payment-service:
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: ./apps/payment-service/Dockerfile
+      target: development
       args:
         - APP_NAME=payment-service
     ports:
@@ -85,7 +88,8 @@ services:
   users-service:
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: ./apps/users-service/Dockerfile
+      target: development
       args:
         - APP_NAME=users-service
     ports:
@@ -121,6 +125,33 @@ services:
       - rabbitmq
     command: yarn start:dev users-service
 
+  chat-service:
+    build:
+      context: .
+      dockerfile: ./apps/chat-service/Dockerfile
+      target: development
+      args:
+        - APP_NAME=chat-service
+    ports:
+      - 3004:3004
+    environment:
+      - NODE_ENV=development
+      - POSTGRES_HOST=chat-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=chats
+    volumes:        
+      - ./libs:/usr/src/app/libs
+      - ./package.json:/usr/src/app/package.json
+      - ./tsconfig.json:/usr/src/app/tsconfig.json
+      - ./node_modules:/usr/src/app/node_modules
+      - ./apps/chat-service:/usr/src/app/apps/chat-service
+    depends_on:
+      - chat-db
+      - rabbitmq
+    command: yarn start:dev chat-service
+
   bookings-db:
     image: postgres:alpine
     environment:
@@ -143,10 +174,24 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=users
-      - POSTGRES_HOST_AUTH_METHOD=trust     
+      - POSTGRES_HOST_AUTH_METHOD=trust
+  
+  chat-db:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=chats
+      - POSTGRES_HOST_AUTH_METHOD=trust
 
   redis:
     image: redis:alpine
 
   rabbitmq:
-    image: rabbitmq:alpine
+    image: rabbitmq:management-alpine
+    ports:
+      - 5672:5672
+      - 15672:15672
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest

@@ -1,33 +1,27 @@
-# Stage 1: Build the app
-FROM public.ecr.aws/docker/library/node:lts-alpine AS builder
+FROM node:alpine as development
 
-# Set the working directory
 WORKDIR /usr/src/app
 
-# Copy the root package.json and yarn.lock files
-COPY package.json yarn.lock ./
+COPY package*.json  yarn.lock ./
 
-# Install dependencies
-RUN yarn install --frozen-lockfile
+RUN yarn install
 
-# Copy the entire application code
 COPY . .
 
-# Build the specific service
-RUN yarn build payment-service
+RUN yarn build
 
-# Stage 2: Prepare the production image
-FROM public.ecr.aws/docker/library/node:lts-alpine
+FROM node:alpine as production
 
-# Set the working directory
+ARG NODE_ENV=production
+
+ENV NODE_ENV=${NODE_ENV}
+
 WORKDIR /usr/src/app
 
-# Copy only production dependencies
-COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile --production
+COPY package*.json  yarn.lock ./
 
-# Copy the build artifacts from the builder stage
-COPY --from=builder /usr/src/app/dist /usr/src/app/dist
+RUN yarn install --production
 
-# Start the application
-CMD ["node", "dist/apps/payment-service/main.js"]
+COPY --from=development /usr/src/app/dist ./dist
+
+CMD ["node", "dist/apps/payment-service/main"]
