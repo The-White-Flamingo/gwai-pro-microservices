@@ -48,12 +48,12 @@ export class AuthController {
     return this.authenticationService.refreshTokens(refreshTokenDto);
   }
 
-  @ApiBearerAuth()
-  @Auth(AuthType.Bearer)
-  @HttpCode(HttpStatus.OK)
-  @Post('2fa/generate')
-  async generateQrCode(
-    @ActiveUser() activeUser: ActiveUserData,
-    @Res() response: Response,
-  ) {}
+  // @ApiBearerAuth()
+  // @Auth(AuthType.Bearer)
+  // @HttpCode(HttpStatus.OK)
+  // @Post('2fa/generate')
+  // async generateQrCode(
+  //   @ActiveUser() activeUser: ActiveUserData,
+  //   @Res() response: Response,
+  // ) {}
 }

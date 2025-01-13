@@ -87,7 +87,7 @@ export class AuthenticationService {
       if (error.code === mysqlUniqueViolationErrorCode) {
         throw new ConflictException('User already exists');
       }
-      throw new BadRequestException(error.message);
+      throw new BadRequestException(error.message).getResponse();
     } finally {
       await queryRunner.release();
     }
@@ -160,13 +160,13 @@ export class AuthenticationService {
       if (isValid) {
         await this.refreshTokenIdsStorage.invalidate(user.id);
       } else {
-        throw new UnauthorizedException('Refresh token is invalid');
+        throw new UnauthorizedException('Refresh token is invalid').getResponse();
       }
 
       return this.generateTokens(user);
     } catch (error) {
       if (error instanceof InvalidateRefreshTokenError) {
-        throw new UnauthorizedException('Access denied');
+        throw new UnauthorizedException('Access denied').getResponse();
       }
       throw new UnauthorizedException(error.message);
     }

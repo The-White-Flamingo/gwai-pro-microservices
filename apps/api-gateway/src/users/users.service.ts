@@ -37,18 +37,6 @@ export class UsersService {
     }
   }
 
-  async orders(id: string) {
-    try {
-      const orders = await lastValueFrom(this.client.send('users.orders', id));
-      return orders;
-    } catch (error) {
-      if (error instanceof UnauthorizedException) {
-        throw new UnauthorizedException(error.message);
-      }
-      throw new BadRequestException(error.messsage);
-    }
-  }
-
   async update(id: string, updateUserDto: SignUpDto) {
     try {
       const user = await lastValueFrom(

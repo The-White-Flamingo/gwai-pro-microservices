@@ -29,11 +29,6 @@ export class UsersController {
     return this.usersService.findOne(id);
   }
 
-  @Get(':id/orders')
-  orders(@Param('id') id: string) {
-    return this.usersService.orders(id);
-  }
-
   @Patch(':id')
   @UseInterceptors(FileInterceptor('file'))
   update(

@@ -5,8 +5,6 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.useGlobalPipes(new ValidationPipe());
-  app.enableCors();
 
   app.connectMicroservice<MicroserviceOptions>(
     {
