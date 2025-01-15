@@ -9,6 +9,7 @@ import { AccessTokenGuard, AuthenticationGuard, RolesGuard } from '@app/iam';
 import { JwtModule } from '@nestjs/jwt';
 import jwtConfig from '@app/iam/config/jwt.config';
 import { ConfigModule } from '@nestjs/config';
+import { PostsModule } from './posts/posts.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ConfigModule } from '@nestjs/config';
     UsersModule,
     PaymentsModule,
     BookingsModule,
+    PostsModule,
   ],
   controllers: [ApiGatewayController],
   providers: [

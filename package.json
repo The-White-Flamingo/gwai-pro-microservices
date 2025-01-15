@@ -95,7 +95,8 @@
       "^@app/payments(|/.*)$": "<rootDir>/libs/payments/src/$1",
       "^@app/bookings(|/.*)$": "<rootDir>/libs/bookings/src/$1",
       "^@app/iam(|/.*)$": "<rootDir>/libs/iam/src/$1",
-      "^@app/shared(|/.*)$": "<rootDir>/libs/shared/src/$1"
+      "^@app/shared(|/.*)$": "<rootDir>/libs/shared/src/$1",
+      "^@app/posts(|/.*)$": "<rootDir>/libs/posts/src/$1"
     }
   }
 }

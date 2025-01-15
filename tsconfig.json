@@ -47,6 +47,12 @@
       ],
       "@app/shared/*": [
         "libs/shared/src/*"
+      ],
+      "@app/posts": [
+        "libs/posts/src"
+      ],
+      "@app/posts/*": [
+        "libs/posts/src/*"
       ]
     }
   }

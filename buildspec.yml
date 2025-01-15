@@ -28,6 +28,9 @@ phases:
       - docker build -f apps/chat-service/Dockerfile -t gwaipro/chat-service . 
       - docker tag gwaipro/chat-service:latest 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/chat-service:latest
       
+      - echo Build Posts service...
+      - docker build -f apps/posts-service/Dockerfile -t gwaipro/posts-service . 
+      - docker tag gwaipro/posts-service:latest 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/posts-service:latest
 
   post_build:
     commands:
@@ -37,3 +40,4 @@ phases:
       - docker push 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/payment-service:latest
       - docker push 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/users-service:latest
       - docker push 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/chat-service:latest
+      - docker push 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/posts-service:latest

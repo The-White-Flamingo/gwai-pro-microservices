@@ -8,14 +8,8 @@ services:
         - APP_NAME=api-gateway
     ports:
       - 3000:3000
-    environment:
-      - NODE_ENV=development
-      - JWT_TOKEN=XcJwVOuNBIngYy06oNgfjBmtVnD3trLw
-      - JWT_TOKEN_AUDIENCE=user-service:3003
-      - JWT_TOKEN_ISSUER=user-service:3003
-      - JWT_ACCESS_TOKEN_TTL=36000
-      - JWT_REFRESH_TOKEN_TTL=86400
-      - RABBITMQ_URL=amqp://rabbitmq:5672
+    env_file:
+      - ./apps/api-gateway/.env
     volumes:        
       - ./libs:/usr/src/app/libs
       - ./package.json:/usr/src/app/package.json
@@ -27,6 +21,7 @@ services:
       - users-service
       - booking-service
       - payment-service
+      - posts-service
     command: yarn start:dev api-gateway
 
   booking-service:
@@ -38,14 +33,8 @@ services:
         - APP_NAME=booking-service
     ports:
       - 3001:3001
-    environment:
-      - NODE_ENV=development
-      - POSTGRES_HOST=bookings-db
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=bookings
-      - RABBITMQ_URL=amqp://rabbitmq:5672
+    env_file:
+      - ./apps/booking-service/.env
     volumes:        
       - ./libs:/usr/src/app/libs
       - ./package.json:/usr/src/app/package.json
@@ -66,14 +55,8 @@ services:
         - APP_NAME=payment-service
     ports:
       - 3002:3002
-    environment:
-      - NODE_ENV=development
-      - POSTGRES_HOST=payments-db
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=payments
-      - RABBITMQ_URL=amqp://rabbitmq:5672
+    env_file:
+      - ./apps/payment-service/.env
     volumes:        
       - ./libs:/usr/src/app/libs
       - ./package.json:/usr/src/app/package.json
@@ -94,25 +77,8 @@ services:
         - APP_NAME=users-service
     ports:
       - 3003:3003
-    environment:
-      - NODE_ENV=development
-      - POSTGRES_HOST=users-db
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=users
-      - JWT_SECRET=XcJwVOuNBIngYy06oNgfjBmtVnD3trLw
-      - JWT_TOKEN_AUDIENCE=user-service:3003
-      - JWT_TOKEN_ISSUER=user-service:3003
-      - JWT_ACCESS_TOKEN_TTL=3600
-      - JWT_REFRESH_TOKEN_TTL=86400
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - RABBITMQ_URL=amqp://rabbitmq:5672
-      - GOOGLE_CLIENT_ID=google-client-id
-      - GOOGLE_CLIENT_SECRET=google-client-secret
-      - TWILIO_ACCOUNT_SID=twilio-account-sid
-      - TWILIO_AUTH_TOKEN=twilio-auth-token
+    env_file:
+      - ./apps/users-service/.env
     volumes:        
       - ./libs:/usr/src/app/libs
       - ./package.json:/usr/src/app/package.json
@@ -134,13 +100,8 @@ services:
         - APP_NAME=chat-service
     ports:
       - 3004:3004
-    environment:
-      - NODE_ENV=development
-      - POSTGRES_HOST=chat-db
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=chats
+    env_file:
+      - ./apps/chat-service/.env
     volumes:        
       - ./libs:/usr/src/app/libs
       - ./package.json:/usr/src/app/package.json
@@ -151,6 +112,28 @@ services:
       - chat-db
       - rabbitmq
     command: yarn start:dev chat-service
+
+  posts-service:
+    build:
+      context: .
+      dockerfile: ./apps/posts-service/Dockerfile
+      target: development
+      args:
+        - APP_NAME=posts-service
+    ports:
+      - 3005:3005
+    env_file:
+      - ./apps/posts-service/.env
+    volumes:
+      - ./libs:/usr/src/app/libs
+      - ./package.json:/usr/src/app/package.json
+      - ./tsconfig.json:/usr/src/app/tsconfig.json
+      - ./node_modules:/usr/src/app/node_modules
+      - ./apps/posts-service:/usr/src/app/apps/posts-service
+    depends_on:
+      - posts-db
+      - rabbitmq
+    command: yarn start:dev posts-service
 
   bookings-db:
     image: postgres:alpine
@@ -182,6 +165,14 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=chats
+      - POSTGRES_HOST_AUTH_METHOD=trust
+
+  posts-db:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=posts
       - POSTGRES_HOST_AUTH_METHOD=trust
 
   redis:
