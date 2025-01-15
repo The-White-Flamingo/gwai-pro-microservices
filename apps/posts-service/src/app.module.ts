@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { PostsServiceController } from './app.controller';
 import { PostsServiceService } from './app.service';
 import { PostsModule } from './posts/posts.module';
-import { CommentsModule } from './comments/comments.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
@@ -18,7 +17,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
       synchronize: true,
     }),
     PostsModule,
-    CommentsModule,
   ],
   controllers: [PostsServiceController],
   providers: [PostsServiceService],
