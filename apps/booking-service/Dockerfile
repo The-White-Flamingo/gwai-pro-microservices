@@ -1,4 +1,4 @@
-FROM node:alpine as development
+FROM public.ecr.aws/docker/library/node:lts-alpine AS development
 
 WORKDIR /usr/src/app
 
@@ -10,7 +10,7 @@ COPY . .
 
 RUN yarn build
 
-FROM node:alpine as production
+FROM public.ecr.aws/docker/library/node:lts-alpine AS production
 
 ARG NODE_ENV=production
 
