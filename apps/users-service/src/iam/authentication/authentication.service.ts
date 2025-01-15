@@ -55,20 +55,20 @@ export class AuthenticationService {
 
       if (signUpDto.role === Role.Client) {
         const client = this.clientRepository.create({
-            user,
-          });
+          user,
+        });
 
         await queryRunner.manager.save(client);
       } else if (signUpDto.role === Role.Musician) {
         const musician = this.musicianRepository.create({
-            user,
-          });
+          user,
+        });
 
         await queryRunner.manager.save(musician);
       } else if (signUpDto.role === Role.Studio) {
         const studio = this.studioRepository.create({
-            user,
-          });
+          user,
+        });
 
         await queryRunner.manager.save(studio);
       } else {
@@ -79,8 +79,8 @@ export class AuthenticationService {
 
       return {
         status: true,
-        message: `${user.role} signed up successfully`
-      }
+        message: `${user.role} signed up successfully`,
+      };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       const mysqlUniqueViolationErrorCode = '1062';
@@ -160,7 +160,9 @@ export class AuthenticationService {
       if (isValid) {
         await this.refreshTokenIdsStorage.invalidate(user.id);
       } else {
-        throw new UnauthorizedException('Refresh token is invalid').getResponse();
+        throw new UnauthorizedException(
+          'Refresh token is invalid',
+        ).getResponse();
       }
 
       return this.generateTokens(user);

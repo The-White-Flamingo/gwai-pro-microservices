@@ -1,26 +1,117 @@
-import { Injectable } from '@nestjs/common';
-import { CreateBookingDto } from './dto/create-booking.dto';
-import { UpdateBookingDto } from './dto/update-booking.dto';
+import { CreateBookingDto, UpdateBookingDto } from '@app/bookings';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Booking } from './entities/booking.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class BookingsService {
-  create(createBookingDto: CreateBookingDto) {
-    return 'This action adds a new booking';
+  constructor(
+    @InjectRepository(Booking)
+    private readonly bookingRepository: Repository<Booking>,
+  ) {}
+
+  async create(createBookingDto: CreateBookingDto) {
+    try {
+      const booking = this.bookingRepository.create(createBookingDto);
+
+      await this.bookingRepository.save(booking);
+
+      return {
+        status: true,
+        message: 'Booking created successfully',
+        data: booking,
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
-  findAll() {
-    return `This action returns all bookings`;
+  async findAll() {
+    try {
+      const bookings = await this.bookingRepository.find();
+
+      return {
+        status: true,
+        message: 'Bookings retrieved successfully',
+        data: bookings,
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} booking`;
+  async findOne(id: string) {
+    try {
+      const booking = await this.bookingRepository.findOneBy({ id });
+
+      if (!booking) {
+        throw new NotFoundException('Booking not found');
+      }
+
+      return {
+        status: true,
+        message: 'Booking retrieved successfully',
+        data: booking,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(error.message);
+      }
+      throw new BadRequestException(error.message);
+    }
   }
 
-  update(id: number, updateBookingDto: UpdateBookingDto) {
-    return `This action updates a #${id} booking`;
+  async update(updateBookingDto: UpdateBookingDto) {
+    try {
+      const booking = await this.bookingRepository.findOneBy({
+        id: updateBookingDto.id,
+      });
+
+      if (!booking) {
+        throw new NotFoundException('Booking not found');
+      }
+
+      await this.bookingRepository.update(updateBookingDto.id, {
+        ...updateBookingDto,
+      });
+
+      return {
+        status: true,
+        message: 'Booking updated successfully',
+        data: booking,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(error.message);
+      }
+      throw new BadRequestException(error.message);
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} booking`;
+  async remove(id: string) {
+    try {
+      const booking = await this.bookingRepository.findOneBy({ id });
+
+      if (!booking) {
+        throw new NotFoundException('Booking not found');
+      }
+
+      await this.bookingRepository.remove(booking);
+
+      return {
+        status: true,
+        message: 'Booking deleted successfully',
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(error.message);
+      }
+      throw new BadRequestException(error.message);
+    }
   }
 }

@@ -1,35 +1,34 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { BookingsService } from './bookings.service';
-import { CreateBookingDto } from './dto/create-booking.dto';
-import { UpdateBookingDto } from './dto/update-booking.dto';
+import { CreateBookingDto, UpdateBookingDto } from '@app/bookings';
 
 @Controller()
 export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
-  @MessagePattern('createBooking')
+  @MessagePattern('bookings.create')
   create(@Payload() createBookingDto: CreateBookingDto) {
     return this.bookingsService.create(createBookingDto);
   }
 
-  @MessagePattern('findAllBookings')
+  @MessagePattern('bookings.findAll')
   findAll() {
     return this.bookingsService.findAll();
   }
 
-  @MessagePattern('findOneBooking')
-  findOne(@Payload() id: number) {
+  @MessagePattern('bookings.findOne')
+  findOne(@Payload() id: string) {
     return this.bookingsService.findOne(id);
   }
 
-  @MessagePattern('updateBooking')
+  @MessagePattern('booking.update')
   update(@Payload() updateBookingDto: UpdateBookingDto) {
-    return this.bookingsService.update(updateBookingDto.id, updateBookingDto);
+    return this.bookingsService.update(updateBookingDto);
   }
 
-  @MessagePattern('removeBooking')
-  remove(@Payload() id: number) {
+  @MessagePattern('booking.delete')
+  remove(@Payload() id: string) {
     return this.bookingsService.remove(id);
   }
 }

@@ -23,4 +23,4 @@ import { HealthModule } from './health/health.module';
   controllers: [BookingServiceController],
   providers: [BookingServiceService],
 })
-export class BookingServiceModule { }
+export class BookingServiceModule {}

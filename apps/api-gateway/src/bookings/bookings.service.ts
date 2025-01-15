@@ -1,28 +1,87 @@
-import { Injectable } from '@nestjs/common';
 import {
-  CreateBookingDto,
-  UpdateBookingDto,
-} from '../../../../libs/bookings/src';
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { CreateBookingDto, UpdateBookingDto } from '@app/bookings';
+import { BOOKING_SERVICE } from '@app/shared';
+import { ClientProxy } from '@nestjs/microservices';
+import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class BookingsService {
-  create(createBookingDto: CreateBookingDto) {
-    return 'This action adds a new booking';
+  constructor(@Inject(BOOKING_SERVICE) private readonly client: ClientProxy) {}
+
+  async create(createBookingDto: CreateBookingDto) {
+    try {
+      const booking = await lastValueFrom(
+        this.client.send('bookings.create', { ...createBookingDto }),
+      );
+
+      return booking;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
-  findAll() {
-    return `This action returns all bookings`;
+  async findAll() {
+    try {
+      const booking = await lastValueFrom(
+        this.client.send('bookings.findAll', {}),
+      );
+
+      return booking;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} booking`;
+  async findOne(id: string) {
+    try {
+      const booking = await lastValueFrom(
+        this.client.send('bookings.findOne', { id }),
+      );
+
+      return booking;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(error.message);
+      }
+      throw new BadRequestException(error.message);
+    }
   }
 
-  update(id: number, updateBookingDto: UpdateBookingDto) {
-    return `This action updates a #${id} booking`;
+  async update(id: string, updateBookingDto: UpdateBookingDto) {
+    try {
+      const booking = await lastValueFrom(
+        this.client.send('bookings.update', {
+          id,
+          ...updateBookingDto,
+        }),
+      );
+
+      return booking;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(error.message);
+      }
+      throw new BadRequestException(error.message);
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} booking`;
+  async remove(id: string) {
+    try {
+      const booking = await lastValueFrom(
+        this.client.send('bookings.delete', { id }),
+      );
+
+      return booking;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(error.message);
+      }
+      throw new BadRequestException(error.message);
+    }
   }
 }

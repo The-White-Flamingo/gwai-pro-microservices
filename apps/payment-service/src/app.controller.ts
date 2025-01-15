@@ -3,7 +3,7 @@ import { PaymentServiceService } from './app.service';
 
 @Controller()
 export class PaymentServiceController {
-  constructor(private readonly paymentServiceService: PaymentServiceService) { }
+  constructor(private readonly paymentServiceService: PaymentServiceService) {}
 
   @Get()
   getHello(): string {

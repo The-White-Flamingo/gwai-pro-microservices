@@ -4,7 +4,7 @@ import { Auth, AuthType } from '@app/iam';
 
 @Controller()
 export class ApiGatewayController {
-  constructor(private readonly apiGatewayService: ApiGatewayService) { }
+  constructor(private readonly apiGatewayService: ApiGatewayService) {}
 
   @Auth(AuthType.None)
   @Get()

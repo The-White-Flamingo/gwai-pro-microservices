@@ -1,26 +1,104 @@
-import { Injectable } from '@nestjs/common';
-import { CreatePaymentDto } from '../../../../libs/payments/src';
-import { UpdatePaymentDto } from '../../../payment-service/src/payments/dto/update-payment.dto';
+import { ActiveUserData } from '@app/iam';
+import {
+  CreatePaymentDto,
+  UpdatePaymentDto,
+  VerifyPaymentDto,
+} from '@app/payments';
+import { PAYMENT_SERVICE } from '@app/shared';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class PaymentsService {
-  create(createPaymentDto: CreatePaymentDto) {
-    return 'This action adds a new payment';
+  constructor(@Inject(PAYMENT_SERVICE) private readonly client: ClientProxy) {}
+
+  async findAll() {
+    try {
+      const payments = await lastValueFrom(
+        this.client.send('payments.findAll', {}),
+      );
+      return payments;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
-  findAll() {
-    return `This action returns all payments`;
+  async findOne(id: string) {
+    try {
+      const payment = await lastValueFrom(
+        this.client.send('payments.findOne', { id }),
+      );
+
+      return payment;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(error.message);
+      }
+      throw new BadRequestException(error.message);
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} payment`;
+  async update(id: string, updatePaymentDto: UpdatePaymentDto) {
+    try {
+      const payment = await lastValueFrom(
+        this.client.send('payments.update', {
+          id,
+          ...updatePaymentDto,
+        }),
+      );
+
+      return payment;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(error.message);
+      }
+      throw new BadRequestException(error.message);
+    }
   }
 
-  update(id: number, updatePaymentDto: UpdatePaymentDto) {
-    return `This action updates a #${id} payment`;
+  async initialize(createPaymentDto: CreatePaymentDto, user: ActiveUserData) {
+    try {
+      const payment = await lastValueFrom(
+        this.client.send('payments.initialize', {
+          ...createPaymentDto,
+        }),
+      );
+
+      return payment;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} payment`;
+  async verify(verifyPaymentDto: VerifyPaymentDto) {
+    try {
+      const payment = await lastValueFrom(
+        this.client.send('payments.verify', {
+          reference: verifyPaymentDto.reference,
+        }),
+      );
+
+      return payment;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async webhook(payload: any) {
+    try {
+      const payment = await lastValueFrom(
+        this.client.send('payments.webhook', payload),
+      );
+
+      return payment;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 }

@@ -1,35 +1,47 @@
 import { Controller } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
 import { PaymentsService } from './payments.service';
-import { CreatePaymentDto } from './dto/create-payment.dto';
-import { UpdatePaymentDto } from './dto/update-payment.dto';
+import {
+  CreatePaymentDto,
+  PaystackWebhookDto,
+  UpdatePaymentDto,
+  VerifyPaymentDto,
+} from '@app/payments';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 
-@Controller()
+@Controller('payments')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
-  @MessagePattern('createPayment')
-  create(@Payload() createPaymentDto: CreatePaymentDto) {
-    return this.paymentsService.create(createPaymentDto);
-  }
-
-  @MessagePattern('findAllPayments')
+  @MessagePattern('payments.findAll')
   findAll() {
     return this.paymentsService.findAll();
   }
 
-  @MessagePattern('findOnePayment')
-  findOne(@Payload() id: number) {
+  @MessagePattern('payments.findOne')
+  findOne(@Payload('id') id: string) {
     return this.paymentsService.findOne(id);
   }
 
-  @MessagePattern('updatePayment')
-  update(@Payload() updatePaymentDto: UpdatePaymentDto) {
-    return this.paymentsService.update(updatePaymentDto.id, updatePaymentDto);
+  @MessagePattern('payments.update')
+  update(
+    @Payload('id') id: string,
+    @Payload() updatePaymentDto: UpdatePaymentDto,
+  ) {
+    return this.paymentsService.update(id, updatePaymentDto);
   }
 
-  @MessagePattern('removePayment')
-  remove(@Payload() id: number) {
-    return this.paymentsService.remove(id);
+  @MessagePattern('payments.initialize')
+  initialize(@Payload() createPaymentDto: CreatePaymentDto) {
+    return this.paymentsService.initialize(createPaymentDto);
+  }
+
+  @MessagePattern('payments.verify')
+  verify(@Payload() verifyPaymentDto: VerifyPaymentDto) {
+    return this.paymentsService.verify(verifyPaymentDto);
+  }
+
+  @MessagePattern('payments.webhook')
+  webhook(@Payload() paystackWebhookDto: PaystackWebhookDto) {
+    return this.paymentsService.webhook(paystackWebhookDto);
   }
 }
