@@ -1,4 +1,4 @@
-import { BookingStatus, ServiceType } from '@app/bookings';
+import { BookingStatus } from '@app/bookings';
 import {
   Column,
   CreateDateColumn,
@@ -15,8 +15,8 @@ export class Booking {
   @Column()
   userId: string;
 
-  @Column('enum')
-  serviceType: ServiceType;
+  @Column()
+  serviceType: string;
 
   @Column()
   date: Date;
@@ -27,7 +27,7 @@ export class Booking {
   @Column('time')
   endTime: string;
 
-  @Column('enum')
+  @Column('enum', { enum: BookingStatus, default: BookingStatus.Requested })
   status: BookingStatus;
 
   @CreateDateColumn()
