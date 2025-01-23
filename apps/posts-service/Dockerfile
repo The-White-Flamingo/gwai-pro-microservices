@@ -8,7 +8,7 @@ RUN yarn install
 
 COPY . .
 
-RUN yarn build
+RUN yarn build posts-service
 
 FROM public.ecr.aws/docker/library/node:lts-alpine AS production
 

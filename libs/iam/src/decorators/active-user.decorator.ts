@@ -1,5 +1,5 @@
 import { ExecutionContext, createParamDecorator } from '@nestjs/common';
-import { REQUEST_USER_KEY } from '../../../../apps/users-service/src/iam/iam.constants';
+import { REQUEST_USER_KEY } from '../iam.constants';
 import { ActiveUserData } from '../interfaces/active-user-data.interface';
 
 export const ActiveUser = createParamDecorator(

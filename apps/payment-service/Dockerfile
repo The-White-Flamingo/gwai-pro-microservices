@@ -8,7 +8,7 @@ RUN yarn install
 
 COPY . .
 
-RUN yarn build
+RUN yarn build payment-service
 
 FROM public.ecr.aws/docker/library/node:lts-alpine AS production
 

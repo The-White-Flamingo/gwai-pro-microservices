@@ -8,7 +8,7 @@ RUN yarn install
 
 COPY . .
 
-RUN yarn build
+RUN yarn build users-service
 
 FROM public.ecr.aws/docker/library/node:lts-alpine AS production
 
@@ -24,4 +24,4 @@ RUN yarn install --production
 
 COPY --from=development /usr/src/app/dist ./dist
 
-CMD ["node", "dist/apps/user-service/main"]
+CMD ["node", "dist/apps/users-service/main"]

@@ -9,7 +9,7 @@ import { ApiKeysService } from '../api-keys.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ApiKey } from '../../../users/api-keys/entities/api-key.entity';
-import { REQUEST_USER_KEY } from '../../iam.constants';
+import { REQUEST_USER_KEY } from '../../../../../../libs/iam/src/iam.constants';
 import { ActiveUserData } from '../../interfaces/active-user-data.interface';
 
 @Injectable()
