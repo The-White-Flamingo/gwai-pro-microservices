@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
-import { PostsServiceController } from './app.controller';
-import { PostsServiceService } from './app.service';
-import { PostsModule } from './posts/posts.module';
+import { ChatServiceController } from './app.controller';
+import { ChatServiceService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HealthModule } from './health/health.module';
 
@@ -21,10 +20,9 @@ import { HealthModule } from './health/health.module';
         ca: Buffer.from(process.env.SSL_CERT, 'base64').toString('utf-8'),
       },
     }),
-    PostsModule,
     HealthModule,
   ],
-  controllers: [PostsServiceController],
-  providers: [PostsServiceService],
+  controllers: [ChatServiceController],
+  providers: [ChatServiceService],
 })
-export class PostsServiceModule {}
+export class ChatServiceModule {}

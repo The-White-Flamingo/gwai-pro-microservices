@@ -11,9 +11,9 @@ export class HealthController {
   constructor(
     private health: HealthCheckService,
     private db: TypeOrmHealthIndicator,
-  ) { }
+  ) {}
 
-  @MessagePattern('booking.health')
+  @MessagePattern('users.health')
   @HealthCheck()
   check() {
     return this.health.check([() => this.db.pingCheck('database')]);

@@ -1,4 +1,5 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
+import { MessagePattern } from '@nestjs/microservices';
 import {
   HealthCheckService,
   TypeOrmHealthIndicator,
@@ -10,9 +11,9 @@ export class HealthController {
   constructor(
     private health: HealthCheckService,
     private db: TypeOrmHealthIndicator,
-  ) {}
+  ) { }
 
-  @Get()
+  @MessagePattern('payments.health')
   @HealthCheck()
   check() {
     return this.health.check([() => this.db.pingCheck('database')]);

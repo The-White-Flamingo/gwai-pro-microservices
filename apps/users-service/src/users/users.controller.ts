@@ -1,8 +1,4 @@
-import {
-  Controller,
-  Body,
-  Param,
-} from '@nestjs/common';
+import { Controller, Body, Param } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from '@app/users';
 import { MessagePattern, Payload } from '@nestjs/microservices';

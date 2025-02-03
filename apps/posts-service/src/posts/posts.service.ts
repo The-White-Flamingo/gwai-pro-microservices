@@ -61,7 +61,7 @@ export class PostsService {
         status: true,
         message: 'Post retrieved successfully',
         data: post,
-      }
+      };
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw new NotFoundException(error.message);
@@ -71,26 +71,28 @@ export class PostsService {
   }
 
   async update(updatePostDto: UpdatePostDto) {
-   try {
-    const post = await this.postsRepository.findOneBy({ id: updatePostDto.id });
+    try {
+      const post = await this.postsRepository.findOneBy({
+        id: updatePostDto.id,
+      });
 
-    if (!post) {
-      throw new NotFoundException('Post not found');
-    }
+      if (!post) {
+        throw new NotFoundException('Post not found');
+      }
 
-    await this.postsRepository.update(updatePostDto.id, updatePostDto);
+      await this.postsRepository.update(updatePostDto.id, updatePostDto);
 
-    return {
-      status: true,
-      message: 'Post updated successfully',
-      data: post,
+      return {
+        status: true,
+        message: 'Post updated successfully',
+        data: post,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(error.message);
+      }
+      throw new BadRequestException(error.message);
     }
-   } catch (error) {
-    if (error instanceof NotFoundException) {
-      throw new NotFoundException(error.message);
-    }
-    throw new BadRequestException(error.message);
-   }
   }
 
   async remove(id: string) {
@@ -106,7 +108,7 @@ export class PostsService {
       return {
         status: true,
         message: 'Post deleted successfully',
-      }
+      };
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw new NotFoundException(error.message);

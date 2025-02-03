@@ -1,10 +1,10 @@
-import { IsNotEmpty, IsUrl } from "class-validator";
+import { IsNotEmpty, IsUrl } from 'class-validator';
 
 export class CreatePostDto {
-    @IsUrl()
-    @IsNotEmpty()
-    mediaUrl: string;
+  @IsUrl()
+  @IsNotEmpty()
+  mediaUrl: string;
 
-    @IsNotEmpty()
-    caption: string;
+  @IsNotEmpty()
+  caption: string;
 }

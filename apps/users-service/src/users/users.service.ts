@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { UpdateUserDto } from '@app/users';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
@@ -6,7 +10,9 @@ import { Repository } from 'typeorm';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectRepository(User) private readonly usersRepository: Repository<User>) {}
+  constructor(
+    @InjectRepository(User) private readonly usersRepository: Repository<User>,
+  ) {}
 
   async findAll() {
     try {
@@ -16,38 +22,40 @@ export class UsersService {
         status: true,
         message: 'Users fetched successfully',
         data: users,
-      }
+      };
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
   async findOne(id: string) {
-   try {
-    const user = await this.usersRepository.findOne({
-      where: { id }
-    });
+    try {
+      const user = await this.usersRepository.findOne({
+        where: { id },
+      });
 
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
 
-    return {
-      status: true,
-      message: 'User fetched successfully',
-      data: user,
+      return {
+        status: true,
+        message: 'User fetched successfully',
+        data: user,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(error.message);
+      }
+      throw new BadRequestException(error.message);
     }
-   } catch (error) {
-    if (error instanceof NotFoundException) {
-      throw new NotFoundException(error.message);
-    }
-    throw new BadRequestException(error.message);
-   }
   }
 
   async update(updateUserDto: UpdateUserDto) {
     try {
-      const user = await this.usersRepository.findOneBy({ id: updateUserDto.id });
+      const user = await this.usersRepository.findOneBy({
+        id: updateUserDto.id,
+      });
 
       if (!user) {
         throw new NotFoundException('User not found');
@@ -58,7 +66,7 @@ export class UsersService {
       return {
         status: true,
         message: 'User updated successfully',
-      }
+      };
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw new NotFoundException(error.message);
@@ -80,7 +88,7 @@ export class UsersService {
       return {
         status: true,
         message: 'User deleted successfully',
-      }
+      };
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw new NotFoundException(error.message);

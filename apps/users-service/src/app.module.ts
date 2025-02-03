@@ -5,6 +5,7 @@ import { UsersModule } from './users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { IamModule } from './iam/iam.module';
 import { RedisModule } from './redis/redis.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { RedisModule } from './redis/redis.module';
       ssl: {
         rejectUnauthorized: false,
         ca: Buffer.from(process.env.SSL_CERT, 'base64').toString('utf-8'),
-      }
+      },
     }),
     RedisModule.forRoot({
       host: process.env.REDIS_HOST,
@@ -29,6 +30,7 @@ import { RedisModule } from './redis/redis.module';
     }),
     UsersModule,
     IamModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

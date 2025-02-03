@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ChatServiceController } from './chat-service.controller';
-import { ChatServiceService } from './chat-service.service';
+import { ChatServiceController } from './app.controller';
+import { ChatServiceService } from './app.service';
 
 describe('ChatServiceController', () => {
   let chatServiceController: ChatServiceController;

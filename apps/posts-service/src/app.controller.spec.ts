@@ -11,7 +11,9 @@ describe('PostsServiceController', () => {
       providers: [PostsServiceService],
     }).compile();
 
-    postsServiceController = app.get<PostsServiceController>(PostsServiceController);
+    postsServiceController = app.get<PostsServiceController>(
+      PostsServiceController,
+    );
   });
 
   describe('root', () => {
