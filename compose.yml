@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: ./apps/api-gateway/Dockerfile
-      target: production
+      target: development
       args:
         - APP_NAME=api-gateway
     ports:
@@ -22,13 +22,13 @@ services:
       - booking-service
       - payment-service
       - posts-service
-    # command: yarn start:dev api-gateway
+    command: yarn start:dev api-gateway
 
   booking-service:
     build:
       context: .
       dockerfile: ./apps/booking-service/Dockerfile
-      target: production
+      target: development
       args:
         - APP_NAME=booking-service
     ports:
@@ -44,13 +44,13 @@ services:
     depends_on:
       - bookings-db
       - rabbitmq
-    # command: yarn start:dev booking-service
+    command: yarn start:dev booking-service
 
   payment-service:
     build:
       context: .
       dockerfile: ./apps/payment-service/Dockerfile
-      target: production
+      target: development
       args:
         - APP_NAME=payment-service
     ports:
@@ -66,13 +66,13 @@ services:
     depends_on:
       - payments-db
       - rabbitmq
-    # command: yarn start:dev payment-service
+    command: yarn start:dev payment-service
 
   users-service:
     build:
       context: .
       dockerfile: ./apps/users-service/Dockerfile
-      target: production
+      target: development
       args:
         - APP_NAME=users-service
     ports:
@@ -89,13 +89,13 @@ services:
       - users-db
       - redis
       - rabbitmq
-    # command: yarn start:dev users-service
+    command: yarn start:dev users-service
 
   chat-service:
     build:
       context: .
       dockerfile: ./apps/chat-service/Dockerfile
-      target: production
+      target: development
       args:
         - APP_NAME=chat-service
     ports:
@@ -111,13 +111,13 @@ services:
     depends_on:
       - chat-db
       - rabbitmq
-    # command: yarn start:dev chat-service
+    command: yarn start:dev chat-service
 
   posts-service:
     build:
       context: .
       dockerfile: ./apps/posts-service/Dockerfile
-      target: production
+      target: development
       args:
         - APP_NAME=posts-service
     ports:
@@ -133,7 +133,7 @@ services:
     depends_on:
       - posts-db
       - rabbitmq
-    # command: yarn start:dev posts-service
+    command: yarn start:dev posts-service
 
   bookings-db:
     image: postgres:alpine

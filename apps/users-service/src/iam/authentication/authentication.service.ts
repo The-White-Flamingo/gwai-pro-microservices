@@ -72,7 +72,7 @@ export class AuthenticationService {
 
         await queryRunner.manager.save(studio);
       } else {
-        throw new UnauthorizedException();
+        throw new UnauthorizedException().getResponse();
       }
 
       await queryRunner.commitTransaction();
@@ -85,7 +85,7 @@ export class AuthenticationService {
       await queryRunner.rollbackTransaction();
       const mysqlUniqueViolationErrorCode = '1062';
       if (error.code === mysqlUniqueViolationErrorCode) {
-        throw new ConflictException('User already exists');
+        throw new ConflictException('User already exists').getResponse();
       }
       throw new BadRequestException(error.message).getResponse();
     } finally {
@@ -170,7 +170,7 @@ export class AuthenticationService {
       if (error instanceof InvalidateRefreshTokenError) {
         throw new UnauthorizedException('Access denied').getResponse();
       }
-      throw new UnauthorizedException(error.message);
+      throw new UnauthorizedException(error.message).getResponse();
     }
   }
 
