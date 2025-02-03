@@ -10,6 +10,8 @@ COPY . .
 
 RUN yarn build payment-service
 
+CMD ["yarn", "start:dev", "payment-service"]
+
 FROM public.ecr.aws/docker/library/node:lts-alpine AS production
 
 ARG NODE_ENV=production

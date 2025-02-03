@@ -16,6 +16,10 @@ import { HealthModule } from './health/health.module';
       database: process.env.POSTGRES_DB,
       autoLoadEntities: true,
       synchronize: true,
+      ssl: {
+        rejectUnauthorized: false,
+        ca: Buffer.from(process.env.SSL_CERT, 'base64').toString('utf-8'),
+      }
     }),
     BookingsModule,
     HealthModule,

@@ -10,6 +10,8 @@ COPY . .
 
 RUN yarn build api-gateway
 
+CMD ["yarn", "start:dev", "api-gateway"]
+
 FROM public.ecr.aws/docker/library/node:lts-alpine AS production
 
 ARG NODE_ENV=production

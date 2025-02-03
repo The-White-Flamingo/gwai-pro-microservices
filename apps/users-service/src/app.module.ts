@@ -18,6 +18,10 @@ import { RedisModule } from './redis/redis.module';
       database: process.env.POSTGRES_DB,
       autoLoadEntities: true,
       synchronize: true,
+      ssl: {
+        rejectUnauthorized: false,
+        ca: Buffer.from(process.env.SSL_CERT, 'base64').toString('utf-8'),
+      }
     }),
     RedisModule.forRoot({
       host: process.env.REDIS_HOST,
