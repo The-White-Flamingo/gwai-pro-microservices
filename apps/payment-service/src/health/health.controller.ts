@@ -11,7 +11,7 @@ export class HealthController {
   constructor(
     private health: HealthCheckService,
     private db: TypeOrmHealthIndicator,
-  ) { }
+  ) {}
 
   @MessagePattern('payments.health')
   @HealthCheck()

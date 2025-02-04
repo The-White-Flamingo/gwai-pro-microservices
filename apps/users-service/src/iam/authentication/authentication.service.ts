@@ -65,7 +65,6 @@ export class AuthenticationService {
         });
 
         await queryRunner.manager.save(musician);
-        console.log(musician)
       } else if (signUpDto.role === Role.Studio) {
         const studio = this.studioRepository.create({
           user,
@@ -77,7 +76,7 @@ export class AuthenticationService {
       }
 
       await queryRunner.commitTransaction();
-      console.log(user);
+   
       return {
         status: true,
         message: `${user.role} signed up successfully`,

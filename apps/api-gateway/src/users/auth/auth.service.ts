@@ -1,12 +1,18 @@
 import { RefreshTokenDto, SignInDto, SignUpDto } from '@app/iam';
 import { USERS_SERVICE } from '@app/shared';
-import { BadRequestException, ConflictException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class AuthService {
-  constructor(@Inject(USERS_SERVICE) private readonly client: ClientProxy) { }
+  constructor(@Inject(USERS_SERVICE) private readonly client: ClientProxy) {}
 
   async signUp(signUpDto: SignUpDto) {
     try {
@@ -52,4 +58,3 @@ export class AuthService {
     }
   }
 }
-
