@@ -15,6 +15,11 @@ async function bootstrap() {
         queueOptions: {
           durable: true,
         },
+        socketOptions: {
+          noDelay: true,
+        },
+        prefetchCount: 5,
+        noAck: false,
       },
     },
     { inheritAppConfig: true },
