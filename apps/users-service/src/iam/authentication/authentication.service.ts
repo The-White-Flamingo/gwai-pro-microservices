@@ -72,7 +72,7 @@ export class AuthenticationService {
 
         await queryRunner.manager.save(studio);
       } else {
-        return new UnauthorizedException().getResponse();
+          return new UnauthorizedException().getResponse();
       }
 
       await queryRunner.commitTransaction();
