@@ -72,11 +72,11 @@ export class AuthenticationService {
 
         await queryRunner.manager.save(studio);
       } else {
-          return new UnauthorizedException().getResponse();
+        return new UnauthorizedException().getResponse();
       }
 
       await queryRunner.commitTransaction();
-   
+
       return {
         status: true,
         message: `${user.role} signed up successfully`,

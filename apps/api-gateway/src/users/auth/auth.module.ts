@@ -13,6 +13,14 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
         options: {
           urls: [process.env.RABBITMQ_URL],
           queue: 'users-service',
+          queueOptions: {
+            durable: true,
+          },
+          socketOptions: {
+            noDelay: true,
+            rejectUnauthorized: false,
+            secureProtocol: 'TLSv1_2_method',
+          },
         },
       },
     ]),

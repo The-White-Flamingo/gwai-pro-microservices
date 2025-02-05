@@ -13,6 +13,14 @@ import { POSTS_SERVICE } from '@app/shared';
         options: {
           urls: [process.env.RABBITMQ_URL],
           queue: 'posts-service',
+          queueOptions: {
+            durable: true,
+          },
+          socketOptions: {
+            noDelay: true,
+            rejectUnauthorized: false,
+            secureProtocol: 'TLSv1_2_method',
+          },
         },
       },
     ]),
@@ -20,4 +28,4 @@ import { POSTS_SERVICE } from '@app/shared';
   controllers: [PostsController],
   providers: [PostsService],
 })
-export class PostsModule {}
+export class PostsModule { }

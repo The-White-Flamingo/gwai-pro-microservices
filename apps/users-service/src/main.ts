@@ -17,6 +17,8 @@ async function bootstrap() {
         },
         socketOptions: {
           noDelay: true,
+          rejectUnauthorized: false,
+          secureProtocol: 'TLSv1_2_method',
         },
         prefetchCount: 5,
         noAck: false,

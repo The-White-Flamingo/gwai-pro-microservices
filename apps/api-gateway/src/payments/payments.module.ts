@@ -13,6 +13,14 @@ import { PAYMENT_SERVICE } from '@app/shared';
         options: {
           urls: [process.env.RABBITMQ_URL],
           queue: 'payment-service',
+          queueOptions: {
+            durable: true,
+          },
+          socketOptions: {
+            noDelay: true,
+            rejectUnauthorized: false,
+            secureProtocol: 'TLSv1_2_method',
+          },
         },
       },
     ]),
