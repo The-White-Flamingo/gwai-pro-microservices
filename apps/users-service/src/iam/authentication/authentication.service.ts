@@ -72,7 +72,7 @@ export class AuthenticationService {
 
         await queryRunner.manager.save(studio);
       } else {
-        throw new UnauthorizedException().getResponse();
+        return new UnauthorizedException().getResponse();
       }
 
       await queryRunner.commitTransaction();
@@ -85,9 +85,9 @@ export class AuthenticationService {
       await queryRunner.rollbackTransaction();
       const pgUniqueViolationErrorCode = '23505';
       if (error.code === pgUniqueViolationErrorCode) {
-        throw new ConflictException('User already exists').getResponse();
+        return new ConflictException('User already exists').getResponse();
       }
-      throw new BadRequestException(error.message).getResponse();
+      return new BadRequestException(error.message).getResponse();
     } finally {
       await queryRunner.release();
     }
@@ -160,17 +160,17 @@ export class AuthenticationService {
       if (isValid) {
         await this.refreshTokenIdsStorage.invalidate(user.id);
       } else {
-        throw new UnauthorizedException(
+        return new UnauthorizedException(
           'Refresh token is invalid',
         ).getResponse();
       }
 
-      return this.generateTokens(user);
+      return await this.generateTokens(user);
     } catch (error) {
       if (error instanceof InvalidateRefreshTokenError) {
-        throw new UnauthorizedException('Access denied').getResponse();
+        return new UnauthorizedException('Access denied').getResponse();
       }
-      throw new UnauthorizedException(error.message).getResponse();
+      return new UnauthorizedException(error.message).getResponse();
     }
   }
 
