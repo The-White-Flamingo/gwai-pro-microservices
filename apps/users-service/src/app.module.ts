@@ -26,6 +26,7 @@ import { HealthModule } from './health/health.module';
               ca: Buffer.from(process.env.SSL_CERT, 'base64').toString('utf-8'),
             }
           : false,
+      logging: true,
     }),
     RedisModule.forRoot({
       host: process.env.REDIS_HOST,
