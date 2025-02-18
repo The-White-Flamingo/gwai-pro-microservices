@@ -1,4 +1,4 @@
-import { CreatePostDto, UpdatePostDto } from '@app/posts';
+import { CreatePostDto, FindPostQueryDto, UpdatePostDto } from '@app/posts';
 import {
   BadRequestException,
   Injectable,
@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Post } from './entities/post.entity';
 import { FindOptionsWhere, Repository } from 'typeorm';
 import { PaginationQueryDto } from '@app/shared';
+import { ActiveUserData } from '@app/iam';
 
 @Injectable()
 export class PostsService {
@@ -31,15 +32,21 @@ export class PostsService {
     }
   }
 
-  async findAll(paginationQueryDto: PaginationQueryDto) {
-    const { } = paginationQueryDto;
-    try {
-      const conditions: FindOptionsWhere<Post> | FindOptionsWhere<Post>[] = {
-        ...()
-      };
+  async findAll(paginationQueryDto: PaginationQueryDto, findPostQueryDto: FindPostQueryDto, activeUser: ActiveUserData) {
+    const {limit, offset} = paginationQueryDto;
+    const { caption, username } = findPostQueryDto;
 
+    const conditions: FindOptionsWhere<Post> | FindOptionsWhere<Post>[] = {
+      ...(caption && { caption: caption }),
+      ...(username && { username: username }),
+    };
+
+    try {
       const posts = await this.postsRepository.find({
+        where: conditions,
         relations: ['comments'],
+        take: limit,
+        skip: offset,
       });
 
       return {
