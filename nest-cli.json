@@ -117,6 +117,24 @@
       "compilerOptions": {
         "tsConfigPath": "libs/posts/tsconfig.lib.json"
       }
+    },
+    "mailing-service": {
+      "type": "application",
+      "root": "apps/mailing-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/mailing-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/mailing-service/tsconfig.app.json"
+      }
+    },
+    "waitlist-service": {
+      "type": "application",
+      "root": "apps/waitlist-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/waitlist-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/waitlist-service/tsconfig.app.json"
+      }
     }
   }
 }

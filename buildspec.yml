@@ -32,6 +32,14 @@ phases:
       - docker build -f apps/posts-service/Dockerfile -t gwaipro/posts-service . 
       - docker tag gwaipro/posts-service:latest 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/posts-service:latest
 
+      - echo Build Mailing service...
+      - docker build -f apps/mailing-service/Dockerfile -t gwaipro/mailing-service . 
+      - docker tag gwaipro/mailing-service:latest 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/mailing-service:latest
+
+      - echo Build Waitlist service...
+      - docker build -f apps/waitlist-service/Dockerfile -t gwaipro/waitlist-service . 
+      - docker tag gwaipro/waitlist-service:latest 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/waitlist-service:latest
+
   post_build:
     commands:
       - echo Pushing images to Amazon ECR...
@@ -41,3 +49,5 @@ phases:
       - docker push 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/users-service:latest
       - docker push 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/chat-service:latest
       - docker push 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/posts-service:latest
+      - docker push 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/mailing-service:latest
+      - docker push 861276097496.dkr.ecr.us-east-1.amazonaws.com/gwaipro/waitlist-service:latest

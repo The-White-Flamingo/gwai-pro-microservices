@@ -6,7 +6,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Post } from './entities/post.entity';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
+import { PaginationQueryDto } from '@app/shared';
 
 @Injectable()
 export class PostsService {
@@ -30,8 +31,13 @@ export class PostsService {
     }
   }
 
-  async findAll() {
+  async findAll(paginationQueryDto: PaginationQueryDto) {
+    const { } = paginationQueryDto;
     try {
+      const conditions: FindOptionsWhere<Post> | FindOptionsWhere<Post>[] = {
+        ...()
+      };
+
       const posts = await this.postsRepository.find({
         relations: ['comments'],
       });

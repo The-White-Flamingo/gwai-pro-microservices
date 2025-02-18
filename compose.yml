@@ -113,6 +113,50 @@ services:
       - rabbitmq
     command: yarn start:dev chat-service
 
+  waitlist-service:
+    build:
+      context: .
+      dockerfile: ./apps/waitlist-service/Dockerfile
+      target: development
+      args:
+        - APP_NAME=waitlist-service
+    ports:
+      - 3005:3005
+    env_file:
+      - ./apps/waitlist-service/.env
+    volumes:        
+      - ./libs:/usr/src/app/libs
+      - ./package.json:/usr/src/app/package.json
+      - ./tsconfig.json:/usr/src/app/tsconfig.json
+      - ./node_modules:/usr/src/app/node_modules
+      - ./apps/waitlist-service:/usr/src/app/apps/waitlist-service
+    depends_on:
+      - waitlist-db
+      - rabbitmq
+    command: yarn start:dev waitlist-service
+
+  mailing-service:
+    build:
+      context: .
+      dockerfile: ./apps/mailing-service/Dockerfile
+      target: development
+      args:
+        - APP_NAME=mailing-service
+    ports:
+      - 3006:3006
+    env_file:
+      - ./apps/mailing-service/.env
+    volumes:
+      - ./libs:/usr/src/app/libs
+      - ./package.json:/usr/src/app/package.json
+      - ./tsconfig.json:/usr/src/app/tsconfig.json
+      - ./node_modules:/usr/src/app/node_modules
+      - ./apps/mailing-service:/usr/src/app/apps/mailing-service
+    depends_on:
+      # - mailing-db
+      - rabbitmq
+    command: yarn start:dev mailing-service
+
   posts-service:
     build:
       context: .
@@ -173,6 +217,14 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=posts
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    
+  waitlist-db:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=waitlist
       - POSTGRES_HOST_AUTH_METHOD=trust
 
   redis:
