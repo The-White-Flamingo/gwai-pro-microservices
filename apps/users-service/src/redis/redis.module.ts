@@ -4,6 +4,9 @@ import { Redis } from 'ioredis';
 export interface RedisModuleOptions {
   host: string;
   port: number;
+  username?: string;
+  password?: string;
+  useTLS?: boolean;
 }
 
 @Global()
@@ -18,6 +21,9 @@ export class RedisModule implements OnModuleDestroy {
         const redisClient = new Redis({
           host: options.host,
           port: options.port,
+          username: options.username ? options.username: undefined,
+          password: options.password ? options.password : undefined,
+          tls: options.useTLS ? {} : undefined
         });
         redisClient.on('error', (err) => {
           console.error('Redis Client Error', err);
