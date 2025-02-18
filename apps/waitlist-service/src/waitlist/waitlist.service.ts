@@ -1,12 +1,16 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { CreateWaitlistDto } from '@app/shared';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { CreateMailerDto, CreateWaitlistDto, MAILING_SERVICE } from '@app/shared';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Waitlist } from './entities/waitlist.entity';
 import { Repository } from 'typeorm';
+import { ClientProxy } from '@nestjs/microservices';
 
 @Injectable()
 export class WaitlistService {
-  constructor(@InjectRepository(Waitlist) private readonly waitlistRepository: Repository<Waitlist>) {}
+  constructor(
+    @InjectRepository(Waitlist) private readonly waitlistRepository: Repository<Waitlist>,
+    @Inject(MAILING_SERVICE) private readonly client: ClientProxy,
+  ) {}
 
   async create(createWaitlistDto: CreateWaitlistDto) {
    try {
@@ -15,6 +19,12 @@ export class WaitlistService {
     });
 
     await this.waitlistRepository.save(waitlist);
+
+    await this.client.send('mailer.send', {
+      to: createWaitlistDto.email,
+      subject: 'Welcome to the Gwaipro',
+      text: `You have been added to the waitlist. We will notify you when we are ready to launch.`,
+    } as CreateMailerDto);
 
     return {
       status: true,
