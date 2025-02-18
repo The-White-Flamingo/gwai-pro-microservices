@@ -31,8 +31,8 @@ import { HealthModule } from './health/health.module';
     RedisModule.forRoot({
       host: process.env.REDIS_HOST,
       port: +process.env.REDIS_PORT,
-      username: process.env.REDIS_USERNAME,
-      useTLS: process.env.REDIS_USE_TLS === 'true',
+      username: process.env.NODE_ENV === 'production' && process.env.REDIS_USERNAME,
+      useTLS: process.env.NODE_ENV === 'production' && process.env.REDIS_USE_TLS === 'true',
     }),
     UsersModule,
     IamModule,

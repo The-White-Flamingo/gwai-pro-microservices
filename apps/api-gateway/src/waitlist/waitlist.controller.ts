@@ -4,23 +4,24 @@ import { CreateWaitlistDto } from '@app/shared';
 import { Auth, AuthType } from '@app/iam';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
-@ApiTags('waitlist')
+@ApiTags('witlist')
 @Controller('waitlist')
 export class WaitlistController {
   constructor(private readonly waitlistService: WaitlistService) {}
 
   @Auth(AuthType.None)
-  @ApiBearerAuth()
   @Post()
   create(@Body() createWaitlistDto: CreateWaitlistDto) {
     return this.waitlistService.create(createWaitlistDto);
   }
 
+  @ApiBearerAuth()
   @Get()
   findAll() {
     return this.waitlistService.findAll();
   }
 
+  @ApiBearerAuth()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.waitlistService.findOne(+id);
