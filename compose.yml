@@ -121,7 +121,7 @@ services:
       args:
         - APP_NAME=waitlist-service
     ports:
-      - 3005:3005
+      - 3006:3006
     env_file:
       - ./apps/waitlist-service/.env
     volumes:        
@@ -143,7 +143,7 @@ services:
       args:
         - APP_NAME=mailing-service
     ports:
-      - 3006:3006
+      - 3007:3007
     env_file:
       - ./apps/mailing-service/.env
     volumes:
