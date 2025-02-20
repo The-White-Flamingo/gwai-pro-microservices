@@ -4,7 +4,7 @@ import { CreateWaitlistDto } from '@app/shared';
 import { Auth, AuthType } from '@app/iam';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
-@ApiTags('witlist')
+@ApiTags('waitlist')
 @Controller('waitlist')
 export class WaitlistController {
   constructor(private readonly waitlistService: WaitlistService) {}
