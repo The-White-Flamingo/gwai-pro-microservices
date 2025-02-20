@@ -15,6 +15,12 @@ export class WaitlistService {
 
   async create(createWaitlistDto: CreateWaitlistDto) {
     try {
+      const emailExists = await this.waitlistRepository.findOne({ where: { email: createWaitlistDto.email } });
+
+      if (emailExists) {
+        return new BadRequestException('Email already exists in the waitlist').getResponse();
+      }
+
       const waitlist = this.waitlistRepository.create(createWaitlistDto);
       await this.waitlistRepository.save(waitlist);
 
