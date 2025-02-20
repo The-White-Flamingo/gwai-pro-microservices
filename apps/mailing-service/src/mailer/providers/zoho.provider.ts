@@ -15,15 +15,18 @@ export class ZohoProvider implements EmailProvider {
     const smtpUser = this.configService.get('ZOHO_SMTP_USER');
     const smtpPass = this.configService.get('ZOHO_SMTP_PASS');
 
+    console.log(smtpHost, smtpPort, smtpUser, smtpPass)
+
     const transporter = nodemailer.createTransport({
       host: smtpHost,
       port: smtpPort,
-      secure: smtpPort === 465,
+      secure: true,
       auth: {
         user: smtpUser,
         pass: smtpPass,
       },
       logger: true,
+      debug: true,
     });
 
     const mailOptions = {

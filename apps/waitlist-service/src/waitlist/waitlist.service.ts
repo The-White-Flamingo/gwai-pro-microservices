@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Waitlist } from './entities/waitlist.entity';
 import { Repository } from 'typeorm';
 import { ClientProxy } from '@nestjs/microservices';
+import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class WaitlistService {
@@ -13,27 +14,28 @@ export class WaitlistService {
   ) {}
 
   async create(createWaitlistDto: CreateWaitlistDto) {
-   try {
-    const waitlist = await this.waitlistRepository.create({
-      ...createWaitlistDto,
-    });
+    try {
+      const waitlist = this.waitlistRepository.create(createWaitlistDto);
+      await this.waitlistRepository.save(waitlist);
 
-    await this.waitlistRepository.save(waitlist);
+      try {
+        await lastValueFrom(this.client.send<CreateMailerDto>('mailer.send', {
+          to: createWaitlistDto.email,
+          subject: 'Welcome to Gwaipro',
+          text: 'You have been added to the waitlist. We will notify you when we are ready to launch.',
+        }));
+      } catch (mailError) {
+        console.error('Email sending failed:', mailError);
+      }
 
-    await this.client.send('mailer.send', {
-      to: createWaitlistDto.email,
-      subject: 'Welcome to the Gwaipro',
-      text: `You have been added to the waitlist. We will notify you when we are ready to launch.`,
-    } as CreateMailerDto);
-
-    return {
-      status: true,
-      message: 'Waitlist created successfully',
-      data: waitlist,
-    };
-   } catch (error) {
-    return new BadRequestException(error.message).getResponse();
-   }
+      return {
+        status: true,
+        message: 'Waitlist created successfully',
+        data: waitlist,
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   async findAll() {
@@ -45,18 +47,15 @@ export class WaitlistService {
         data: waitlist,
       };
     } catch (error) {
-      return new BadRequestException(error.message).getResponse();
+      throw new BadRequestException(error.message);
     }
   }
 
   async findOne(id: string) {
-   try {
-    const waitlist = await this.waitlistRepository.findOne({
-      where: { id },
-    });
+    const waitlist = await this.waitlistRepository.findOne({ where: { id } });
 
     if (!waitlist) {
-      return new NotFoundException('Waitlist item not found').getResponse();
+      throw new NotFoundException('Waitlist item not found');
     }
 
     return {
@@ -64,8 +63,5 @@ export class WaitlistService {
       message: 'Waitlist retrieved successfully',
       data: waitlist,
     };
-   } catch (error) {
-    return new BadRequestException(error.message).getResponse();
-   }
   }
 }
