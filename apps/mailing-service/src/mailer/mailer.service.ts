@@ -4,7 +4,7 @@ import { EmailProvider } from './interfaces/email-provider.interface';
 
 @Injectable()
 export class MailerService {
-  constructor(@Inject('ZohoProvider') private readonly zohoProvider: EmailProvider,) {}
+  constructor(@Inject('GmailProvider') private readonly zohoProvider: EmailProvider,) {}
 
   create(createMailerDto: CreateMailerDto) {
     return this.zohoProvider.sendEmail(createMailerDto);
