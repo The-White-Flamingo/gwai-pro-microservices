@@ -11,9 +11,52 @@ export interface RedisModuleOptions {
 
 @Global()
 @Module({})
-export class RedisModule implements OnModuleDestroy {
-  private redisClient: Redis;
 
+// export class RedisModule implements OnModuleDestroy {
+//   private redisClient: Redis;
+
+//   static forRoot(options: RedisModuleOptions): DynamicModule {
+//     const redisClientProvider = {
+//       provide: 'REDIS_CLIENT',
+//       useFactory: () => {
+//         const redisClient = new Redis({
+//           host: options.host,
+//           port: options.port,
+//           username: options.username ? options.username: undefined,
+//           password: options.password ? options.password : undefined,
+//           tls: options.useTLS ? {} : undefined
+//         });
+//         redisClient.on('error', (err) => {
+//           console.error('Redis Client Error', err);
+//         });
+//         return redisClient;
+//       },
+//     };
+
+//     return {
+//       module: RedisModule,
+//       providers: [redisClientProvider],
+//       exports: [redisClientProvider],
+//     };
+//   }
+
+//   constructor() {
+//     this.redisClient = new Redis({
+//       host: process.env.REDIS_HOST,
+//       port: +process.env.REDIS_PORT,
+//     });
+//   }
+
+//   async onModuleDestroy() {
+//     if (this.redisClient) {
+//       await this.redisClient.quit();
+//     }
+//   }
+// }
+
+@Global()
+@Module({})
+export class RedisModule implements OnModuleDestroy {
   static forRoot(options: RedisModuleOptions): DynamicModule {
     const redisClientProvider = {
       provide: 'REDIS_CLIENT',
@@ -21,13 +64,15 @@ export class RedisModule implements OnModuleDestroy {
         const redisClient = new Redis({
           host: options.host,
           port: options.port,
-          username: options.username ? options.username: undefined,
-          password: options.password ? options.password : undefined,
-          tls: options.useTLS ? {} : undefined
+          username: options.username,
+          password: options.password,
+          tls: options.useTLS ? {} : undefined,
         });
-        redisClient.on('error', (err) => {
+
+        redisClient.on('error', err => {
           console.error('Redis Client Error', err);
         });
+
         return redisClient;
       },
     };
@@ -39,16 +84,7 @@ export class RedisModule implements OnModuleDestroy {
     };
   }
 
-  constructor() {
-    this.redisClient = new Redis({
-      host: process.env.REDIS_HOST,
-      port: +process.env.REDIS_PORT,
-    });
-  }
-
   async onModuleDestroy() {
-    if (this.redisClient) {
-      await this.redisClient.quit();
-    }
+    // nothing needed
   }
 }
