@@ -59,11 +59,16 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
+  const rabbitmqUrl = process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5675?frameMax=0';
+
   app.connectMicroservice({
     transport: Transport.RMQ,
     options: {
-      urls: [process.env.RABBITMQ_URL || 'amqp://guest:guest@rabbitmq:5672'],
-      queue: 'gwai_pro_queue',
+      urls: [
+        rabbitmqUrl
+        // 'amqp://guest:guest@localhost:5675?frameMax=0'
+      ],
+      queue: 'api-gateway',
       queueOptions:{
         durable: true
       }

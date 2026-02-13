@@ -5,20 +5,22 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 async function bootstrap() {
   const app = await NestFactory.create(PaymentServiceModule);
 
+  const rabbitmq = process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5675?frameMax=0';
+
   app.connectMicroservice<MicroserviceOptions>(
     {
       transport: Transport.RMQ,
       options: {
-        urls: [process.env.RABBITMQ_URL],
+        urls: [rabbitmq],
         queue: 'payment-service',
         queueOptions: {
           durable: true,
         },
-        socketOptions: {
-          noDelay: true,
-          rejectUnauthorized: false,
-          secureProtocol: 'TLSv1_2_method',
-        },
+        // socketOptions: {
+        //   noDelay: true,
+        //   rejectUnauthorized: false,
+        //   secureProtocol: 'TLSv1_2_method',
+        // },
         prefetchCount: 5,
         noAck: false,
       },

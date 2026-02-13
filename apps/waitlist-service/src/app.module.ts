@@ -3,9 +3,14 @@ import { WaitlistServiceController } from './app.controller';
 import { WaitlistServiceService } from './app.service';
 import { WaitlistModule } from './waitlist/waitlist.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: './apps/waitlist-service/.env',
+    }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.POSTGRES_HOST,

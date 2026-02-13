@@ -10,6 +10,9 @@ services:
       - 3000:3000
     env_file:
       - ./apps/api-gateway/.env
+    environment:
+      # Override for Docker network
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?frameMax=0
     volumes:        
       - ./libs:/usr/src/app/libs
       - ./package.json:/usr/src/app/package.json
@@ -32,9 +35,14 @@ services:
       args:
         - APP_NAME=booking-service
     ports:
-      - 3001:3001
+      - 3001:3000
     env_file:
       - ./apps/booking-service/.env
+    environment:
+      # Override for Docker network
+      - POSTGRES_HOST=bookings-db
+      - POSTGRES_PORT=5432
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?frameMax=0
     volumes:        
       - ./libs:/usr/src/app/libs
       - ./package.json:/usr/src/app/package.json
@@ -54,9 +62,14 @@ services:
       args:
         - APP_NAME=payment-service
     ports:
-      - 3002:3002
+      - 3002:3000
     env_file:
       - ./apps/payment-service/.env
+    environment:
+      # Override for Docker network
+      - POSTGRES_HOST=payments-db
+      - POSTGRES_PORT=5432
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?frameMax=0
     volumes:        
       - ./libs:/usr/src/app/libs
       - ./package.json:/usr/src/app/package.json
@@ -76,9 +89,16 @@ services:
       args:
         - APP_NAME=users-service
     ports:
-      - 3003:3003
+      - 3003:3000
     env_file:
       - ./apps/users-service/.env
+    environment:
+      # Override for Docker network
+      - POSTGRES_HOST=users-db
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?frameMax=0
     volumes:        
       - ./libs:/usr/src/app/libs
       - ./package.json:/usr/src/app/package.json
@@ -99,9 +119,14 @@ services:
       args:
         - APP_NAME=chat-service
     ports:
-      - 3004:3004
+      - 3004:3000
     env_file:
       - ./apps/chat-service/.env
+    environment:
+      # Override for Docker network
+      - POSTGRES_HOST=chat-db
+      - POSTGRES_PORT=5432
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?frameMax=0
     volumes:        
       - ./libs:/usr/src/app/libs
       - ./package.json:/usr/src/app/package.json
@@ -121,9 +146,14 @@ services:
       args:
         - APP_NAME=waitlist-service
     ports:
-      - 3006:3006
+      - 3006:3000
     env_file:
       - ./apps/waitlist-service/.env
+    environment:
+      # Override for Docker network
+      - POSTGRES_HOST=waitlist-db
+      - POSTGRES_PORT=5432
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?frameMax=0
     volumes:        
       - ./libs:/usr/src/app/libs
       - ./package.json:/usr/src/app/package.json
@@ -143,9 +173,12 @@ services:
       args:
         - APP_NAME=mailing-service
     ports:
-      - 3007:3007
+      - 3007:3000
     env_file:
       - ./apps/mailing-service/.env
+    environment:
+      # Override for Docker network
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?frameMax=0
     volumes:
       - ./libs:/usr/src/app/libs
       - ./package.json:/usr/src/app/package.json
@@ -153,7 +186,6 @@ services:
       - ./node_modules:/usr/src/app/node_modules
       - ./apps/mailing-service:/usr/src/app/apps/mailing-service
     depends_on:
-      # - mailing-db
       - rabbitmq
     command: yarn start:dev mailing-service
 
@@ -165,9 +197,14 @@ services:
       args:
         - APP_NAME=posts-service
     ports:
-      - 3005:3005
+      - 3005:3000
     env_file:
       - ./apps/posts-service/.env
+    environment:
+      # Override for Docker network
+      - POSTGRES_HOST=posts-db
+      - POSTGRES_PORT=5432
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?frameMax=0
     volumes:
       - ./libs:/usr/src/app/libs
       - ./package.json:/usr/src/app/package.json
@@ -179,56 +216,86 @@ services:
       - rabbitmq
     command: yarn start:dev posts-service
 
+  # Database Services
   bookings-db:
     image: postgres:alpine
+    ports:
+      - "5433:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=bookings
       - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - bookings_data:/var/lib/postgresql/data
 
   payments-db:
     image: postgres:alpine
+    ports:
+      - "5434:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=payments
       - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - payments_data:/var/lib/postgresql/data
 
   users-db:
     image: postgres:alpine
+    ports:
+      - "5432:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=users
       - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - users_data:/var/lib/postgresql/data
   
   chat-db:
     image: postgres:alpine
+    ports:
+      - "5435:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=chats
       - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - chat_data:/var/lib/postgresql/data
 
   posts-db:
     image: postgres:alpine
+    ports:
+      - "5436:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=posts
       - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - posts_data:/var/lib/postgresql/data
     
   waitlist-db:
     image: postgres:alpine
+    ports:
+      - "5437:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=waitlist
       - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - waitlist_data:/var/lib/postgresql/data
 
+  # Infrastructure Services
   redis:
     image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
 
   rabbitmq:
     image: rabbitmq:management-alpine
@@ -238,3 +305,16 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+# Persistent volumes for data
+volumes:
+  bookings_data:
+  payments_data:
+  users_data:
+  chat_data:
+  posts_data:
+  waitlist_data:
+  redis_data:
+  rabbitmq_data:

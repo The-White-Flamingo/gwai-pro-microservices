@@ -1,3 +1,4 @@
+# FROM node:lts-apline AS development
 FROM public.ecr.aws/docker/library/node:lts-alpine AS development
 
 WORKDIR /usr/src/app

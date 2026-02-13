@@ -1,3 +1,4 @@
+// apps/users-service/src/users/musicians/musicians.module.ts
 import { Module } from '@nestjs/common';
 import { MusiciansService } from './musicians.service';
 import { MusiciansController } from './musicians.controller';

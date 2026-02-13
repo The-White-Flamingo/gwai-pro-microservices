@@ -1,3 +1,4 @@
+// apps/users-service/src/redis/redis.module.ts
 import { Module, Global, DynamicModule, OnModuleDestroy } from '@nestjs/common';
 import { Redis } from 'ioredis';
 

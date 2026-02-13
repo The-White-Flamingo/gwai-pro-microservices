@@ -5,11 +5,15 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 async function bootstrap() {
   const app = await NestFactory.create(MailingServiceModule);
 
+  const rabbitmq = process.env.RABBITMQ || 'amqp://guest:guest@localhost:5675?frameMax=0';
   app.connectMicroservice<MicroserviceOptions>(
       {
         transport: Transport.RMQ,
         options: {
-          urls: [process.env.RABBITMQ_URL],
+          urls: [
+            // process.env.RABBITMQ_URL
+            rabbitmq
+          ],
           queue: 'mailing-service',
           queueOptions: {
             durable: true,
