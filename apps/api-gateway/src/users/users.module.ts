@@ -4,6 +4,10 @@ import { UsersController } from './users.controller';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { USERS_SERVICE } from '@app/shared';
 import { AuthModule } from './auth/auth.module';
+import { ClientsModule as ClientsDetailsModule } from './clients/clients.module';
+import { MusiciansModule } from './musicians/musicians.module';
+import { StudiosModule } from './studios/studios.module';
+import { AdminsModule } from './admins/admins.module';
 
 @Module({
   imports: [
@@ -17,15 +21,14 @@ import { AuthModule } from './auth/auth.module';
           queueOptions: {
             durable: true,
           },
-          socketOptions: {
-            noDelay: true,
-            rejectUnauthorized: false,
-            secureProtocol: 'TLSv1_2_method',
-          },
         },
       },
     ]),
     AuthModule,
+    ClientsDetailsModule,
+    MusiciansModule,
+    StudiosModule,
+    AdminsModule,
   ],
   controllers: [UsersController],
   providers: [UsersService],

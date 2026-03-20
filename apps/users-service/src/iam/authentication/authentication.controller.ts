@@ -6,6 +6,10 @@ import { Auth } from './decorators/auth.decorator';
 import { AuthType } from './enums/auth-type.enum';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { MessagePattern, Payload } from '@nestjs/microservices';
+import { VerifySignUpOtpDto } from './dto/verify-sign-up-otp.dto';
+import { ResendSignUpOtpDto } from './dto/resend-sign-up-otp.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Auth(AuthType.None)
 @Controller('auth')
@@ -17,6 +21,16 @@ export class AuthenticationController {
     return this.authenticationService.signUp(signUpDto);
   }
 
+  @MessagePattern('auth.verifySignUpOtp')
+  verifySignUpOtp(@Payload() verifySignUpOtpDto: VerifySignUpOtpDto) {
+    return this.authenticationService.verifySignUpOtp(verifySignUpOtpDto);
+  }
+
+  @MessagePattern('auth.resendSignUpOtp')
+  resendSignUpOtp(@Payload() resendSignUpOtpDto: ResendSignUpOtpDto) {
+    return this.authenticationService.resendSignUpOtp(resendSignUpOtpDto);
+  }
+
   @MessagePattern('auth.signIn')
   signIn(@Payload() signInDto: SignInDto) {
     return this.authenticationService.signIn(signInDto);
@@ -25,5 +39,15 @@ export class AuthenticationController {
   @MessagePattern('auth.refreshTokens')
   refreshTokens(@Payload() refreshTokenDto: RefreshTokenDto) {
     return this.authenticationService.refreshTokens(refreshTokenDto);
+  }
+
+  @MessagePattern('auth.forgotPassword')
+  forgotPassword(@Payload() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authenticationService.forgotPassword(forgotPasswordDto);
+  }
+
+  @MessagePattern('auth.resetPassword')
+  resetPassword(@Payload() resetPasswordDto: ResetPasswordDto) {
+    return this.authenticationService.resetPassword(resetPasswordDto);
   }
 }

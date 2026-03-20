@@ -1,10 +1,11 @@
-import { IsEmail, IsNotEmpty, Min, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsStrongPassword, MinLength } from 'class-validator';
 import { Role } from '../../../users/enums/role.enum';
 
 export class SignUpDto {
   @IsEmail()
   email: string;
 
+  @IsStrongPassword()
   @MinLength(8)
   password: string;
 

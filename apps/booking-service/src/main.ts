@@ -12,11 +12,7 @@ async function bootstrap() {
     {
       transport: Transport.RMQ,
       options: {
-        urls: [
-          // process.env.RABBITMQ_URL
-          // rabbitmqUrl
-          'amqp://guest:guest@localhost:5675?frameMax=0'
-        ],
+        urls: [process.env.RABBITMQ_URL || rabbitmqUrl],
         queue: 'booking-service',
         queueOptions: {
           durable: true,

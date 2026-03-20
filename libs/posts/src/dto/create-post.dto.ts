@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsUrl } from 'class-validator';
+import { IsNotEmpty, IsUrl, IsUUID } from 'class-validator';
 
 export class CreatePostDto {
   @IsUrl()
@@ -7,4 +7,8 @@ export class CreatePostDto {
 
   @IsNotEmpty()
   caption: string;
+
+  @IsUUID()
+  @IsNotEmpty()
+  userId: string;
 }

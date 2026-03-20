@@ -1,3 +1,8 @@
+import {
+  ActiveUser,
+  ActiveUserData,
+  Roles,
+} from '@app/iam';
 import { SignUpDto } from '@app/iam';
 import {
   Body,
@@ -19,17 +24,34 @@ import { FileInterceptor } from '@nestjs/platform-express';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  private static readonly adminRole = 'Admin' as any;
+  private static readonly allUserRoles = [
+    'Client',
+    'Musician',
+    'Studio',
+    'Admin',
+  ] as any;
+
+  @Get('me')
+  @Roles(...UsersController.allUserRoles)
+  me(@ActiveUser() activeUser: ActiveUserData) {
+    return this.usersService.me(activeUser.sub);
+  }
+
   @Get()
+  @Roles(UsersController.adminRole)
   findAll() {
     return this.usersService.findAll();
   }
 
   @Get(':id')
+  @Roles(UsersController.adminRole)
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
   @Patch(':id')
+  @Roles(UsersController.adminRole)
   @UseInterceptors(FileInterceptor('file'))
   update(
     @Param('id') id: string,
@@ -41,6 +63,7 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @Roles(UsersController.adminRole)
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }

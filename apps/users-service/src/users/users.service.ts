@@ -7,11 +7,24 @@ import { UpdateUserDto } from '@app/users';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
+import { Role } from './enums/role.enum';
+import { Client } from './clients/entities/client.entity';
+import { Musician } from './musicians/entities/musician.entity';
+import { Studio } from './studios/entities/studio.entity';
+import { Admin } from './admins/entities/admin.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly usersRepository: Repository<User>,
+    @InjectRepository(Client)
+    private readonly clientsRepository: Repository<Client>,
+    @InjectRepository(Musician)
+    private readonly musiciansRepository: Repository<Musician>,
+    @InjectRepository(Studio)
+    private readonly studiosRepository: Repository<Studio>,
+    @InjectRepository(Admin)
+    private readonly adminsRepository: Repository<Admin>,
   ) {}
 
   async findAll() {
@@ -95,5 +108,68 @@ export class UsersService {
       }
       throw new BadRequestException(error.message);
     }
+  }
+
+  async me(userId: string) {
+    try {
+      const user = await this.usersRepository.findOneBy({ id: userId });
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      const safeUser = this.sanitizeUser(user);
+      let profile: Client | Musician | Studio | Admin | null = null;
+      let profileType = user.role;
+
+      if (user.role === Role.Client) {
+        profile = await this.clientsRepository.findOne({
+          where: { user: { id: user.id } },
+          relations: ['user'],
+        });
+      } else if (user.role === Role.Musician) {
+        profile = await this.musiciansRepository.findOne({
+          where: { user: { id: user.id } },
+          relations: ['user'],
+        });
+      } else if (user.role === Role.Studio) {
+        profile = await this.studiosRepository.findOne({
+          where: { user: { id: user.id } },
+          relations: ['user'],
+        });
+      } else if (user.role === Role.Admin) {
+        profile = await this.adminsRepository.findOne({
+          where: { user: { id: user.id } },
+          relations: ['user'],
+        });
+      }
+
+      const safeProfile = profile
+        ? {
+            ...profile,
+            user: profile.user ? this.sanitizeUser(profile.user as User) : null,
+          }
+        : null;
+
+      return {
+        status: true,
+        message: 'Current user fetched successfully',
+        data: {
+          user: safeUser,
+          profileType,
+          profile: safeProfile,
+        },
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(error.message);
+      }
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  private sanitizeUser(user: User) {
+    const { password, ...safeUser } = user;
+    return safeUser;
   }
 }

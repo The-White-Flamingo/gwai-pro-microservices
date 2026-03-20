@@ -22,12 +22,14 @@ export class BookingsController {
     return this.bookingsService.findOne(id);
   }
 
-  @MessagePattern('booking.update')
+  // IMPORTANT: match gateway pattern (plural)
+  @MessagePattern('bookings.update')
   update(@Payload() updateBookingDto: UpdateBookingDto) {
     return this.bookingsService.update(updateBookingDto);
   }
 
-  @MessagePattern('booking.delete')
+  // IMPORTANT: match gateway pattern (plural)
+  @MessagePattern('bookings.delete')
   remove(@Payload() id: string) {
     return this.bookingsService.remove(id);
   }

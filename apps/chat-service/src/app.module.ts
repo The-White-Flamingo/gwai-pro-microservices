@@ -4,6 +4,7 @@ import { ChatServiceService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HealthModule } from './health/health.module';
 import { ConfigModule } from '@nestjs/config';
+import { ChatsModule } from './chats/chats.module';
 
 @Module({
   imports: [
@@ -27,9 +28,12 @@ import { ConfigModule } from '@nestjs/config';
               ca: Buffer.from(process.env.SSL_CERT, 'base64').toString('utf-8'),
             }
           : false,
+      retryAttempts: 30,
+      retryDelay: 5000,
       logging: true,
     }),
     HealthModule,
+    ChatsModule
   ],
   controllers: [ChatServiceController],
   providers: [ChatServiceService],

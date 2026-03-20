@@ -68,6 +68,10 @@ export class RedisModule implements OnModuleDestroy {
           username: options.username,
           password: options.password,
           tls: options.useTLS ? {} : undefined,
+          connectTimeout: 10000,
+          maxRetriesPerRequest: 1,
+          enableOfflineQueue: false,
+          retryStrategy: (times) => Math.min(times * 1000, 5000),
         });
 
         redisClient.on('error', err => {

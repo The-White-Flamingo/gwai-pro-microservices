@@ -1,0 +1,280 @@
+services:
+  api-gateway:
+    build:
+      context: .
+      dockerfile: ./apps/api-gateway/Dockerfile
+      target: production
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./apps/api-gateway/.env
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?heartbeat=30&connection_timeout=30000&frameMax=0
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      users-service:
+        condition: service_started
+      booking-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+      posts-service:
+        condition: service_started
+      chat-service:
+        condition: service_started
+      mailing-service:
+        condition: service_started
+      waitlist-service:
+        condition: service_started
+    restart: unless-stopped
+
+  booking-service:
+    build:
+      context: .
+      dockerfile: ./apps/booking-service/Dockerfile
+      target: production
+    env_file:
+      - ./apps/booking-service/.env
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?heartbeat=30&connection_timeout=30000&frameMax=0
+    depends_on:
+      bookings-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: ./apps/payment-service/Dockerfile
+      target: production
+    env_file:
+      - ./apps/payment-service/.env
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?heartbeat=30&connection_timeout=30000&frameMax=0
+    depends_on:
+      payments-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  users-service:
+    build:
+      context: .
+      dockerfile: ./apps/users-service/Dockerfile
+      target: production
+    env_file:
+      - ./apps/users-service/.env
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?heartbeat=30&connection_timeout=30000&frameMax=0
+    depends_on:
+      users-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  chat-service:
+    build:
+      context: .
+      dockerfile: ./apps/chat-service/Dockerfile
+      target: production
+    env_file:
+      - ./apps/chat-service/.env
+    environment:
+      - POSTGRES_HOST=chat-db
+      - POSTGRES_PORT=5432
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?heartbeat=30&connection_timeout=30000&frameMax=0
+    depends_on:
+      chat-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  posts-service:
+    build:
+      context: .
+      dockerfile: ./apps/posts-service/Dockerfile
+      target: production
+    env_file:
+      - ./apps/posts-service/.env
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?heartbeat=30&connection_timeout=30000&frameMax=0
+    depends_on:
+      posts-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  waitlist-service:
+    build:
+      context: .
+      dockerfile: ./apps/waitlist-service/Dockerfile
+      target: production
+    env_file:
+      - ./apps/waitlist-service/.env
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?heartbeat=30&connection_timeout=30000&frameMax=0
+    depends_on:
+      waitlist-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mailing-service:
+    build:
+      context: .
+      dockerfile: ./apps/mailing-service/Dockerfile
+      target: production
+    env_file:
+      - ./apps/mailing-service/.env
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?heartbeat=30&connection_timeout=30000&frameMax=0
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  bookings-db:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=bookings
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - bookings_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bookings"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+    restart: unless-stopped
+
+  payments-db:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=payments
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - payments_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d payments"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+    restart: unless-stopped
+
+  users-db:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=users
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - users_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d users"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+    restart: unless-stopped
+
+  chat-db:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=chats
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - chat_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d chats"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+    restart: unless-stopped
+
+  posts-db:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=posts
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - posts_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d posts"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+    restart: unless-stopped
+
+  waitlist-db:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=waitlist
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - waitlist_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d waitlist"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+    restart: unless-stopped
+
+  redis:
+    image: redis:alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:management-alpine
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 120s
+    restart: unless-stopped
+
+volumes:
+  bookings_db_data:
+  payments_db_data:
+  users_db_data:
+  chat_db_data:
+  posts_db_data:
+  waitlist_db_data:
+  rabbitmq_data:

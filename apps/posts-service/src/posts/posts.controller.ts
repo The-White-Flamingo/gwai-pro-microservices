@@ -1,9 +1,15 @@
-import { Controller, Query } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { PostsService } from './posts.service';
 import { CreatePostDto, FindPostQueryDto, UpdatePostDto } from '@app/posts';
 import { PaginationQueryDto } from '@app/shared';
-import { ActiveUser, ActiveUserData } from '@app/iam';
+import { ActiveUserData } from '@app/iam';
+
+type FindAllPayload = {
+  paginationQueryDto?: PaginationQueryDto;
+  findPostQueryDto?: FindPostQueryDto;
+  activeUser?: ActiveUserData;
+};
 
 @Controller()
 export class PostsController {
@@ -15,8 +21,12 @@ export class PostsController {
   }
 
   @MessagePattern('posts.findAll')
-  findAll(@Query() paginationQueryDto: PaginationQueryDto, @Query() findPostQueryDto: FindPostQueryDto, @ActiveUser() activeUser: ActiveUserData) {
-    return this.postsService.findAll(paginationQueryDto, findPostQueryDto, activeUser);
+  findAll(@Payload() payload: FindAllPayload) {
+    return this.postsService.findAll(
+      payload?.paginationQueryDto ?? ({} as PaginationQueryDto),
+      payload?.findPostQueryDto ?? ({} as FindPostQueryDto),
+      payload?.activeUser as ActiveUserData,
+    );
   }
 
   @MessagePattern('posts.findOne')

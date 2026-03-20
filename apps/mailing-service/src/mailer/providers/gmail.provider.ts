@@ -13,8 +13,6 @@ export class GmailProvider implements EmailProvider {
         const smtpUser = this.configService.get('GMAIL_SMTP_USER');
         const smtpPass = this.configService.get('GMAIL_SMTP_PASS');
 
-        console.log(smtpService, smtpUser, smtpPass)
-
         const transporter = nodemailer.createTransport({
             service: smtpService,
             auth: {

@@ -5,7 +5,11 @@ import { UpdateClientDto } from './dto/update-client.dto';
 @Injectable()
 export class ClientsService {
   create(createClientDto: CreateClientDto) {
-    return 'This action adds a new client';
+    return {
+      status: true,
+      message: 'Client profile created successfully',
+      data: createClientDto,
+    };
   }
 
   findAll() {

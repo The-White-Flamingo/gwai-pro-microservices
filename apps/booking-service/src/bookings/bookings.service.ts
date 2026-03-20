@@ -13,7 +13,7 @@ export class BookingsService {
   constructor(
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
-  ) {}
+  ) { }
 
   async create(createBookingDto: CreateBookingDto) {
     try {
@@ -76,14 +76,14 @@ export class BookingsService {
         throw new NotFoundException('Booking not found');
       }
 
-      await this.bookingRepository.update(updateBookingDto.id, {
-        ...updateBookingDto,
-      });
+      await this.bookingRepository.update(updateBookingDto.id, { ...updateBookingDto });
+
+      const updated = await this.bookingRepository.findOneBy({ id: updateBookingDto.id });
 
       return {
         status: true,
         message: 'Booking updated successfully',
-        data: booking,
+        data: updated,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {

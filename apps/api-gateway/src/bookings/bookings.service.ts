@@ -15,73 +15,49 @@ export class BookingsService {
 
   async create(createBookingDto: CreateBookingDto) {
     try {
-      const booking = await lastValueFrom(
-        this.client.send('bookings.create', { ...createBookingDto }),
+      return await lastValueFrom(
+        this.client.send('bookings.create', createBookingDto),
       );
-
-      return booking;
-    } catch (error) {
-      throw new BadRequestException(error.message);
+    } catch (error: any) {
+      throw new BadRequestException(error?.message ?? 'Failed to create booking');
     }
   }
 
   async findAll() {
     try {
-      const booking = await lastValueFrom(
-        this.client.send('bookings.findAll', {}),
-      );
-
-      return booking;
-    } catch (error) {
-      throw new BadRequestException(error.message);
+      return await lastValueFrom(this.client.send('bookings.findAll', {}));
+    } catch (error: any) {
+      throw new BadRequestException(error?.message ?? 'Failed to fetch bookings');
     }
   }
 
   async findOne(id: string) {
     try {
-      const booking = await lastValueFrom(
-        this.client.send('bookings.findOne', { id }),
-      );
-
-      return booking;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw new NotFoundException(error.message);
-      }
-      throw new BadRequestException(error.message);
+      // IMPORTANT: booking-service expects id string
+      return await lastValueFrom(this.client.send('bookings.findOne', id));
+    } catch (error: any) {
+      if (error instanceof NotFoundException) throw error;
+      throw new BadRequestException(error?.message ?? 'Failed to fetch booking');
     }
   }
 
-  async update(id: string, updateBookingDto: UpdateBookingDto) {
+  async update(updateBookingDto: UpdateBookingDto) {
     try {
-      const booking = await lastValueFrom(
-        this.client.send('bookings.update', {
-          id,
-          ...updateBookingDto,
-        }),
-      );
-
-      return booking;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw new NotFoundException(error.message);
-      }
-      throw new BadRequestException(error.message);
+      // IMPORTANT: pattern is bookings.update (plural)
+      return await lastValueFrom(this.client.send('bookings.update', updateBookingDto));
+    } catch (error: any) {
+      if (error instanceof NotFoundException) throw error;
+      throw new BadRequestException(error?.message ?? 'Failed to update booking');
     }
   }
 
   async remove(id: string) {
     try {
-      const booking = await lastValueFrom(
-        this.client.send('bookings.delete', { id }),
-      );
-
-      return booking;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw new NotFoundException(error.message);
-      }
-      throw new BadRequestException(error.message);
+      // IMPORTANT: booking-service expects id string
+      return await lastValueFrom(this.client.send('bookings.delete', id));
+    } catch (error: any) {
+      if (error instanceof NotFoundException) throw error;
+      throw new BadRequestException(error?.message ?? 'Failed to delete booking');
     }
   }
 }

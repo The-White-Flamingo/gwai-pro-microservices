@@ -14,7 +14,7 @@ import { ActiveUserData } from '@app/iam';
 export class PostsService {
   constructor(
     @InjectRepository(Post) private readonly postsRepository: Repository<Post>,
-  ) {}
+  ) { }
 
   async create(createPostDto: CreatePostDto) {
     try {
@@ -33,20 +33,25 @@ export class PostsService {
   }
 
   async findAll(paginationQueryDto: PaginationQueryDto, findPostQueryDto: FindPostQueryDto, activeUser: ActiveUserData) {
-    const {limit, offset} = paginationQueryDto;
-    const { caption, username } = findPostQueryDto;
+    const { limit, offset } = paginationQueryDto;
+    const { caption, userId } = findPostQueryDto;
+    
+    const take = limit ?? 50;   // default to 50 results
+    const skip = offset ?? 0;   // default to first page
 
-    const conditions: FindOptionsWhere<Post> | FindOptionsWhere<Post>[] = {
-      ...(caption && { caption: caption }),
-      ...(username && { username: username }),
+    const conditions = {
+      ...(caption && { caption }),
+      ...(userId && { userId }),
     };
+
+    
 
     try {
       const posts = await this.postsRepository.find({
         where: conditions,
         relations: ['comments'],
-        take: limit,
-        skip: offset,
+        take: take,
+        skip: skip,
       });
 
       return {

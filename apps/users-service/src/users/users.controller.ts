@@ -13,7 +13,7 @@ export class UsersController {
   }
 
   @MessagePattern('users.findOne')
-  findOne(@Payload('id') id: string) {
+  findOne(@Payload() id: string) {
     return this.usersService.findOne(id);
   }
 
@@ -23,7 +23,12 @@ export class UsersController {
   }
 
   @MessagePattern('users.delete')
-  remove(@Param('id') id: string) {
+  remove(@Payload() id: string) {
     return this.usersService.remove(id);
+  }
+
+  @MessagePattern('users.me')
+  me(@Payload() userId: string) {
+    return this.usersService.me(userId);
   }
 }

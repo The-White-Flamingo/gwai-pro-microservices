@@ -16,11 +16,6 @@ import { POSTS_SERVICE } from '@app/shared';
           queueOptions: {
             durable: true,
           },
-          socketOptions: {
-            noDelay: true,
-            rejectUnauthorized: false,
-            secureProtocol: 'TLSv1_2_method',
-          },
         },
       },
     ]),

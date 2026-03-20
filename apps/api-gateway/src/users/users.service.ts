@@ -19,9 +19,9 @@ export class UsersService {
       return users;
     } catch (error) {
       if (error instanceof UnauthorizedException) {
-        throw new UnauthorizedException(error.message);
+        throw new UnauthorizedException(this.getErrorMessage(error));
       }
-      throw new BadRequestException(error.messsage);
+      throw new UnauthorizedException(this.getErrorMessage(error));
     }
   }
 
@@ -31,9 +31,9 @@ export class UsersService {
       return user;
     } catch (error) {
       if (error instanceof UnauthorizedException) {
-        throw new UnauthorizedException(error.message);
+        throw new UnauthorizedException(this.getErrorMessage(error));
       }
-      throw new BadRequestException(error.messsage);
+      throw new UnauthorizedException(this.getErrorMessage(error));
     }
   }
 
@@ -45,9 +45,9 @@ export class UsersService {
       return user;
     } catch (error) {
       if (error instanceof UnauthorizedException) {
-        throw new UnauthorizedException(error.message);
+        throw new UnauthorizedException(this.getErrorMessage(error));
       }
-      throw new BadRequestException(error.messsage);
+      throw new UnauthorizedException(this.getErrorMessage(error));
     }
   }
 
@@ -57,9 +57,30 @@ export class UsersService {
       return user;
     } catch (error) {
       if (error instanceof UnauthorizedException) {
-        throw new UnauthorizedException(error.message);
+        throw new UnauthorizedException(this.getErrorMessage(error));
       }
-      throw new BadRequestException(error.messsage);
+      throw new UnauthorizedException(this.getErrorMessage(error));
     }
   }
+
+  async me(userId: string) {
+    try {
+      const user = await lastValueFrom(this.client.send('users.me', userId));
+      return user;
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw new UnauthorizedException(this.getErrorMessage(error));
+      }
+      throw new BadRequestException(this.getErrorMessage(error));
+    }
+  }
+
+  private getErrorMessage(error: any): string {
+  return (
+    error?.response?.message ??
+    error?.message ??
+    error?.error?.message ??
+    (typeof error === 'string' ? error : JSON.stringify(error))
+  );
+}
 }

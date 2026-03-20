@@ -5,7 +5,11 @@ import { UpdateMusicianDto } from './dto/update-musician.dto';
 @Injectable()
 export class MusiciansService {
   create(createMusicianDto: CreateMusicianDto) {
-    return 'This action adds a new musician';
+    return {
+      status: true,
+      message: 'Musician profile created successfully',
+      data: createMusicianDto,
+    };
   }
 
   findAll() {

@@ -5,7 +5,11 @@ import { UpdateStudioDto } from './dto/update-studio.dto';
 @Injectable()
 export class StudiosService {
   create(createStudioDto: CreateStudioDto) {
-    return 'This action adds a new studio';
+    return {
+      status: true,
+      message: 'Studio profile created successfully',
+      data: createStudioDto,
+    };
   }
 
   findAll() {

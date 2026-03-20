@@ -6,3 +6,5 @@ export class UpdateBookingDto extends PartialType(CreateBookingDto) {
   @IsString()
   id: string;
 }
+
+

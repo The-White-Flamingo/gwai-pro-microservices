@@ -1,9 +1,11 @@
-import { IsOptional } from "class-validator";
+import { IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class FindPostQueryDto {
-    @IsOptional()
-    username: string;
+  @IsOptional()
+  @IsUUID()
+  userId?: string;
 
-    @IsOptional()
-    caption: string;
+  @IsOptional()
+  @IsString()
+  caption?: string;
 }

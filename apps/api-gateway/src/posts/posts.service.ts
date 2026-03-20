@@ -1,5 +1,5 @@
-import { CreatePostDto, UpdatePostDto } from '@app/posts';
-import { POSTS_SERVICE } from '@app/shared';
+import { CreatePostDto, FindPostQueryDto, UpdatePostDto } from '@app/posts';
+import { POSTS_SERVICE, PaginationQueryDto } from '@app/shared';
 import {
   BadRequestException,
   Inject,
@@ -7,7 +7,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { last, lastValueFrom } from 'rxjs';
+import { lastValueFrom } from 'rxjs';
+import { ActiveUserData } from '@app/iam';
 
 @Injectable()
 export class PostsService {
@@ -15,64 +16,56 @@ export class PostsService {
 
   async create(createPostDto: CreatePostDto) {
     try {
-      const post = lastValueFrom(
-        this.client.send('posts.create', createPostDto),
-      );
-
-      return post;
-    } catch (error) {
-      throw new BadRequestException(error.message);
+      return await lastValueFrom(this.client.send('posts.create', createPostDto));
+    } catch (error: any) {
+      throw new BadRequestException(error?.message ?? 'Failed to create post');
     }
   }
 
-  async findAll() {
+  async findAll(
+    paginationQueryDto: PaginationQueryDto,
+    findPostQueryDto: FindPostQueryDto,
+    activeUser: ActiveUserData,
+  ) {
     try {
-      const posts = lastValueFrom(this.client.send('posts.findAll', {}));
-
-      return posts;
-    } catch (error) {
-      throw new BadRequestException(error.message);
+      return await lastValueFrom(
+        this.client.send('posts.findAll', {
+          paginationQueryDto,
+          findPostQueryDto,
+          activeUser,
+        }),
+      );
+    } catch (error: any) {
+      throw new BadRequestException(error?.message ?? 'Failed to fetch posts');
     }
   }
 
   async findOne(id: string) {
     try {
-      const post = lastValueFrom(this.client.send('posts.findOne', { id }));
-
-      return post;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw new NotFoundException(error.message);
-      }
-      throw new BadRequestException(error.message);
+      // IMPORTANT: send id as string, posts-service expects @Payload() id: string
+      return await lastValueFrom(this.client.send('posts.findOne', id));
+    } catch (error: any) {
+      if (error instanceof NotFoundException) throw error;
+      throw new BadRequestException(error?.message ?? 'Failed to fetch post');
     }
   }
 
-  async update(id: string, updatePostDto: UpdatePostDto) {
+  async update(updatePostDto: UpdatePostDto) {
     try {
-      const post = lastValueFrom(
-        this.client.send('posts.update', { id, ...updatePostDto }),
-      );
-
-      return post;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw new NotFoundException(error.message);
-      }
-      throw new BadRequestException(error.message);
+      return await lastValueFrom(this.client.send('posts.update', updatePostDto));
+    } catch (error: any) {
+      if (error instanceof NotFoundException) throw error;
+      throw new BadRequestException(error?.message ?? 'Failed to update post');
     }
   }
 
   async remove(id: string) {
     try {
-      const post = lastValueFrom(this.client.send('posts.remove', { id }));
-
-      return post;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw new NotFoundException(error.message);
-      }
-      throw new BadRequestException(error.message);
+      // IMPORTANT: send id as string
+      return await lastValueFrom(this.client.send('posts.remove', id));
+    } catch (error: any) {
+      if (error instanceof NotFoundException) throw error;
+      throw new BadRequestException(error?.message ?? 'Failed to delete post');
     }
   }
 }

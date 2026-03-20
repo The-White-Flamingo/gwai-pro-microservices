@@ -3,7 +3,6 @@ import * as nodemailer from 'nodemailer';
 import { ConfigService } from '@nestjs/config';
 import { CreateMailerDto } from '@app/shared';
 import { EmailProvider } from '../interfaces/email-provider.interface';
-import { log } from 'console';
 
 @Injectable()
 export class ZohoProvider implements EmailProvider {
@@ -14,8 +13,6 @@ export class ZohoProvider implements EmailProvider {
     const smtpPort = this.configService.get<number>('ZOHO_SMTP_PORT', 465);
     const smtpUser = this.configService.get('ZOHO_SMTP_USER');
     const smtpPass = this.configService.get('ZOHO_SMTP_PASS');
-
-    console.log(smtpHost, smtpPort, smtpUser, smtpPass)
 
     const transporter = nodemailer.createTransport({
       host: smtpHost,

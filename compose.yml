@@ -34,8 +34,6 @@ services:
       target: development
       args:
         - APP_NAME=booking-service
-    ports:
-      - 3001:3000
     env_file:
       - ./apps/booking-service/.env
     environment:
@@ -61,8 +59,7 @@ services:
       target: development
       args:
         - APP_NAME=payment-service
-    ports:
-      - 3002:3000
+
     env_file:
       - ./apps/payment-service/.env
     environment:
@@ -88,8 +85,6 @@ services:
       target: development
       args:
         - APP_NAME=users-service
-    ports:
-      - 3003:3000
     env_file:
       - ./apps/users-service/.env
     environment:
@@ -118,8 +113,6 @@ services:
       target: development
       args:
         - APP_NAME=chat-service
-    ports:
-      - 3004:3000
     env_file:
       - ./apps/chat-service/.env
     environment:
@@ -145,8 +138,6 @@ services:
       target: development
       args:
         - APP_NAME=waitlist-service
-    ports:
-      - 3006:3000
     env_file:
       - ./apps/waitlist-service/.env
     environment:
@@ -172,8 +163,6 @@ services:
       target: development
       args:
         - APP_NAME=mailing-service
-    ports:
-      - 3007:3000
     env_file:
       - ./apps/mailing-service/.env
     environment:
@@ -196,8 +185,6 @@ services:
       target: development
       args:
         - APP_NAME=posts-service
-    ports:
-      - 3005:3000
     env_file:
       - ./apps/posts-service/.env
     environment:

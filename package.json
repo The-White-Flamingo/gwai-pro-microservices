@@ -27,9 +27,11 @@
     "@nestjs/mapped-types": "*",
     "@nestjs/microservices": "^10.3.10",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/platform-socket.io": "^10.4.20",
     "@nestjs/swagger": "^7.4.0",
     "@nestjs/terminus": "^10.2.3",
     "@nestjs/typeorm": "^10.0.2",
+    "@nestjs/websockets": "^10.4.20",
     "amqp-connection-manager": "^4.1.14",
     "axios": "^1.7.9",
     "bcryptjs": "^2.4.3",
@@ -43,6 +45,7 @@
     "qrcode": "^1.5.4",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
+    "socket.io": "^4.8.1",
     "typeorm": "^0.3.20",
     "webpack": "^5.93.0"
   },
@@ -99,5 +102,6 @@
       "^@app/shared(|/.*)$": "<rootDir>/libs/shared/src/$1",
       "^@app/posts(|/.*)$": "<rootDir>/libs/posts/src/$1"
     }
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
