@@ -126,7 +126,7 @@ export class AuthenticationService {
         if (sendOtpError) {
           return sendOtpError;
         }
-      }
+      }      
 
       return {
         status: true,
@@ -273,7 +273,35 @@ export class AuthenticationService {
       return new BadRequestException('Password does not match').getResponse();
     }
 
-    return await this.generateTokens(user);
+    // Email verification check
+    if (!user.isEmailVerified) {
+      return {
+        status: false,
+        emailVerified: false,
+        message: 'Please verify your email before signing in.',
+      };
+    }
+
+    // is profile complete check
+    const isProfileComplete = await this.checkProfileComplete(user);
+
+    if (!isProfileComplete) {
+      return {
+        status: false,
+        emailVerified: true,
+        isProfileComplete: false,
+        message: 'Please complete your profile.',
+      };
+    }
+
+    // all checks passed - issue tokens
+    return {
+      ...(await this.generateTokens(user)),
+      emailVerified: true,
+      isProfileComplete: true,
+      message: 'Sign-in successful',
+    };
+    
   }
 
   async generateTokens(user: User) {

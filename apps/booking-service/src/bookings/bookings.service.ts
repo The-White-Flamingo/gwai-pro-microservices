@@ -1,3 +1,4 @@
+// apps/booking-service/src/bookings/bookings.service.ts
 import { CreateBookingDto, UpdateBookingDto } from '@app/bookings';
 import {
   BadRequestException,

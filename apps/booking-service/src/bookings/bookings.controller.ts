@@ -1,7 +1,8 @@
+// apps/booking-service/src/bookings/bookings.controller.ts
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { BookingsService } from './bookings.service';
-import { CreateBookingDto, UpdateBookingDto } from '@app/bookings';
+import { BookingStatus, CreateBookingDto, UpdateBookingDto } from '@app/bookings';
 
 @Controller()
 export class BookingsController {

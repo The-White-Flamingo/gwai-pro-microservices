@@ -11,3 +11,5 @@ export const POSTS_SERVICE = Symbol('posts-service');
 export const WAITLIST_SERVICE = Symbol('waitlist-service');
 
 export const MAILING_SERVICE = Symbol('mailing-service');
+
+export const BLOG_SERVICE = Symbol('blog-service');

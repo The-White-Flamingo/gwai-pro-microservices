@@ -18,6 +18,8 @@ import {
   HttpStatus,
   Post,
   Res,
+  Get,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
