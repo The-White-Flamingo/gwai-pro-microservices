@@ -1,9 +1,11 @@
 import {
   ActiveUser,
   ActiveUserData,
+  AppleTokenDto,
   Auth,
   AuthType,
   ForgotPasswordDto,
+  GoogleTokenDto,
   ResendSignUpOtpDto,
   ResetPasswordDto,
   RefreshTokenDto,
@@ -91,6 +93,114 @@ export class AuthController {
   @Post('sign-in')
   signIn(@Body() signInDto: SignInDto) {
     return this.authenticationService.signIn(signInDto);
+  }
+
+  @Post('google')
+  @ApiOperation({
+    summary: 'Authenticate with Google',
+    description:
+      'Accepts a Google ID token from the frontend, verifies it in users-service, stores or links the user in the users table, and returns access and refresh tokens.',
+  })
+  @ApiBody({
+    type: GoogleTokenDto,
+    examples: {
+      googleAuth: {
+        summary: 'Google ID token payload',
+        value: {
+          token:
+            'eyJhbGciOiJSUzI1NiIsImtpZCI6Imdvb2dsZS1raWQiLCJ0eXAiOiJKV1QifQ.eyJlbWFpbCI6ImphbmVAZXhhbXBsZS5jb20iLCJzdWIiOiIxMjM0NTY3ODkwIiwiYXVkIjoieW91ci1nb29nbGUtY2xpZW50LWlkIiwiZW1haWxfdmVyaWZpZWQiOnRydWV9.signature',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Google authentication successful',
+    schema: {
+      example: {
+        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.access',
+        refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid Google token',
+    schema: {
+      example: {
+        message: 'Invalid Google token',
+        error: 'Unauthorized',
+        statusCode: 401,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'Users service timeout',
+    schema: {
+      example: {
+        message: 'Request to users-service timed out for pattern auth.google',
+        error: 'Gateway Timeout',
+        statusCode: 504,
+      },
+    },
+  })
+  authenticateWithGoogle(@Body() googleTokenDto: GoogleTokenDto) {
+    return this.authenticationService.authenticateWithGoogle(googleTokenDto);
+  }
+
+  @Post('apple')
+  @ApiOperation({
+    summary: 'Authenticate with Apple',
+    description:
+      'Accepts an Apple identity token from the frontend, verifies its signature and claims in users-service, stores or links the user in the users table, and returns access and refresh tokens.',
+  })
+  @ApiBody({
+    type: AppleTokenDto,
+    examples: {
+      appleAuth: {
+        summary: 'Apple identity token payload',
+        value: {
+          token:
+            'eyJhbGciOiJSUzI1NiIsImtpZCI6IkFQUEtFWUlEIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2FwcGxlaWQuYXBwbGUuY29tIiwiYXVkIjoieW91ci5hcHAuYnVuZGxlLmlkIiwic3ViIjoiMDAxMjM0LjU2Nzg5YWJjZGVmIiwiZW1haWwiOiJqYW5lQHByaXZhdGVyZWxheS5hcHBsZWlkLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjoidHJ1ZSIsImV4cCI6MTc3NDA5OTk5OX0.signature',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Apple authentication successful',
+    schema: {
+      example: {
+        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.access',
+        refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid Apple token',
+    schema: {
+      example: {
+        message: 'Invalid Apple token',
+        error: 'Unauthorized',
+        statusCode: 401,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'Users service timeout',
+    schema: {
+      example: {
+        message: 'Request to users-service timed out for pattern auth.apple',
+        error: 'Gateway Timeout',
+        statusCode: 504,
+      },
+    },
+  })
+  authenticateWithApple(@Body() appleTokenDto: AppleTokenDto) {
+    return this.authenticationService.authenticateWithApple(appleTokenDto);
   }
 
   @Post('verify-sign-up-otp')

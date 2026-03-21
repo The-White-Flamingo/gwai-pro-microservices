@@ -1,5 +1,7 @@
 import {
+  AppleTokenDto,
   ForgotPasswordDto,
+  GoogleTokenDto,
   ResendSignUpOtpDto,
   ResetPasswordDto,
   RefreshTokenDto,
@@ -153,6 +155,40 @@ export class AuthService {
     } catch (error) {
       if (error instanceof GatewayTimeoutException) {
         throw error;
+      }
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async authenticateWithGoogle(googleTokenDto: GoogleTokenDto) {
+    try {
+      return await this.sendWithTimeout('auth.google', googleTokenDto);
+    } catch (error) {
+      if (error instanceof GatewayTimeoutException) {
+        throw error;
+      }
+      if (error instanceof ConflictException) {
+        throw new ConflictException(error.message);
+      }
+      if (error instanceof UnauthorizedException) {
+        throw new UnauthorizedException(error.message);
+      }
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async authenticateWithApple(appleTokenDto: AppleTokenDto) {
+    try {
+      return await this.sendWithTimeout('auth.apple', appleTokenDto);
+    } catch (error) {
+      if (error instanceof GatewayTimeoutException) {
+        throw error;
+      }
+      if (error instanceof ConflictException) {
+        throw new ConflictException(error.message);
+      }
+      if (error instanceof UnauthorizedException) {
+        throw new UnauthorizedException(error.message);
       }
       throw new BadRequestException(error.message);
     }

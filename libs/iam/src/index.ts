@@ -3,6 +3,7 @@ export * from './authorization/guards/roles.guard';
 export * from './config/jwt.config';
 export * from './decorators/active-user.decorator';
 export * from './decorators/auth.decorator';
+export * from './dto/apple-token.dto';
 export * from './dto/google-token.dto';
 export * from './dto/forgot-password.dto';
 export * from './dto/resend-sign-up-otp.dto';

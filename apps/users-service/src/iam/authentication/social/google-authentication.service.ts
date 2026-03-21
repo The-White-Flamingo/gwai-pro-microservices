@@ -29,30 +29,66 @@ export class GoogleAuthenticationService implements OnModuleInit {
 
   async authenticate(token: string) {
     try {
+      const audiences = this.getAudiences();
+      if (audiences.length === 0) {
+        throw new UnauthorizedException('Google auth is not configured');
+      }
+
       const loginTicket = await this.oauthClient.verifyIdToken({
         idToken: token,
+        audience: audiences,
       });
 
-      const { email, sub: googleId } = loginTicket.getPayload();
-
-      const user = await this.userRepository.findOneBy({ googleId });
-
-      if (user) {
-        return this.authenticationService.generateTokens(user);
-      } else {
-        const newUser = await this.userRepository.save({
-          email,
-          googleId,
-        });
-
-        return this.authenticationService.generateTokens(newUser);
+      const payload = loginTicket.getPayload();
+      if (!payload?.email || !payload.sub || payload.email_verified !== true) {
+        throw new UnauthorizedException('Invalid Google token');
       }
+
+      const user = await this.findOrCreateUser(payload.email, payload.sub);
+      return this.authenticationService.generateTokens(user);
     } catch (error) {
       const pgUniqueViolationErrorCode = '23505';
       if (error.code === pgUniqueViolationErrorCode) {
         throw new ConflictException('User already exists');
       }
-      throw new UnauthorizedException();
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof ConflictException
+      ) {
+        throw error;
+      }
+      throw new UnauthorizedException(error?.message ?? 'Google authentication failed');
     }
+  }
+
+  private getAudiences(): string[] {
+    const clientIds = this.configService.get<string>('GOOGLE_CLIENT_ID') ?? '';
+    return clientIds
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+  }
+
+  private async findOrCreateUser(email: string, googleId: string) {
+    const existingByGoogleId = await this.userRepository.findOneBy({ googleId });
+    if (existingByGoogleId) {
+      return existingByGoogleId;
+    }
+
+    const existingByEmail = await this.userRepository.findOneBy({ email });
+    if (existingByEmail) {
+      if (existingByEmail.googleId && existingByEmail.googleId !== googleId) {
+        throw new ConflictException('Google account already linked to another user');
+      }
+      existingByEmail.googleId = googleId;
+      return this.userRepository.save(existingByEmail);
+    }
+
+    return this.userRepository.save(
+      this.userRepository.create({
+        email,
+        googleId,
+      }),
+    );
   }
 }
