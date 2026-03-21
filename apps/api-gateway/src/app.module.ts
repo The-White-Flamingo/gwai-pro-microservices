@@ -11,6 +11,9 @@ import jwtConfig from '@app/iam/config/jwt.config';
 import { ConfigModule } from '@nestjs/config';
 import { PostsModule } from './posts/posts.module';
 import { WaitlistModule } from './waitlist/waitlist.module';
+import { ChatModule } from './chat/chat.module';
+// 
+import {BlogModule} from './blog/blog.module';
 
 @Module({
   imports: [
@@ -25,6 +28,8 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     BookingsModule,
     PostsModule,
     WaitlistModule,
+    ChatModule,
+    BlogModule,
   ],
   controllers: [ApiGatewayController],
   providers: [

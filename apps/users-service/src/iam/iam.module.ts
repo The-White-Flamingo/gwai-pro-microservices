@@ -21,12 +21,28 @@ import { ApiKey } from '../users/api-keys/entities/api-key.entity';
 import { Client } from '../users/clients/entities/client.entity';
 import { Musician } from '../users/musicians/entities/musician.entity';
 import { Studio } from '../users/studios/entities/studio.entity';
+// connect the users-service to the mailing-service via rabbitmq
+import { ClientsModule, Transport } from '@nestjs/microservices';
+import { MAILING_SERVICE } from '@app/shared';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Client, Musician, Studio, ApiKey]),
     JwtModule.registerAsync(jwtConfig.asProvider()),
     ConfigModule.forFeature(jwtConfig),
+    // register the mailing service as a microservice client
+    ClientsModule.register([
+      {
+        name: MAILING_SERVICE,
+        transport: Transport.RMQ,
+        options: {
+          urls: [process.env.RABBITMQ_URL],
+          queue: 'mailing-service',
+          queueOptions: { durable: true },
+        },
+      },
+    ]),
+    // 
   ],
   providers: [
     {

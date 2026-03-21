@@ -14,12 +14,17 @@ import {
   HttpStatus,
   Post,
   Res,
+  Get,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
+// import reset and forgot password dtos
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @ApiTags('auth')
 @Auth(AuthType.None)
@@ -43,9 +48,40 @@ export class AuthController {
     return this.authenticationService.signIn(signInDto);
   }
 
+  // verify email address
+  @Get('verify-email')
+  verifyEmail(@Query('token') token: string) {
+    return this.authenticationService.verifyEmail(token);
+  }
+
+  // forgot password and reset password endpoints
+  @Post('forgot-password')
+  forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authenticationService.forgotPassword(forgotPasswordDto);
+  }
+
+  @Post('reset-password')
+  resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authenticationService.resetPassword(resetPasswordDto);
+  }
+
+  // resend verification email
+  @Post('resend-verification')
+  resendVerificationEmail(@Body('email') email: string) {
+    return this.authenticationService.resendVerificationEmail(email);
+  }
+
   @Post('refresh-tokens')
   refreshTokens(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.authenticationService.refreshTokens(refreshTokenDto);
+  }
+
+  // endpoint to get the profile completion status of the user
+  @ApiBearerAuth()
+  @Auth(AuthType.Bearer)
+  @Get('profile-status')
+  getProfileStatus(@ActiveUser() activeUser: ActiveUserData) {
+    return this.authenticationService.getProfileStatus(activeUser.sub);
   }
 
   // @ApiBearerAuth()

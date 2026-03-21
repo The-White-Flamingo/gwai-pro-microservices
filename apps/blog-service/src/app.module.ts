@@ -1,16 +1,15 @@
+// apps/blog-service/src/app.module.ts
 import { Module } from '@nestjs/common';
-import { ChatServiceController } from './app.controller';
-import { ChatServiceService } from './app.service';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { HealthModule } from './health/health.module';
 import { ConfigModule } from '@nestjs/config';
-import { ChatsModule } from './chats/chats.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { BlogModule } from './blog/blog.module';
+import { Blog } from './blog/entities/blog.entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: './apps/chat-service/.env',
+      envFilePath: './apps/blog-service/.env',
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
@@ -19,7 +18,7 @@ import { ChatsModule } from './chats/chats.module';
       username: process.env.POSTGRES_USER,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DB,
-      autoLoadEntities: true,
+      entities: [Blog],
       synchronize: true,
       ssl:
         process.env.NODE_ENV === 'production'
@@ -28,12 +27,8 @@ import { ChatsModule } from './chats/chats.module';
               ca: Buffer.from(process.env.SSL_CERT, 'base64').toString('utf-8'),
             }
           : false,
-      logging: true,
     }),
-    HealthModule,
-    ChatsModule
+    BlogModule,
   ],
-  controllers: [ChatServiceController],
-  providers: [ChatServiceService],
 })
-export class ChatServiceModule {}
+export class AppModule {}

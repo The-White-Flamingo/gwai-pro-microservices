@@ -36,5 +36,7 @@ async function bootstrap() {
   await app.startAllMicroservices();
 
   await app.listen(3000);
+  // await new Promise(() => {});
+
 }
 bootstrap();
