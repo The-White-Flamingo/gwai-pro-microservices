@@ -70,8 +70,79 @@ export class AuthenticationService {
     @Inject(jwtConfig.KEY)
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
     private readonly refreshTokenIdsStorage: RefreshTokenIdsStorage,
+    // inject the mailing service client proxy
+    @Inject(MAILING_SERVICE) private readonly mailingClient: ClientProxy,
   ) {}
 
+  // private helper method to check completeness of user profile per role
+  // apps/users-service/src/iam/authentication/authentication.service.ts
+
+private async checkProfileComplete(user: User): Promise<boolean> {
+  switch (user.role) {
+    case Role.Client: {
+      const client = await this.clientRepository.findOne({
+        where: { user: { id: user.id } },
+      });
+      if (!client) return false;
+      return !!(
+        client.firstName &&
+        client.lastName &&
+        client.contact &&
+        client.dateOfBirth &&
+        client.genres?.length > 0 &&
+        client.interests?.length > 0
+      );
+    }
+
+    case Role.Musician: {
+      const musician = await this.musicianRepository.findOne({
+        where: { user: { id: user.id } },
+      });
+      if (!musician) return false;
+      return !!(
+        musician.firstName &&
+        musician.lastName &&
+        musician.contact &&
+        musician.dateOfBirth &&
+        musician.genres?.length > 0 &&
+        musician.interests?.length > 0
+      );
+    }
+
+    case Role.Studio: {
+      const studio = await this.studioRepository.findOne({
+        where: { user: { id: user.id } },
+      });
+      if (!studio) return false;
+      return !!(
+        studio.name &&
+        studio.contact &&
+        studio.location &&
+        studio.services?.length > 0
+      );
+    }
+
+    default:
+      return true; // Admin or unknown roles are always considered complete
+    }
+  }
+
+  // authentication.service.ts
+  async getProfileStatus(userId: string) {
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) return new BadRequestException('User not found').getResponse();
+
+    const isProfileComplete = await this.checkProfileComplete(user);
+
+    return {
+      status: true,
+      emailVerified: user.isEmailVerified,
+      isProfileComplete,
+      role: user.role,
+    };
+  }
+
+  // update the sign-up method to generate a unique email verification token, save it to the user's record along with an expiration date, and send a verification email with the token included in the verification link
   async signUp(signUpDto: SignUpDto) {
     return this.requestSignUpOtp(signUpDto);
   }
@@ -127,6 +198,15 @@ export class AuthenticationService {
           return sendOtpError;
         }
       }      
+
+      // fire-and-forget the email verification message to the mailing service
+      this.mailingClient.emit('mailer.send',{
+        to:user.email,
+        subject: 'Verify your email address',
+        text: `Your verification link : ${process.env.APP_URL}/verify-email?token=${verificationToken}`,
+        html: `<p>Your verification link : <a href="${process.env.APP_URL}/verify-email?token=${verificationToken}">Verify Email</a></p>`,
+      });
+      
 
       return {
         status: true,
@@ -303,6 +383,109 @@ export class AuthenticationService {
     };
     
   }
+
+  // verify email method that takes the verification token as a parameter, checks if it's valid and not expired, and if so, marks the user's email as verified
+  async verifyEmail(token: string) {
+    const user = await this.userRepository.findOneBy({
+      emailVerificationToken: token,
+    });
+
+    if (!user) {
+      return new BadRequestException('Invalid verification token').getResponse();
+    }
+
+    if (user.emailVerificationTokenExpiresAt < new Date()) {
+      return new BadRequestException('Verification token has expired').getResponse();
+    }
+
+    user.isEmailVerified = true;
+    user.emailVerificationToken = null;
+    user.emailVerificationTokenExpiresAt = null;
+    await this.userRepository.save(user);
+
+    return { status: true, message: 'Email verified successfully.' };
+  }
+
+  // resend email verification method that takes the user's email as a parameter, generates a new verification token, updates the user's record with the new token and expiration date, and sends a new verification email
+  async resendVerificationEmail(email: string) {
+    const user = await this.userRepository.findOneBy({ email });
+    if (!user) return new BadRequestException('User not found').getResponse();
+    if (user.isEmailVerified) return new BadRequestException('Email already verified').getResponse();
+
+    const verificationToken = randomUUID();
+    user.emailVerificationToken = verificationToken;
+    user.emailVerificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await this.userRepository.save(user);
+
+    this.mailingClient.emit('mailer.send', {
+      to: user.email,
+      subject: 'Verify your Gwaipro email',
+      text: `Your new verification link: ${process.env.APP_URL}/auth/verify-email?token=${verificationToken}`,
+      html: `<p>Click <a href="${process.env.APP_URL}/auth/verify-email?token=${verificationToken}">here</a> to verify your email.</p>`,
+    });
+
+    return { status: true, message: 'Verification email resent.' };
+  }
+
+  // forgot password method that takes the user's email as a parameter, generates a password reset token, saves it to the user's record along with an expiration date, and sends a password reset email with the token included in the reset link
+  // apps/users-service/src/iam/authentication/authentication.service.ts
+
+async forgotPassword(email: string) {
+  const user = await this.userRepository.findOneBy({ email });
+
+  // Always return the same response whether the email exists or not.
+  // This prevents user enumeration attacks.
+  const genericResponse = {
+    status: true,
+    message: 'If that email is registered, a reset link has been sent.',
+  };
+
+  if (!user) return genericResponse;
+
+  const resetToken = randomUUID();
+  user.passwordResetToken = resetToken;
+  user.passwordResetTokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  await this.userRepository.save(user);
+
+  this.mailingClient.emit('mailer.send', {
+    to: user.email,
+    subject: 'Reset your Gwaipro password',
+    text: `Reset your password: ${process.env.APP_URL}/auth/reset-password?token=${resetToken}`,
+    html: `
+      <p>You requested a password reset.</p>
+      <p>Click <a href="${process.env.APP_URL}/auth/reset-password?token=${resetToken}">here</a> to reset your password.</p>
+      <p>This link expires in 1 hour. If you didn't request this, ignore this email.</p>
+    `,
+  });
+
+  return genericResponse;
+}
+
+// reset password method that takes the reset token and new password as parameters, checks if the token is valid and not expired, and if so, updates
+async resetPassword(token: string, newPassword: string) {
+  const user = await this.userRepository.findOneBy({
+    passwordResetToken: token,
+  });
+
+  if (!user) {
+    return new BadRequestException('Invalid or expired reset token').getResponse();
+  }
+
+  if (user.passwordResetTokenExpiresAt < new Date()) {
+    return new BadRequestException('Reset token has expired').getResponse();
+  }
+
+  user.password = await this.hashingService.hash(newPassword);
+  user.passwordResetToken = null;
+  user.passwordResetTokenExpiresAt = null;
+
+  // Invalidate all existing refresh tokens so other sessions are logged out
+  await this.refreshTokenIdsStorage.invalidate(user.id);
+
+  await this.userRepository.save(user);
+
+  return { status: true, message: 'Password reset successfully.' };
+}
 
   async generateTokens(user: User) {
     const refreshTokenId = randomUUID();
