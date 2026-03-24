@@ -54,19 +54,6 @@ import { MAILING_SERVICE } from '@app/shared';
     ]),
     JwtModule.registerAsync(jwtConfig.asProvider()),
     ConfigModule.forFeature(jwtConfig),
-    // register the mailing service as a microservice client
-    ClientsModule.register([
-      {
-        name: MAILING_SERVICE,
-        transport: Transport.RMQ,
-        options: {
-          urls: [process.env.RABBITMQ_URL],
-          queue: 'mailing-service',
-          queueOptions: { durable: true },
-        },
-      },
-    ]),
-    // 
   ],
   providers: [
     {
