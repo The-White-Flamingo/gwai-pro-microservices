@@ -33,8 +33,8 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 // import reset and forgot password dtos
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
+// import { ForgotPasswordDto } from './dto/forgot-password.dto';
+// import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @ApiTags('auth')
 @Auth(AuthType.None)

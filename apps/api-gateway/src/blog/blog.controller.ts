@@ -53,7 +53,7 @@ export class BlogController {
   ) {
     // Inject admin identity from JWT — client never sends this
     createBlogDto.authorId = activeUser.sub;
-    createBlogDto.authorEmail = activeUser.email;
+    createBlogDto.authorRole = activeUser.email;
     return this.blogService.create(createBlogDto);
   }
 

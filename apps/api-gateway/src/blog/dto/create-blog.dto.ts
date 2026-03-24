@@ -35,4 +35,13 @@ export class CreateBlogDto {
   @IsEnum(BlogStatus)
   status: BlogStatus;
 
+  @ApiProperty({ example: 'Christell Tawiah'})
+  @IsNotEmpty()
+  @IsString()
+  authorName: string;
+
+  // Injected server-side from jwt - no validation decorators
+  authorId?: string;
+  authorRole?: string;
+
 }

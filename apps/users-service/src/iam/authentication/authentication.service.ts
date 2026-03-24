@@ -71,7 +71,7 @@ export class AuthenticationService {
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
     private readonly refreshTokenIdsStorage: RefreshTokenIdsStorage,
     // inject the mailing service client proxy
-    @Inject(MAILING_SERVICE) private readonly mailingClient: ClientProxy,
+    // @Inject(MAILING_SERVICE) private readonly mailingClient: ClientProxy,
   ) {}
 
   // private helper method to check completeness of user profile per role
@@ -430,62 +430,62 @@ private async checkProfileComplete(user: User): Promise<boolean> {
   // forgot password method that takes the user's email as a parameter, generates a password reset token, saves it to the user's record along with an expiration date, and sends a password reset email with the token included in the reset link
   // apps/users-service/src/iam/authentication/authentication.service.ts
 
-async forgotPassword(email: string) {
-  const user = await this.userRepository.findOneBy({ email });
+// async forgotPassword(email: string) {
+//   const user = await this.userRepository.findOneBy({ email });
 
-  // Always return the same response whether the email exists or not.
-  // This prevents user enumeration attacks.
-  const genericResponse = {
-    status: true,
-    message: 'If that email is registered, a reset link has been sent.',
-  };
+//   // Always return the same response whether the email exists or not.
+//   // This prevents user enumeration attacks.
+//   const genericResponse = {
+//     status: true,
+//     message: 'If that email is registered, a reset link has been sent.',
+//   };
 
-  if (!user) return genericResponse;
+//   if (!user) return genericResponse;
 
-  const resetToken = randomUUID();
-  user.passwordResetToken = resetToken;
-  user.passwordResetTokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-  await this.userRepository.save(user);
+//   const resetToken = randomUUID();
+//   user.passwordResetToken = resetToken;
+//   user.passwordResetTokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+//   await this.userRepository.save(user);
 
-  this.mailingClient.emit('mailer.send', {
-    to: user.email,
-    subject: 'Reset your Gwaipro password',
-    text: `Reset your password: ${process.env.APP_URL}/auth/reset-password?token=${resetToken}`,
-    html: `
-      <p>You requested a password reset.</p>
-      <p>Click <a href="${process.env.APP_URL}/auth/reset-password?token=${resetToken}">here</a> to reset your password.</p>
-      <p>This link expires in 1 hour. If you didn't request this, ignore this email.</p>
-    `,
-  });
+//   this.mailingClient.emit('mailer.send', {
+//     to: user.email,
+//     subject: 'Reset your Gwaipro password',
+//     text: `Reset your password: ${process.env.APP_URL}/auth/reset-password?token=${resetToken}`,
+//     html: `
+//       <p>You requested a password reset.</p>
+//       <p>Click <a href="${process.env.APP_URL}/auth/reset-password?token=${resetToken}">here</a> to reset your password.</p>
+//       <p>This link expires in 1 hour. If you didn't request this, ignore this email.</p>
+//     `,
+//   });
 
-  return genericResponse;
-}
+//   return genericResponse;
+// }
 
 // reset password method that takes the reset token and new password as parameters, checks if the token is valid and not expired, and if so, updates
-async resetPassword(token: string, newPassword: string) {
-  const user = await this.userRepository.findOneBy({
-    passwordResetToken: token,
-  });
+// async resetPassword(token: string, newPassword: string) {
+//   const user = await this.userRepository.findOneBy({
+//     passwordResetToken: token,
+//   });
 
-  if (!user) {
-    return new BadRequestException('Invalid or expired reset token').getResponse();
-  }
+//   if (!user) {
+//     return new BadRequestException('Invalid or expired reset token').getResponse();
+//   }
 
-  if (user.passwordResetTokenExpiresAt < new Date()) {
-    return new BadRequestException('Reset token has expired').getResponse();
-  }
+//   if (user.passwordResetTokenExpiresAt < new Date()) {
+//     return new BadRequestException('Reset token has expired').getResponse();
+//   }
 
-  user.password = await this.hashingService.hash(newPassword);
-  user.passwordResetToken = null;
-  user.passwordResetTokenExpiresAt = null;
+//   user.password = await this.hashingService.hash(newPassword);
+//   user.passwordResetToken = null;
+//   user.passwordResetTokenExpiresAt = null;
 
-  // Invalidate all existing refresh tokens so other sessions are logged out
-  await this.refreshTokenIdsStorage.invalidate(user.id);
+//   // Invalidate all existing refresh tokens so other sessions are logged out
+//   await this.refreshTokenIdsStorage.invalidate(user.id);
 
-  await this.userRepository.save(user);
+//   await this.userRepository.save(user);
 
-  return { status: true, message: 'Password reset successfully.' };
-}
+//   return { status: true, message: 'Password reset successfully.' };
+// }
 
   async generateTokens(user: User) {
     const refreshTokenId = randomUUID();

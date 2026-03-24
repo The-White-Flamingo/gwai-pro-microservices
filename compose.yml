@@ -25,6 +25,8 @@ services:
       - booking-service
       - payment-service
       - posts-service
+      - blog-service
+      - chat-service
     command: yarn start:dev api-gateway
 
   booking-service:
@@ -131,6 +133,7 @@ services:
       - rabbitmq
     command: yarn start:dev chat-service
 
+
   waitlist-service:
     build:
       context: .
@@ -202,6 +205,28 @@ services:
       - posts-db
       - rabbitmq
     command: yarn start:dev posts-service
+  
+  blog-service:
+    build:
+      context: .
+      dockerfile: ./apps/blog-service/Dockerfile
+      target: development
+      args:
+        - APP_NAME=blog-service
+    env_file:
+      - ./apps/blog-service/.env
+    environment:
+      # Override for Docker network
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?frameMax=0
+    volumes:
+      - ./libs:/usr/src/app/libs
+      - ./package.json:/usr/src/app/package.json
+      - ./tsconfig.json:/usr/src/app/tsconfig.json
+      - ./node_modules:/usr/src/app/node_modules
+      - ./apps/blog-service:/usr/src/app/apps/blog-service
+    depends_on:
+      - rabbitmq
+    command: yarn start:dev blog-service
 
   # Database Services
   bookings-db:
@@ -276,6 +301,18 @@ services:
     volumes:
       - waitlist_data:/var/lib/postgresql/data
 
+  blog-db:
+    image: postgres:alpine
+    ports:
+      - "5438:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=blog
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - blog_data:/var/lib/postgresql/data
+
   # Infrastructure Services
   redis:
     image: redis:alpine
@@ -303,5 +340,6 @@ volumes:
   chat_data:
   posts_data:
   waitlist_data:
+  blog_data:
   redis_data:
   rabbitmq_data:
