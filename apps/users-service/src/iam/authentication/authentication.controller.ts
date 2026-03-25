@@ -10,6 +10,11 @@ import { VerifySignUpOtpDto } from './dto/verify-sign-up-otp.dto';
 import { ResendSignUpOtpDto } from './dto/resend-sign-up-otp.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+// apps/users-service/src/iam/authentication/authentication.controller.ts
+// import { AdminSignInDto } from './dto/admin-sign-in.dto'; // or from @app/iam
+import { AdminSignInDto} from '@app/iam';
+
+
 
 @Auth(AuthType.None)
 @Controller('auth')
@@ -34,6 +39,12 @@ export class AuthenticationController {
   @MessagePattern('auth.signIn')
   signIn(@Payload() signInDto: SignInDto) {
     return this.authenticationService.signIn(signInDto);
+  }
+
+  // admin sign-in
+  @MessagePattern('auth.adminSignIn')
+  adminSignIn(@Payload() adminSignInDto: AdminSignInDto) {
+    return this.authenticationService.adminSignIn(adminSignInDto);
   }
 
   @MessagePattern('auth.refreshTokens')

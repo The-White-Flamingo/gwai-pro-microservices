@@ -33,6 +33,7 @@ import { Studio } from '../../users/studios/entities/studio.entity';
 import { Admin } from '../../users/admins/entities/admin.entity';
 import { SignUpOtp } from './entities/sign-up-otp.entity';
 import { PasswordReset } from './entities/password-reset.entity';
+import { AdminSignInDto} from '@app/iam';
 
 const SIGN_UP_OTP_TTL_MINUTES = 10;
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
@@ -316,6 +317,36 @@ export class AuthenticationService {
 
     return await this.generateTokens(user);
   }
+// apps/users-service/src/iam/authentication/authentication.service.ts
+
+async adminSignIn(adminSignInDto: AdminSignInDto) {
+  const user = await this.userRepository.findOneBy({
+    email: adminSignInDto.email,
+  });
+
+  if (!user) {
+    return new BadRequestException('Invalid credentials').getResponse();
+  }
+
+  // Ensure only admins can use this endpoint
+  if (user.role !== Role.Admin) {
+    return new UnauthorizedException(
+      'This endpoint is restricted to admin accounts only',
+    ).getResponse();
+  }
+
+  const isPasswordValid = await this.hashingService.compare(
+    adminSignInDto.password,
+    user.password,
+  );
+
+  if (!isPasswordValid) {
+    return new BadRequestException('Invalid credentials').getResponse();
+  }
+
+  // Return tokens directly — no OTP, no email verification, no profile check
+  return await this.generateTokens(user);
+}
 
   async generateTokens(user: User) {
     const refreshTokenId = randomUUID();
