@@ -1,15 +1,66 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Client } from './entities/client.entity';
+import { Repository } from 'typeorm';
+import { User } from '../entities/user.entity';
+import { Role } from '../enums/role.enum';
 
 @Injectable()
 export class ClientsService {
-  create(createClientDto: CreateClientDto) {
-    return {
-      status: true,
-      message: 'Client profile created successfully',
-      data: createClientDto,
-    };
+  constructor(
+    @InjectRepository(Client)
+    private readonly clientsRepository: Repository<Client>,
+    @InjectRepository(User)
+    private readonly usersRepository: Repository<User>,
+  ) {}
+
+  async create(createClientDto: CreateClientDto & { userId: string }) {
+    try {
+      const { userId, ...profilePayload } = createClientDto;
+      const user = await this.usersRepository.findOneBy({ id: userId });
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      const existingProfile = await this.clientsRepository.findOne({
+        where: { user: { id: userId } },
+      });
+
+      if (existingProfile) {
+        throw new ConflictException('Client profile already exists');
+      }
+
+      user.role = Role.Client;
+      await this.usersRepository.save(user);
+
+      const client = this.clientsRepository.create({
+        ...profilePayload,
+        user,
+      });
+      const savedClient = await this.clientsRepository.save(client);
+
+      return {
+        status: true,
+        message: 'Client profile created successfully',
+        data: savedClient,
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ConflictException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException(error.message);
+    }
   }
 
   findAll() {
@@ -22,6 +73,34 @@ export class ClientsService {
 
   update(id: number, updateClientDto: UpdateClientDto) {
     return `This action updates a #${id} client`;
+  }
+
+  async updateProfile(updateClientDto: Partial<UpdateClientDto> & { userId: string }) {
+    try {
+      const { userId, ...profilePayload } = updateClientDto;
+      const client = await this.clientsRepository.findOne({
+        where: { user: { id: userId } },
+        relations: ['user'],
+      });
+
+      if (!client) {
+        throw new NotFoundException('Client profile not found');
+      }
+
+      Object.assign(client, profilePayload);
+      const updatedClient = await this.clientsRepository.save(client);
+
+      return {
+        status: true,
+        message: 'Client profile updated successfully',
+        data: updatedClient,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(error.message);
+    }
   }
 
   remove(id: number) {

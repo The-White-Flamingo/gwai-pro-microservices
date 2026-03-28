@@ -1,0 +1,8 @@
+docker compose -f compose.ec21.yml exec users-db psql -U postgres -d users
+
+
+docker compose -f compose.ec21.yml exec bookings-db psql -U postgres -d bookings
+docker compose -f compose.ec21.yml exec payments-db psql -U postgres -d payments
+docker compose -f compose.ec21.yml exec posts-db psql -U postgres -d posts
+docker compose -f compose.ec21.yml exec chat-db psql -U postgres -d chats
+docker compose -f compose.ec21.yml exec waitlist-db psql -U postgres -d waitlist

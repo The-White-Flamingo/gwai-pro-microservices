@@ -17,6 +17,8 @@ import { VerifySignUpOtpDto } from './dto/verify-sign-up-otp.dto';
 import { ResendSignUpOtpDto } from './dto/resend-sign-up-otp.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { RequestAuthOtpDto } from './dto/request-auth-otp.dto';
+import { VerifyAuthOtpDto } from './dto/verify-auth-otp.dto';
 import { JwtService } from '@nestjs/jwt';
 import jwtConfig from '../config/jwt.config';
 import { ConfigType } from '@nestjs/config';
@@ -73,64 +75,125 @@ export class AuthenticationService {
   ) {}
 
   async signUp(signUpDto: SignUpDto) {
-    return this.requestSignUpOtp(signUpDto);
+    return this.requestOtp({
+      email: signUpDto.email,
+      username: signUpDto.username,
+      phoneNumber: signUpDto.phoneNumber,
+    });
   }
 
-  async requestSignUpOtp(signUpDto: SignUpDto) {
+  async requestOtp(requestAuthOtpDto: RequestAuthOtpDto) {
     try {
-      const existingUser = await this.userRepository.findOneBy({
-        email: signUpDto.email,
+      const email = this.normalizeEmail(requestAuthOtpDto.email);
+      const username = this.normalizeUsername(requestAuthOtpDto.username);
+      const phoneNumber = this.normalizePhoneNumber(
+        requestAuthOtpDto.phoneNumber,
+      );
+
+      if (!email && !username) {
+        return new BadRequestException(
+          'Provide at least an email or username',
+        ).getResponse();
+      }
+
+      const existingUser = await this.findUserByEmailOrUsername({
+        email,
+        username,
       });
 
       if (existingUser) {
-        return new ConflictException('User already exists').getResponse();
-      }
-
-      if (!this.isValidRole(signUpDto.role)) {
-        return new BadRequestException('Invalid role').getResponse();
-      }
-
-      const passwordHash = await this.hashingService.hash(signUpDto.password);
-
-      const signUpOtp = await this.signUpOtpRepository.findOneBy({
-        email: signUpDto.email,
-      });
-
-      const requestGuardError = this.getOtpRequestGuardError(signUpOtp);
-      if (requestGuardError) {
-        if (signUpOtp?.blockedUntil) {
-          await this.signUpOtpRepository.save(signUpOtp);
+        const otpRecord = await this.prepareExistingUserOtpRecord(
+          existingUser,
+          phoneNumber,
+          username,
+        );
+        const requestGuardError = this.getOtpRequestGuardError(otpRecord);
+        if (requestGuardError) {
+          if (otpRecord?.blockedUntil) {
+            await this.signUpOtpRepository.save(otpRecord);
+          }
+          return requestGuardError;
         }
-        return requestGuardError;
-      }
 
-      if (signUpOtp) {
-        signUpOtp.passwordHash = passwordHash;
-        signUpOtp.role = signUpDto.role;
-        const sendOtpError = await this.saveAndSendOtp(signUpOtp, signUpDto.email);
+        const sendOtpError = await this.saveAndSendOtp(
+          otpRecord,
+          existingUser.email,
+        );
         if (sendOtpError) {
           return sendOtpError;
         }
-      } else {
-        const pendingSignUp = this.signUpOtpRepository.create({
-          email: signUpDto.email,
+
+        return {
+          status: true,
+          message: 'OTP sent successfully.',
+          data: {
+            email: existingUser.email,
+            isNewUser: false,
+          },
+        };
+      }
+
+      if (!email || !username || !phoneNumber) {
+        return new BadRequestException(
+          'email, username and phoneNumber are required for new users',
+        ).getResponse();
+      }
+
+      const existingPhoneNumber = await this.userRepository.findOneBy({
+        phoneNumber,
+      });
+      if (existingPhoneNumber) {
+        return new ConflictException('Phone number already exists').getResponse();
+      }
+
+      const existingPendingOtp = await this.signUpOtpRepository.findOne({
+        where: [{ email }, { username }],
+      });
+
+      if (existingPendingOtp && existingPendingOtp.email !== email) {
+        return new ConflictException('Username already exists').getResponse();
+      }
+
+      const otpRecord =
+        existingPendingOtp ??
+        this.signUpOtpRepository.create({
+          email,
           otpHash: '',
-          passwordHash,
-          role: signUpDto.role,
+          passwordHash: '',
+          role: Role.Client,
           expiresAt: this.getOtpExpiryDate(),
           requestWindowStartedAt: new Date(),
           otpRequestCount: 0,
           verifyAttempts: 0,
         });
-        const sendOtpError = await this.saveAndSendOtp(pendingSignUp, signUpDto.email);
-        if (sendOtpError) {
-          return sendOtpError;
+
+      const requestGuardError = this.getOtpRequestGuardError(otpRecord);
+      if (requestGuardError) {
+        if (otpRecord?.blockedUntil) {
+          await this.signUpOtpRepository.save(otpRecord);
         }
+        return requestGuardError;
+      }
+
+      otpRecord.email = email;
+      otpRecord.username = username;
+      otpRecord.phoneNumber = phoneNumber;
+      otpRecord.userId = undefined;
+      otpRecord.passwordHash = '';
+      otpRecord.role = Role.Client;
+
+      const sendOtpError = await this.saveAndSendOtp(otpRecord, email);
+      if (sendOtpError) {
+        return sendOtpError;
       }
 
       return {
         status: true,
-        message: 'OTP sent to email. Verify OTP to complete sign up.',
+        message: 'OTP sent successfully.',
+        data: {
+          email,
+          isNewUser: true,
+        },
       };
     } catch (error) {
       return new BadRequestException(error.message).getResponse();
@@ -138,58 +201,27 @@ export class AuthenticationService {
   }
 
   async resendSignUpOtp(resendSignUpOtpDto: ResendSignUpOtpDto) {
-    try {
-      const signUpOtp = await this.signUpOtpRepository.findOneBy({
-        email: resendSignUpOtpDto.email,
-      });
-
-      if (!signUpOtp) {
-        return new BadRequestException(
-          'No sign-up request found for this email',
-        ).getResponse();
-      }
-
-      if (new Date() > new Date(signUpOtp.expiresAt)) {
-        await this.signUpOtpRepository.delete({ id: signUpOtp.id });
-        return new BadRequestException(
-          'OTP expired. Please sign up again to request a new OTP.',
-        ).getResponse();
-      }
-
-      const requestGuardError = this.getOtpRequestGuardError(signUpOtp);
-      if (requestGuardError) {
-        if (signUpOtp.blockedUntil) {
-          await this.signUpOtpRepository.save(signUpOtp);
-        }
-        return requestGuardError;
-      }
-
-      const sendOtpError = await this.saveAndSendOtp(
-        signUpOtp,
-        resendSignUpOtpDto.email,
-      );
-      if (sendOtpError) {
-        return sendOtpError;
-      }
-
-      return {
-        status: true,
-        message: 'OTP resent successfully.',
-      };
-    } catch (error) {
-      return new BadRequestException(error.message).getResponse();
-    }
+    return this.requestOtp(
+      this.mapIdentifierToRequest(resendSignUpOtpDto.identifier),
+    );
   }
 
   async verifySignUpOtp(verifySignUpOtpDto: VerifySignUpOtpDto) {
+    return this.verifyOtp({
+      identifier: verifySignUpOtpDto.identifier,
+      otp: verifySignUpOtpDto.otp,
+    });
+  }
+
+  async verifyOtp(verifyAuthOtpDto: VerifyAuthOtpDto) {
     try {
-      const signUpOtp = await this.signUpOtpRepository.findOneBy({
-        email: verifySignUpOtpDto.email,
-      });
+      const identifier = this.normalizeIdentifier(verifyAuthOtpDto.identifier);
+      const existingUser = await this.findUserByIdentifier(identifier);
+      const signUpOtp = await this.findOtpByIdentifier(identifier, existingUser);
 
       if (!signUpOtp) {
         return new BadRequestException(
-          'No sign-up OTP found for this email',
+          'No OTP found for this identifier',
         ).getResponse();
       }
 
@@ -204,7 +236,7 @@ export class AuthenticationService {
       }
 
       const isOtpValid = await this.hashingService.compare(
-        verifySignUpOtpDto.otp,
+        verifyAuthOtpDto.otp,
         signUpOtp.otpHash,
       );
 
@@ -222,58 +254,33 @@ export class AuthenticationService {
         return new BadRequestException('Invalid OTP').getResponse();
       }
 
-      const existingUser = await this.userRepository.findOneBy({
-        email: verifySignUpOtpDto.email,
-      });
-
-      if (existingUser) {
-        await this.signUpOtpRepository.delete({ id: signUpOtp.id });
-        return new ConflictException('User already exists').getResponse();
-      }
-
-      const signUpResult = await this.createUserWithRole({
-        email: signUpOtp.email,
-        passwordHash: signUpOtp.passwordHash,
-        role: signUpOtp.role,
-      });
-
-      const isSuccessResponse =
-        typeof signUpResult === 'object' &&
-        signUpResult !== null &&
-        'status' in signUpResult &&
-        signUpResult.status === true;
-
-      if (!isSuccessResponse) {
-        return signUpResult;
-      }
+      const user = existingUser ?? (await this.createUserFromOtp(signUpOtp));
+      const tokens = await this.generateTokens(user);
+      const profileStatus = await this.getProfileStatus(user);
 
       await this.signUpOtpRepository.delete({ id: signUpOtp.id });
 
-      return signUpResult;
+      return {
+        status: true,
+        message: 'OTP verified successfully.',
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        data: {
+          nextAction: profileStatus.profileComplete
+            ? 'AUTHENTICATED'
+            : 'CREATE_PROFILE',
+          profileComplete: profileStatus.profileComplete,
+          profileType: profileStatus.profileType,
+          user: this.sanitizeUser(user),
+        },
+      };
     } catch (error) {
       return new BadRequestException(error.message).getResponse();
     }
   }
 
   async signIn(signInDto: SignInDto) {
-    const user = await this.userRepository.findOneBy({
-      email: signInDto.email,
-    });
-
-    if (!user) {
-      return new BadRequestException('User does not exist').getResponse();
-    }
-
-    const isPasswordValid = await this.hashingService.compare(
-      signInDto.password,
-      user.password,
-    );
-
-    if (!isPasswordValid) {
-      return new BadRequestException('Password does not match').getResponse();
-    }
-
-    return await this.generateTokens(user);
+    return this.requestOtp(this.mapIdentifierToRequest(signInDto.identifier));
   }
 
   async generateTokens(user: User) {
@@ -464,6 +471,177 @@ export class AuthenticationService {
     } catch (error) {
       return new BadRequestException(error.message).getResponse();
     }
+  }
+
+  private mapIdentifierToRequest(identifier: string): RequestAuthOtpDto {
+    const normalizedIdentifier = this.normalizeIdentifier(identifier);
+
+    if (this.looksLikeEmail(normalizedIdentifier)) {
+      return { email: normalizedIdentifier };
+    }
+
+    return { username: normalizedIdentifier };
+  }
+
+  private async findUserByEmailOrUsername(params: {
+    email?: string;
+    username?: string;
+  }) {
+    const userByEmail = params.email
+      ? await this.userRepository.findOneBy({ email: params.email })
+      : null;
+    const userByUsername = params.username
+      ? await this.userRepository.findOneBy({ username: params.username })
+      : null;
+
+    if (
+      userByEmail &&
+      userByUsername &&
+      userByEmail.id !== userByUsername.id
+    ) {
+      throw new BadRequestException(
+        'Email and username belong to different users',
+      );
+    }
+
+    return userByEmail ?? userByUsername;
+  }
+
+  private async findUserByIdentifier(identifier: string) {
+    if (this.looksLikeEmail(identifier)) {
+      return this.userRepository.findOneBy({ email: identifier });
+    }
+
+    return this.userRepository.findOneBy({ username: identifier });
+  }
+
+  private async findOtpByIdentifier(identifier: string, user?: User | null) {
+    if (user?.email) {
+      return this.signUpOtpRepository.findOneBy({ email: user.email });
+    }
+
+    if (this.looksLikeEmail(identifier)) {
+      return this.signUpOtpRepository.findOneBy({ email: identifier });
+    }
+
+    return this.signUpOtpRepository.findOneBy({ username: identifier });
+  }
+
+  private async prepareExistingUserOtpRecord(
+    user: User,
+    phoneNumber?: string,
+    username?: string,
+  ) {
+    const existingOtp = await this.signUpOtpRepository.findOneBy({
+      email: user.email,
+    });
+
+    const otpRecord =
+      existingOtp ??
+      this.signUpOtpRepository.create({
+        email: user.email,
+        expiresAt: this.getOtpExpiryDate(),
+        otpHash: '',
+        passwordHash: user.password ?? '',
+        requestWindowStartedAt: new Date(),
+        role: user.role ?? Role.Client,
+        otpRequestCount: 0,
+        userId: user.id,
+        verifyAttempts: 0,
+      });
+
+    otpRecord.email = user.email;
+    otpRecord.username = user.username ?? username ?? undefined;
+    otpRecord.phoneNumber = user.phoneNumber ?? phoneNumber ?? undefined;
+    otpRecord.userId = user.id;
+    otpRecord.passwordHash = user.password ?? '';
+    otpRecord.role = user.role ?? Role.Client;
+
+    return otpRecord;
+  }
+
+  private async createUserFromOtp(signUpOtp: SignUpOtp) {
+    const email = this.normalizeEmail(signUpOtp.email);
+    const username = this.normalizeUsername(signUpOtp.username);
+    const phoneNumber = this.normalizePhoneNumber(signUpOtp.phoneNumber);
+
+    if (!email || !username || !phoneNumber) {
+      throw new BadRequestException(
+        'OTP record is missing email, username or phoneNumber',
+      );
+    }
+
+    const existingUser = await this.findUserByEmailOrUsername({
+      email,
+      username,
+    });
+    if (existingUser) {
+      return existingUser;
+    }
+
+    return this.userRepository.save(
+      this.userRepository.create({
+        email,
+        phoneNumber,
+        role: Role.Client,
+        username,
+      }),
+    );
+  }
+
+  private async getProfileStatus(user: User) {
+    const profileChecks = await Promise.all([
+      this.clientRepository.findOne({ where: { user: { id: user.id } } }),
+      this.musicianRepository.findOne({ where: { user: { id: user.id } } }),
+      this.studioRepository.findOne({ where: { user: { id: user.id } } }),
+      this.adminRepository.findOne({ where: { user: { id: user.id } } }),
+    ]);
+
+    if (profileChecks[0]) {
+      return { profileComplete: true, profileType: Role.Client };
+    }
+    if (profileChecks[1]) {
+      return { profileComplete: true, profileType: Role.Musician };
+    }
+    if (profileChecks[2]) {
+      return { profileComplete: true, profileType: Role.Studio };
+    }
+    if (profileChecks[3]) {
+      return { profileComplete: true, profileType: Role.Admin };
+    }
+
+    return {
+      profileComplete: false,
+      profileType: null,
+    };
+  }
+
+  private sanitizeUser(user: User) {
+    const { password, ...safeUser } = user;
+    return safeUser;
+  }
+
+  private normalizeEmail(email?: string | null) {
+    return email?.trim().toLowerCase() || undefined;
+  }
+
+  private normalizeUsername(username?: string | null) {
+    return username?.trim().toLowerCase() || undefined;
+  }
+
+  private normalizePhoneNumber(phoneNumber?: string | null) {
+    return phoneNumber?.trim() || undefined;
+  }
+
+  private normalizeIdentifier(identifier?: string | null) {
+    const trimmedIdentifier = identifier?.trim() || '';
+    return this.looksLikeEmail(trimmedIdentifier)
+      ? trimmedIdentifier.toLowerCase()
+      : trimmedIdentifier.toLowerCase();
+  }
+
+  private looksLikeEmail(value: string) {
+    return value.includes('@');
   }
 
   private generateOtp(): string {

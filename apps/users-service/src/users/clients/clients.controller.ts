@@ -9,8 +9,8 @@ export class ClientsController {
   constructor(private readonly clientsService: ClientsService) {}
 
   @MessagePattern('createClient')
-  create(@Payload() createClientDto: CreateClientDto) {
-    return this.clientsService.create(createClientDto);
+  create(@Payload() payload: CreateClientDto & { userId: string }) {
+    return this.clientsService.create(payload);
   }
 
   @MessagePattern('findAllClients')
@@ -26,6 +26,11 @@ export class ClientsController {
   @MessagePattern('updateClient')
   update(@Payload() updateClientDto: UpdateClientDto) {
     return this.clientsService.update(updateClientDto.id, updateClientDto);
+  }
+
+  @MessagePattern('updateClientProfile')
+  updateProfile(@Payload() payload: Partial<UpdateClientDto> & { userId: string }) {
+    return this.clientsService.updateProfile(payload);
   }
 
   @MessagePattern('removeClient')

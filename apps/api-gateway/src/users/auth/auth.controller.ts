@@ -6,11 +6,13 @@ import {
   AuthType,
   ForgotPasswordDto,
   GoogleTokenDto,
+  RequestAuthOtpDto,
   ResendSignUpOtpDto,
   ResetPasswordDto,
   RefreshTokenDto,
   SignInDto,
   SignUpDto,
+  VerifyAuthOtpDto,
   VerifySignUpOtpDto,
 } from '@app/iam';
 import {
@@ -49,24 +51,20 @@ export class AuthController {
   @ApiBody({
     schema: {
       type: 'object',
-      required: ['email', 'password', 'role'],
+      required: ['email', 'username', 'phoneNumber'],
       properties: {
         email: { type: 'string', format: 'email', example: 'jane@example.com' },
-        password: { type: 'string', example: 'StrongPass123!' },
-        role: {
-          type: 'string',
-          enum: ['Client', 'Musician', 'Studio', 'Admin'],
-          example: 'Client',
-        },
+        username: { type: 'string', example: 'jane_doe' },
+        phoneNumber: { type: 'string', example: '+233201234567' },
       },
     },
     examples: {
       clientSignUp: {
-        summary: 'Client signup request',
+        summary: 'New user OTP request',
         value: {
           email: 'jane@example.com',
-          password: 'StrongPass123!',
-          role: 'Client',
+          username: 'jane_doe',
+          phoneNumber: '+233201234567',
         },
       },
     },
@@ -77,7 +75,44 @@ export class AuthController {
     schema: {
       example: {
         status: true,
-        message: 'OTP sent to email. Verify OTP to complete sign up.',
+        message: 'OTP sent successfully.',
+        data: {
+          email: 'jane@example.com',
+          isNewUser: true,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request payload',
+    schema: {
+      example: {
+        message: 'email, username and phoneNumber are required for new users',
+        error: 'Bad Request',
+        statusCode: 400,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'User conflict',
+    schema: {
+      example: {
+        message: 'Username already exists',
+        error: 'Conflict',
+        statusCode: 409,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'Users service timeout',
+    schema: {
+      example: {
+        message: 'Request to users-service timed out for pattern auth.requestOtp',
+        error: 'Gateway Timeout',
+        statusCode: 504,
       },
     },
   })
@@ -91,8 +126,138 @@ export class AuthController {
   }
 
   @Post('sign-in')
+  @ApiOperation({
+    summary: 'Request OTP for existing user',
+    description:
+      'Requests an authentication OTP for an existing user using email or username.',
+  })
+  @ApiBody({
+    type: SignInDto,
+    examples: {
+      signInWithEmail: {
+        summary: 'Sign in with email',
+        value: { identifier: 'jane@example.com' },
+      },
+      signInWithUsername: {
+        summary: 'Sign in with username',
+        value: { identifier: 'jane_doe' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'OTP sent successfully',
+    schema: {
+      example: {
+        status: true,
+        message: 'OTP sent successfully.',
+        data: {
+          email: 'jane@example.com',
+          isNewUser: false,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Identifier is invalid or user not found',
+    schema: {
+      example: {
+        message: 'Provide at least an email or username',
+        error: 'Bad Request',
+        statusCode: 400,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'Users service timeout',
+    schema: {
+      example: {
+        message: 'Request to users-service timed out for pattern auth.requestOtp',
+        error: 'Gateway Timeout',
+        statusCode: 504,
+      },
+    },
+  })
   signIn(@Body() signInDto: SignInDto) {
     return this.authenticationService.signIn(signInDto);
+  }
+
+  @Post('request-otp')
+  @ApiOperation({
+    summary: 'Request OTP for signup or signin',
+    description:
+      'Unified auth entrypoint. If the user exists, an OTP is sent for login. If not, a new user is staged with email, username and phone number and an OTP is sent for account creation.',
+  })
+  @ApiBody({
+    type: RequestAuthOtpDto,
+    examples: {
+      requestOtpForNewUser: {
+        summary: 'New user request',
+        value: {
+          email: 'jane@example.com',
+          username: 'jane_doe',
+          phoneNumber: '+233201234567',
+        },
+      },
+      requestOtpForExistingUser: {
+        summary: 'Existing user request',
+        value: {
+          username: 'jane_doe',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'OTP sent successfully',
+    schema: {
+      example: {
+        status: true,
+        message: 'OTP sent successfully.',
+        data: {
+          email: 'jane@example.com',
+          isNewUser: false,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request payload',
+    schema: {
+      example: {
+        message: 'Provide at least an email or username',
+        error: 'Bad Request',
+        statusCode: 400,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'User conflict',
+    schema: {
+      example: {
+        message: 'Phone number already exists',
+        error: 'Conflict',
+        statusCode: 409,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'Users service timeout',
+    schema: {
+      example: {
+        message: 'Request to users-service timed out for pattern auth.requestOtp',
+        error: 'Gateway Timeout',
+        statusCode: 504,
+      },
+    },
+  })
+  requestOtp(@Body() requestAuthOtpDto: RequestAuthOtpDto) {
+    return this.authenticationService.requestOtp(requestAuthOtpDto);
   }
 
   @Post('google')
@@ -118,8 +283,21 @@ export class AuthController {
     description: 'Google authentication successful',
     schema: {
       example: {
+        status: true,
+        message: 'Authentication successful',
         accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.access',
         refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Malformed token payload',
+    schema: {
+      example: {
+        message: 'token should not be empty',
+        error: 'Bad Request',
+        statusCode: 400,
       },
     },
   })
@@ -131,6 +309,17 @@ export class AuthController {
         message: 'Invalid Google token',
         error: 'Unauthorized',
         statusCode: 401,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Google account linkage conflict',
+    schema: {
+      example: {
+        message: 'Google account already linked to another user',
+        error: 'Conflict',
+        statusCode: 409,
       },
     },
   })
@@ -172,8 +361,21 @@ export class AuthController {
     description: 'Apple authentication successful',
     schema: {
       example: {
+        status: true,
+        message: 'Authentication successful',
         accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.access',
         refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Malformed token payload',
+    schema: {
+      example: {
+        message: 'token should not be empty',
+        error: 'Bad Request',
+        statusCode: 400,
       },
     },
   })
@@ -185,6 +387,17 @@ export class AuthController {
         message: 'Invalid Apple token',
         error: 'Unauthorized',
         statusCode: 401,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Apple account linkage conflict',
+    schema: {
+      example: {
+        message: 'Apple account already linked to another user',
+        error: 'Conflict',
+        statusCode: 409,
       },
     },
   })
@@ -213,22 +426,127 @@ export class AuthController {
     examples: {
       verifyOtp: {
         summary: 'Verify OTP',
-        value: { email: 'jane@example.com', otp: '123456' },
+        value: { identifier: 'jane@example.com', otp: '123456' },
       },
     },
   })
   @ApiResponse({
     status: 201,
-    description: 'User created after successful OTP verification',
+    description: 'OTP verified and auth tokens issued',
     schema: {
       example: {
         status: true,
-        message: 'Client signed up successfully',
+        message: 'OTP verified successfully.',
+        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.access',
+        refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh',
+        data: {
+          nextAction: 'CREATE_PROFILE',
+          profileComplete: false,
+          profileType: null,
+          user: {
+            id: '0b542e13-b426-456d-a615-1d2c1c3b8a31',
+            email: 'jane@example.com',
+            username: 'jane_doe',
+            phoneNumber: '+233201234567',
+            role: 'Client',
+            googleId: null,
+            appleId: null,
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'OTP is invalid or expired',
+    schema: {
+      example: {
+        message: 'Invalid OTP',
+        error: 'Bad Request',
+        statusCode: 400,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'Users service timeout',
+    schema: {
+      example: {
+        message: 'Request to users-service timed out for pattern auth.verifyOtp',
+        error: 'Gateway Timeout',
+        statusCode: 504,
       },
     },
   })
   verifySignUpOtp(@Body() verifySignUpOtpDto: VerifySignUpOtpDto) {
     return this.authenticationService.verifySignUpOtp(verifySignUpOtpDto);
+  }
+
+  @Post('verify-otp')
+  @ApiOperation({
+    summary: 'Verify OTP and authenticate user',
+    description:
+      'Validates the OTP, creates the user if needed, and returns access and refresh tokens. If the user has no profile yet, the response indicates that profile creation is the next action.',
+  })
+  @ApiBody({
+    type: VerifyAuthOtpDto,
+    examples: {
+      verifyOtp: {
+        summary: 'Verify OTP',
+        value: { identifier: 'jane_doe', otp: '123456' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'OTP verified and auth tokens issued',
+    schema: {
+      example: {
+        status: true,
+        message: 'OTP verified successfully.',
+        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.access',
+        refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh',
+        data: {
+          nextAction: 'AUTHENTICATED',
+          profileComplete: true,
+          profileType: 'Musician',
+          user: {
+            id: '0b542e13-b426-456d-a615-1d2c1c3b8a31',
+            email: 'jane@example.com',
+            username: 'jane_doe',
+            phoneNumber: '+233201234567',
+            role: 'Musician',
+            googleId: null,
+            appleId: null,
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'OTP is invalid or expired',
+    schema: {
+      example: {
+        message: 'No OTP found for this identifier',
+        error: 'Bad Request',
+        statusCode: 400,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'Users service timeout',
+    schema: {
+      example: {
+        message: 'Request to users-service timed out for pattern auth.verifyOtp',
+        error: 'Gateway Timeout',
+        statusCode: 504,
+      },
+    },
+  })
+  verifyOtp(@Body() verifyAuthOtpDto: VerifyAuthOtpDto) {
+    return this.authenticationService.verifyOtp(verifyAuthOtpDto);
   }
 
   @Post('resend-sign-up-otp')
@@ -241,7 +559,7 @@ export class AuthController {
     examples: {
       resendOtp: {
         summary: 'Resend OTP',
-        value: { email: 'jane@example.com' },
+        value: { identifier: 'jane@example.com' },
       },
     },
   })
@@ -255,11 +573,83 @@ export class AuthController {
       },
     },
   })
+  @ApiResponse({
+    status: 400,
+    description: 'Resend request rejected',
+    schema: {
+      example: {
+        message: 'Please wait 60 seconds before requesting another OTP.',
+        error: 'Bad Request',
+        statusCode: 400,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'Users service timeout',
+    schema: {
+      example: {
+        message: 'Request to users-service timed out for pattern auth.requestOtp',
+        error: 'Gateway Timeout',
+        statusCode: 504,
+      },
+    },
+  })
   resendSignUpOtp(@Body() resendSignUpOtpDto: ResendSignUpOtpDto) {
     return this.authenticationService.resendSignUpOtp(resendSignUpOtpDto);
   }
 
   @Post('refresh-tokens')
+  @ApiOperation({
+    summary: 'Refresh access and refresh tokens',
+    description:
+      'Accepts a valid refresh token, rotates it, and returns a new access token and refresh token pair.',
+  })
+  @ApiBody({
+    type: RefreshTokenDto,
+    examples: {
+      refreshTokens: {
+        summary: 'Refresh token payload',
+        value: {
+          refreshToken:
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh-token-value',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Tokens refreshed successfully',
+    schema: {
+      example: {
+        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.new-access',
+        refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.new-refresh',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Refresh token is invalid or expired',
+    schema: {
+      example: {
+        statusCode: 401,
+        message: 'Refresh token is invalid',
+        error: 'Unauthorized',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'Users service timeout',
+    schema: {
+      example: {
+        message:
+          'Request to users-service timed out for pattern auth.refreshTokens',
+        error: 'Gateway Timeout',
+        statusCode: 504,
+      },
+    },
+  })
   refreshTokens(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.authenticationService.refreshTokens(refreshTokenDto);
   }
@@ -286,6 +676,29 @@ export class AuthController {
         status: true,
         message:
           'If the email exists, a password reset code has been sent to it.',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid email payload',
+    schema: {
+      example: {
+        message: ['email must be an email'],
+        error: 'Bad Request',
+        statusCode: 400,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'Users service timeout',
+    schema: {
+      example: {
+        message:
+          'Request to users-service timed out for pattern auth.forgotPassword',
+        error: 'Gateway Timeout',
+        statusCode: 504,
       },
     },
   })
@@ -318,6 +731,29 @@ export class AuthController {
       example: {
         status: true,
         message: 'Password reset successful. Please sign in again.',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Reset code is invalid, expired, or payload is invalid',
+    schema: {
+      example: {
+        message: 'Invalid or expired password reset code',
+        error: 'Bad Request',
+        statusCode: 400,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'Users service timeout',
+    schema: {
+      example: {
+        message:
+          'Request to users-service timed out for pattern auth.resetPassword',
+        error: 'Gateway Timeout',
+        statusCode: 504,
       },
     },
   })

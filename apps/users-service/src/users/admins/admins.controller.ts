@@ -9,8 +9,8 @@ export class AdminsController {
   constructor(private readonly adminsService: AdminsService) {}
 
   @MessagePattern('createAdmin')
-  create(@Payload() createAdminDto: CreateAdminDto) {
-    return this.adminsService.create(createAdminDto);
+  create(@Payload() payload: CreateAdminDto & { userId: string }) {
+    return this.adminsService.create(payload);
   }
 
   @MessagePattern('findAllAdmins')

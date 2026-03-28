@@ -9,8 +9,8 @@ export class StudiosController {
   constructor(private readonly studiosService: StudiosService) {}
 
   @MessagePattern('createStudio')
-  create(@Payload() createStudioDto: CreateStudioDto) {
-    return this.studiosService.create(createStudioDto);
+  create(@Payload() payload: CreateStudioDto & { userId: string }) {
+    return this.studiosService.create(payload);
   }
 
   @MessagePattern('findAllStudios')
@@ -26,6 +26,11 @@ export class StudiosController {
   @MessagePattern('updateStudio')
   update(@Payload() updateStudioDto: UpdateStudioDto) {
     return this.studiosService.update(updateStudioDto.id, updateStudioDto);
+  }
+
+  @MessagePattern('updateStudioProfile')
+  updateProfile(@Payload() payload: Partial<UpdateStudioDto> & { userId: string }) {
+    return this.studiosService.updateProfile(payload);
   }
 
   @MessagePattern('removeStudio')

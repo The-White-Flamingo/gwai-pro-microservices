@@ -15,13 +15,22 @@ export class SignUpOtp {
   @Column({ unique: true })
   email: string;
 
+  @Column({ nullable: true })
+  username?: string;
+
+  @Column({ nullable: true })
+  phoneNumber?: string;
+
+  @Column({ nullable: true })
+  userId?: string;
+
   @Column()
   otpHash: string;
 
-  @Column()
+  @Column({ default: '' })
   passwordHash: string;
 
-  @Column('enum', { enum: Role })
+  @Column('enum', { enum: Role, default: Role.Client })
   role: Role;
 
   @Column({ type: 'timestamp' })

@@ -15,11 +15,11 @@ export class MusiciansService {
 
   constructor(@Inject(USERS_SERVICE) private readonly client: ClientProxy) {}
 
-  async create(createMusicianDto: any) {
+  async create(createMusicianDto: any, userId: string) {
     try {
       const result = await lastValueFrom(
         this.client
-          .send('createMusician', createMusicianDto)
+          .send('createMusician', { ...createMusicianDto, userId })
           .pipe(timeout(MusiciansService.RMQ_TIMEOUT_MS)),
       );
       return result;
@@ -27,6 +27,27 @@ export class MusiciansService {
       if (error instanceof TimeoutError) {
         throw new GatewayTimeoutException(
           'Request to users-service timed out for pattern createMusician',
+        );
+      }
+      if (error instanceof UnauthorizedException) {
+        throw new UnauthorizedException(this.getErrorMessage(error));
+      }
+      throw new BadRequestException(this.getErrorMessage(error));
+    }
+  }
+
+  async update(updateMusicianDto: any, userId: string) {
+    try {
+      const result = await lastValueFrom(
+        this.client
+          .send('updateMusicianProfile', { ...updateMusicianDto, userId })
+          .pipe(timeout(MusiciansService.RMQ_TIMEOUT_MS)),
+      );
+      return result;
+    } catch (error) {
+      if (error instanceof TimeoutError) {
+        throw new GatewayTimeoutException(
+          'Request to users-service timed out for pattern updateMusicianProfile',
         );
       }
       if (error instanceof UnauthorizedException) {

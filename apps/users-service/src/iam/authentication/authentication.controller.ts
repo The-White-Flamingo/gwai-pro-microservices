@@ -10,11 +10,23 @@ import { VerifySignUpOtpDto } from './dto/verify-sign-up-otp.dto';
 import { ResendSignUpOtpDto } from './dto/resend-sign-up-otp.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { RequestAuthOtpDto } from './dto/request-auth-otp.dto';
+import { VerifyAuthOtpDto } from './dto/verify-auth-otp.dto';
 
 @Auth(AuthType.None)
 @Controller('auth')
 export class AuthenticationController {
   constructor(private readonly authenticationService: AuthenticationService) {}
+
+  @MessagePattern('auth.requestOtp')
+  requestOtp(@Payload() requestAuthOtpDto: RequestAuthOtpDto) {
+    return this.authenticationService.requestOtp(requestAuthOtpDto);
+  }
+
+  @MessagePattern('auth.verifyOtp')
+  verifyOtp(@Payload() verifyAuthOtpDto: VerifyAuthOtpDto) {
+    return this.authenticationService.verifyOtp(verifyAuthOtpDto);
+  }
 
   @MessagePattern('auth.signUp')
   async signUp(@Payload() signUpDto: SignUpDto) {

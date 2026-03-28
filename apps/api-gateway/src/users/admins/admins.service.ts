@@ -15,11 +15,11 @@ export class AdminsService {
 
   constructor(@Inject(USERS_SERVICE) private readonly client: ClientProxy) {}
 
-  async create(createAdminDto: any) {
+  async create(createAdminDto: any, userId: string) {
     try {
       const result = await lastValueFrom(
         this.client
-          .send('createAdmin', createAdminDto)
+          .send('createAdmin', { ...createAdminDto, userId })
           .pipe(timeout(AdminsService.RMQ_TIMEOUT_MS)),
       );
       return result;

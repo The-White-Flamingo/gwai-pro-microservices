@@ -2,11 +2,13 @@ import {
   AppleTokenDto,
   ForgotPasswordDto,
   GoogleTokenDto,
+  RequestAuthOtpDto,
   ResendSignUpOtpDto,
   ResetPasswordDto,
   RefreshTokenDto,
   SignInDto,
   SignUpDto,
+  VerifyAuthOtpDto,
   VerifySignUpOtpDto,
 } from '@app/iam';
 import { USERS_SERVICE } from '@app/shared';
@@ -44,9 +46,19 @@ export class AuthService {
     }
   }
 
+  private mapIdentifierToRequest(identifier: string): RequestAuthOtpDto {
+    const normalizedIdentifier = identifier.trim();
+
+    if (normalizedIdentifier.includes('@')) {
+      return { email: normalizedIdentifier.toLowerCase() };
+    }
+
+    return { username: normalizedIdentifier.toLowerCase() };
+  }
+
   async signUp(signUpDto: SignUpDto) {
     try {
-      const user = await this.sendWithTimeout('auth.signUp', signUpDto);
+      const user = await this.sendWithTimeout('auth.requestOtp', signUpDto);
       return user;
     } catch (error) {
       if (error instanceof GatewayTimeoutException) {
@@ -63,7 +75,10 @@ export class AuthService {
 
   async signIn(signInDto: SignInDto) {
     try {
-      const user = await this.sendWithTimeout('auth.signIn', signInDto);
+      const user = await this.sendWithTimeout(
+        'auth.requestOtp',
+        this.mapIdentifierToRequest(signInDto.identifier),
+      );
       return user;
     } catch (error) {
       if (error instanceof GatewayTimeoutException) {
@@ -79,7 +94,7 @@ export class AuthService {
   async verifySignUpOtp(verifySignUpOtpDto: VerifySignUpOtpDto) {
     try {
       return await this.sendWithTimeout(
-        'auth.verifySignUpOtp',
+        'auth.verifyOtp',
         verifySignUpOtpDto,
       );
     } catch (error) {
@@ -98,8 +113,8 @@ export class AuthService {
   async resendSignUpOtp(resendSignUpOtpDto: ResendSignUpOtpDto) {
     try {
       return await this.sendWithTimeout(
-        'auth.resendSignUpOtp',
-        resendSignUpOtpDto,
+        'auth.requestOtp',
+        this.mapIdentifierToRequest(resendSignUpOtpDto.identifier),
       );
     } catch (error) {
       if (error instanceof GatewayTimeoutException) {
@@ -180,6 +195,40 @@ export class AuthService {
   async authenticateWithApple(appleTokenDto: AppleTokenDto) {
     try {
       return await this.sendWithTimeout('auth.apple', appleTokenDto);
+    } catch (error) {
+      if (error instanceof GatewayTimeoutException) {
+        throw error;
+      }
+      if (error instanceof ConflictException) {
+        throw new ConflictException(error.message);
+      }
+      if (error instanceof UnauthorizedException) {
+        throw new UnauthorizedException(error.message);
+      }
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async requestOtp(requestAuthOtpDto: RequestAuthOtpDto) {
+    try {
+      return await this.sendWithTimeout('auth.requestOtp', requestAuthOtpDto);
+    } catch (error) {
+      if (error instanceof GatewayTimeoutException) {
+        throw error;
+      }
+      if (error instanceof ConflictException) {
+        throw new ConflictException(error.message);
+      }
+      if (error instanceof UnauthorizedException) {
+        throw new UnauthorizedException(error.message);
+      }
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async verifyOtp(verifyAuthOtpDto: VerifyAuthOtpDto) {
+    try {
+      return await this.sendWithTimeout('auth.verifyOtp', verifyAuthOtpDto);
     } catch (error) {
       if (error instanceof GatewayTimeoutException) {
         throw error;
