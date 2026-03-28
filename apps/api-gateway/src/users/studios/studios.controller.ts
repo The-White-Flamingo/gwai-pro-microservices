@@ -1,13 +1,27 @@
 import { ActiveUser, ActiveUserData, Auth, AuthType } from '@app/iam';
-import { Body, Controller, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Patch,
+  Post,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
 import { StudiosService } from './studios.service';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  normalizeStringArrayField,
+  profilePictureUploadOptions,
+  toProfilePicturePath,
+} from '../profile-payload.util';
 
 @ApiBearerAuth()
 @ApiTags('studios')
@@ -17,34 +31,44 @@ export class StudiosController {
   constructor(private readonly studiosService: StudiosService) {}
 
   @Post()
+  @UseInterceptors(
+    FileInterceptor('profilePicture', profilePictureUploadOptions),
+  )
   @ApiOperation({
     summary: 'Create studio profile',
     description:
-      'Creates the authenticated user studio profile. Use the bearer token returned from OTP verification.',
+      'Creates the authenticated user studio profile and stores the uploaded profile picture on the server.',
   })
+  @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
-      required: ['name', 'contact', 'location', 'services'],
+      required: [
+        'name',
+        'username',
+        'phone',
+        'address',
+        'rate',
+        'services',
+        'equipment',
+      ],
       properties: {
         name: { type: 'string', example: 'Echo Chamber Studios' },
-        contact: { type: 'string', example: '+233201998877' },
-        location: { type: 'string', example: 'East Legon, Accra' },
+        username: { type: 'string', example: 'echo_chamber' },
+        phone: { type: 'string', example: '+233201998877' },
+        address: { type: 'string', example: 'East Legon, Accra' },
+        rate: { type: 'string', example: '1200 GHS per session' },
         services: {
-          type: 'array',
-          items: { type: 'string' },
-          example: ['Mixing', 'Mastering'],
+          type: 'string',
+          example: '["Mixing","Mastering"]',
         },
-      },
-    },
-    examples: {
-      createStudio: {
-        summary: 'Studio payload',
-        value: {
-          name: 'Echo Chamber Studios',
-          contact: '+233201998877',
-          location: 'East Legon, Accra',
-          services: ['Mixing', 'Mastering'],
+        equipment: {
+          type: 'string',
+          example: '["Neumann U87","Apollo Twin X"]',
+        },
+        profilePicture: {
+          type: 'string',
+          format: 'binary',
         },
       },
     },
@@ -59,11 +83,16 @@ export class StudiosController {
         data: {
           id: '6de4d210-d2d4-4eb8-a9c2-db8b44c8a7d6',
           name: 'Echo Chamber Studios',
-          contact: '+233201998877',
-          location: 'East Legon, Accra',
+          username: 'echo_chamber',
+          phone: '+233201998877',
+          address: 'East Legon, Accra',
+          rate: '1200 GHS per session',
           services: ['Mixing', 'Mastering'],
-          createdAt: '2026-03-26T10:30:00.000Z',
-          updatedAt: '2026-03-26T10:30:00.000Z',
+          equipment: ['Neumann U87', 'Apollo Twin X'],
+          profilePicturePath:
+            '/uploads/profile-pictures/d6efe0f4-e962-4dfd-a966-5f3f79cfb5ba.jpg',
+          createdAt: '2026-03-28T09:00:00.000Z',
+          updatedAt: '2026-03-28T09:00:00.000Z',
           user: {
             id: '4c48720f-4f8c-4991-9ef5-696d40f12345',
           },
@@ -106,10 +135,10 @@ export class StudiosController {
   })
   @ApiResponse({
     status: 409,
-    description: 'Studio profile already exists',
+    description: 'Studio profile or user identity conflict',
     schema: {
       example: {
-        message: 'Studio profile already exists',
+        message: 'Username already exists',
         error: 'Conflict',
         statusCode: 409,
       },
@@ -128,9 +157,18 @@ export class StudiosController {
   })
   create(
     @Body() createStudioDto: any,
+    @UploadedFile() file: Express.Multer.File,
     @ActiveUser() activeUser: ActiveUserData,
   ) {
-    return this.studiosService.create(createStudioDto, activeUser.sub);
+    return this.studiosService.create(
+      {
+        ...createStudioDto,
+        services: normalizeStringArrayField(createStudioDto.services),
+        equipment: normalizeStringArrayField(createStudioDto.equipment),
+        profilePicturePath: toProfilePicturePath(file),
+      },
+      activeUser.sub,
+    );
   }
 
   @Patch()
@@ -144,21 +182,19 @@ export class StudiosController {
       type: 'object',
       properties: {
         name: { type: 'string', example: 'Echo Chamber Studios' },
-        contact: { type: 'string', example: '+233201998877' },
-        location: { type: 'string', example: 'East Legon, Accra' },
+        username: { type: 'string', example: 'echo_chamber' },
+        phone: { type: 'string', example: '+233201998877' },
+        address: { type: 'string', example: 'Osu, Accra' },
+        rate: { type: 'string', example: '1500 GHS per session' },
         services: {
           type: 'array',
           items: { type: 'string' },
-          example: ['Mixing', 'Mastering'],
+          example: ['Recording', 'Mixing', 'Mastering'],
         },
-      },
-    },
-    examples: {
-      updateStudio: {
-        summary: 'Studio update payload',
-        value: {
-          location: 'Osu, Accra',
-          services: ['Recording', 'Mixing', 'Mastering'],
+        equipment: {
+          type: 'array',
+          items: { type: 'string' },
+          example: ['Neumann U87', 'Apollo Twin X', 'Yamaha HS8'],
         },
       },
     },
@@ -173,11 +209,16 @@ export class StudiosController {
         data: {
           id: '6de4d210-d2d4-4eb8-a9c2-db8b44c8a7d6',
           name: 'Echo Chamber Studios',
-          contact: '+233201998877',
-          location: 'Osu, Accra',
+          username: 'echo_chamber',
+          phone: '+233201998877',
+          address: 'Osu, Accra',
+          rate: '1500 GHS per session',
           services: ['Recording', 'Mixing', 'Mastering'],
-          createdAt: '2026-03-26T10:30:00.000Z',
-          updatedAt: '2026-03-26T12:15:00.000Z',
+          equipment: ['Neumann U87', 'Apollo Twin X', 'Yamaha HS8'],
+          profilePicturePath:
+            '/uploads/profile-pictures/d6efe0f4-e962-4dfd-a966-5f3f79cfb5ba.jpg',
+          createdAt: '2026-03-28T09:00:00.000Z',
+          updatedAt: '2026-03-28T09:30:00.000Z',
           user: {
             id: '4c48720f-4f8c-4991-9ef5-696d40f12345',
           },
@@ -219,6 +260,17 @@ export class StudiosController {
     },
   })
   @ApiResponse({
+    status: 409,
+    description: 'User identity conflict',
+    schema: {
+      example: {
+        message: 'Phone number already exists',
+        error: 'Conflict',
+        statusCode: 409,
+      },
+    },
+  })
+  @ApiResponse({
     status: 504,
     description: 'Upstream users-service timeout',
     schema: {
@@ -234,6 +286,17 @@ export class StudiosController {
     @Body() updateStudioDto: any,
     @ActiveUser() activeUser: ActiveUserData,
   ) {
-    return this.studiosService.update(updateStudioDto, activeUser.sub);
+    return this.studiosService.update(
+      {
+        ...updateStudioDto,
+        services:
+          normalizeStringArrayField(updateStudioDto.services) ??
+          updateStudioDto.services,
+        equipment:
+          normalizeStringArrayField(updateStudioDto.equipment) ??
+          updateStudioDto.equipment,
+      },
+      activeUser.sub,
+    );
   }
 }

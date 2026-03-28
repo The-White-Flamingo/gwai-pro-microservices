@@ -5,7 +5,7 @@ export class RequestAuthOtpDto {
   @ApiPropertyOptional({
     example: 'jane@example.com',
     description:
-      'Required for first-time authentication. For returning users, either email or username can be provided.',
+      'Required for first-time authentication. Returning users can also use it to request a login OTP.',
   })
   @IsOptional()
   @IsEmail()
@@ -14,17 +14,9 @@ export class RequestAuthOtpDto {
   @ApiPropertyOptional({
     example: 'jane_doe',
     description:
-      'Required for first-time authentication. Returning users can use this instead of email.',
+      'Used only for returning users. The OTP will still be sent to the email already linked to that username.',
   })
   @IsOptional()
   @IsString()
   username?: string;
-
-  @ApiPropertyOptional({
-    example: '+233201234567',
-    description: 'Required only when creating a new user through OTP auth.',
-  })
-  @IsOptional()
-  @IsString()
-  phoneNumber?: string;
 }

@@ -1,14 +1,13 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   OneToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../../entities/user.entity';
-import { Genre } from '../../enums/genre.enum';
-import { Interest } from '../../enums/interest.enum';
-import { KafkaJSStaleTopicMetadataAssignment } from '@nestjs/microservices/external/kafka.interface';
 
 @Entity('clients')
 export class Client {
@@ -22,19 +21,31 @@ export class Client {
   lastName: string;
 
   @Column({ nullable: true })
-  contact: string;
+  username: string;
 
   @Column({ nullable: true })
-  location: string;
+  phone: string;
 
   @Column({ nullable: true })
   dateOfBirth: Date;
 
-  @Column('simple-array', { nullable: true })
-  genres: Genre[];
+  @Column({ nullable: true })
+  address: string;
 
   @Column('simple-array', { nullable: true })
-  interests: Interest[];
+  interests: string[];
+
+  @Column('simple-array', { nullable: true })
+  genres: string[];
+
+  @Column({ nullable: true })
+  profilePicturePath: string;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 
   @OneToOne(() => User)
   @JoinColumn()

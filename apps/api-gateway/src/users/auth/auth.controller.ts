@@ -1,6 +1,4 @@
 import {
-  ActiveUser,
-  ActiveUserData,
   AppleTokenDto,
   Auth,
   AuthType,
@@ -18,22 +16,15 @@ import {
 import {
   Body,
   Controller,
-  HttpCode,
-  HttpStatus,
   Post,
-  Res,
-  UploadedFile,
-  UseInterceptors,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
-  ApiBearerAuth,
   ApiBody,
   ApiOperation,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('auth')
 @Auth(AuthType.None)
@@ -42,20 +33,17 @@ export class AuthController {
   constructor(private readonly authenticationService: AuthService) {}
 
   @Post('sign-up')
-  @UseInterceptors(FileInterceptor('avatar'))
   @ApiOperation({
     summary: 'Request sign-up OTP',
     description:
-      'Creates or updates a pending signup and sends a 6-digit OTP to email.',
+      'Creates or updates a pending signup and sends a 6-digit OTP to the provided email.',
   })
   @ApiBody({
     schema: {
       type: 'object',
-      required: ['email', 'username', 'phoneNumber'],
+      required: ['email'],
       properties: {
         email: { type: 'string', format: 'email', example: 'jane@example.com' },
-        username: { type: 'string', example: 'jane_doe' },
-        phoneNumber: { type: 'string', example: '+233201234567' },
       },
     },
     examples: {
@@ -63,8 +51,6 @@ export class AuthController {
         summary: 'New user OTP request',
         value: {
           email: 'jane@example.com',
-          username: 'jane_doe',
-          phoneNumber: '+233201234567',
         },
       },
     },
@@ -88,7 +74,7 @@ export class AuthController {
     description: 'Invalid request payload',
     schema: {
       example: {
-        message: 'email, username and phoneNumber are required for new users',
+        message: 'Email is required for new users',
         error: 'Bad Request',
         statusCode: 400,
       },
@@ -116,12 +102,7 @@ export class AuthController {
       },
     },
   })
-  signUp(
-    @Body() signUpDto: SignUpDto,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-    // signUpDto.avatar = file?.buffer.toString('base64');
-
+  signUp(@Body() signUpDto: SignUpDto) {
     return this.authenticationService.signUp(signUpDto);
   }
 
@@ -188,7 +169,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Request OTP for signup or signin',
     description:
-      'Unified auth entrypoint. If the user exists, an OTP is sent for login. If not, a new user is staged with email, username and phone number and an OTP is sent for account creation.',
+      'Unified auth entrypoint. Existing users can use email or username. New users must provide email so the OTP can be sent there.',
   })
   @ApiBody({
     type: RequestAuthOtpDto,
@@ -197,8 +178,6 @@ export class AuthController {
         summary: 'New user request',
         value: {
           email: 'jane@example.com',
-          username: 'jane_doe',
-          phoneNumber: '+233201234567',
         },
       },
       requestOtpForExistingUser: {
@@ -231,17 +210,6 @@ export class AuthController {
         message: 'Provide at least an email or username',
         error: 'Bad Request',
         statusCode: 400,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'User conflict',
-    schema: {
-      example: {
-        message: 'Phone number already exists',
-        error: 'Conflict',
-        statusCode: 409,
       },
     },
   })

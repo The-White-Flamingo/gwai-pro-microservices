@@ -10,6 +10,8 @@ services:
       - ./apps/api-gateway/.env
     environment:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?heartbeat=30&connection_timeout=30000&frameMax=0
+    volumes:
+      - api_gateway_uploads:/usr/src/app/uploads
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -271,6 +273,7 @@ services:
     restart: unless-stopped
 
 volumes:
+  api_gateway_uploads:
   bookings_db_data:
   payments_db_data:
   users_db_data:

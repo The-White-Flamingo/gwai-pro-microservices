@@ -38,6 +38,14 @@ export class ClientsService {
         throw new ConflictException('Client profile already exists');
       }
 
+      await this.ensureUniqueUserFields(
+        user.id,
+        profilePayload.username,
+        profilePayload.phone,
+      );
+
+      user.username = profilePayload.username;
+      user.phoneNumber = profilePayload.phone;
       user.role = Role.Client;
       await this.usersRepository.save(user);
 
@@ -87,6 +95,22 @@ export class ClientsService {
         throw new NotFoundException('Client profile not found');
       }
 
+      const user = client.user;
+      await this.ensureUniqueUserFields(
+        user.id,
+        profilePayload.username,
+        profilePayload.phone,
+      );
+
+      if (profilePayload.username !== undefined) {
+        user.username = profilePayload.username;
+      }
+      if (profilePayload.phone !== undefined) {
+        user.phoneNumber = profilePayload.phone;
+      }
+      user.role = Role.Client;
+      await this.usersRepository.save(user);
+
       Object.assign(client, profilePayload);
       const updatedClient = await this.clientsRepository.save(client);
 
@@ -99,7 +123,34 @@ export class ClientsService {
       if (error instanceof NotFoundException) {
         throw error;
       }
+      if (error instanceof ConflictException) {
+        throw error;
+      }
       throw new BadRequestException(error.message);
+    }
+  }
+
+  private async ensureUniqueUserFields(
+    userId: string,
+    username?: string,
+    phone?: string,
+  ) {
+    if (username) {
+      const existingUserByUsername = await this.usersRepository.findOneBy({
+        username,
+      });
+      if (existingUserByUsername && existingUserByUsername.id !== userId) {
+        throw new ConflictException('Username already exists');
+      }
+    }
+
+    if (phone) {
+      const existingUserByPhone = await this.usersRepository.findOneBy({
+        phoneNumber: phone,
+      });
+      if (existingUserByPhone && existingUserByPhone.id !== userId) {
+        throw new ConflictException('Phone number already exists');
+      }
     }
   }
 

@@ -1,13 +1,27 @@
 import { ActiveUser, ActiveUserData, Auth, AuthType } from '@app/iam';
-import { Body, Controller, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Patch,
+  Post,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
 import { MusiciansService } from './musicians.service';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  normalizeStringArrayField,
+  profilePictureUploadOptions,
+  toProfilePicturePath,
+} from '../profile-payload.util';
 
 @ApiBearerAuth()
 @ApiTags('musicians')
@@ -17,53 +31,52 @@ export class MusiciansController {
   constructor(private readonly musiciansService: MusiciansService) {}
 
   @Post()
+  @UseInterceptors(
+    FileInterceptor('profilePicture', profilePictureUploadOptions),
+  )
   @ApiOperation({
     summary: 'Create musician profile',
     description:
-      'Creates the authenticated user musician profile. Use the bearer token returned from OTP verification.',
+      'Creates the authenticated user musician profile and stores the uploaded profile picture on the server.',
   })
+  @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
       required: [
         'firstName',
         'lastName',
-        'contact',
+        'username',
+        'phone',
         'dateOfBirth',
-        'genres',
+        'address',
+        'rate',
         'interests',
+        'genres',
       ],
       properties: {
         firstName: { type: 'string', example: 'Kojo' },
         lastName: { type: 'string', example: 'Asare' },
-        contact: { type: 'string', example: '+233241112233' },
+        username: { type: 'string', example: 'kojo_asare' },
+        phone: { type: 'string', example: '+233241112233' },
         dateOfBirth: {
           type: 'string',
           format: 'date-time',
           example: '1998-03-22T00:00:00.000Z',
         },
-        genres: {
-          type: 'array',
-          items: { type: 'string' },
-          example: ['Afrobeats', 'Highlife'],
-        },
+        address: { type: 'string', example: 'Kumasi' },
+        rate: { type: 'string', example: '500 GHS per session' },
         interests: {
-          type: 'array',
-          items: { type: 'string' },
-          example: ['Songwriting', 'Live Performance'],
+          type: 'string',
+          example: '["Songwriting","Live Performance"]',
         },
-      },
-    },
-    examples: {
-      createMusician: {
-        summary: 'Musician payload',
-        value: {
-          firstName: 'Kojo',
-          lastName: 'Asare',
-          contact: '+233241112233',
-          dateOfBirth: '1998-03-22T00:00:00.000Z',
-          genres: ['Afrobeats', 'Highlife'],
-          interests: ['Songwriting', 'Live Performance'],
+        genres: {
+          type: 'string',
+          example: '["Afrobeats","Highlife"]',
+        },
+        profilePicture: {
+          type: 'string',
+          format: 'binary',
         },
       },
     },
@@ -79,13 +92,17 @@ export class MusiciansController {
           id: '3d2f64b7-5e78-488d-8663-f12131ccda39',
           firstName: 'Kojo',
           lastName: 'Asare',
-          contact: '+233241112233',
-          location: 'Kumasi',
+          username: 'kojo_asare',
+          phone: '+233241112233',
           dateOfBirth: '1998-03-22T00:00:00.000Z',
-          genres: ['Afrobeats', 'Highlife'],
+          address: 'Kumasi',
+          rate: '500 GHS per session',
           interests: ['Songwriting', 'Live Performance'],
-          createdAt: '2026-03-26T10:30:00.000Z',
-          updatedAt: '2026-03-26T10:30:00.000Z',
+          genres: ['Afrobeats', 'Highlife'],
+          profilePicturePath:
+            '/uploads/profile-pictures/5c26968d-91dd-438e-b77b-5f8c1d9fae9d.png',
+          createdAt: '2026-03-28T09:00:00.000Z',
+          updatedAt: '2026-03-28T09:00:00.000Z',
           user: {
             id: 'e10f6b2c-3d58-4c87-84fd-beff956831c9',
           },
@@ -128,10 +145,10 @@ export class MusiciansController {
   })
   @ApiResponse({
     status: 409,
-    description: 'Musician profile already exists',
+    description: 'Musician profile or user identity conflict',
     schema: {
       example: {
-        message: 'Musician profile already exists',
+        message: 'Username already exists',
         error: 'Conflict',
         statusCode: 409,
       },
@@ -142,7 +159,8 @@ export class MusiciansController {
     description: 'Upstream users-service timeout',
     schema: {
       example: {
-        message: 'Request to users-service timed out for pattern createMusician',
+        message:
+          'Request to users-service timed out for pattern createMusician',
         error: 'Gateway Timeout',
         statusCode: 504,
       },
@@ -150,9 +168,18 @@ export class MusiciansController {
   })
   create(
     @Body() createMusicianDto: any,
+    @UploadedFile() file: Express.Multer.File,
     @ActiveUser() activeUser: ActiveUserData,
   ) {
-    return this.musiciansService.create(createMusicianDto, activeUser.sub);
+    return this.musiciansService.create(
+      {
+        ...createMusicianDto,
+        interests: normalizeStringArrayField(createMusicianDto.interests),
+        genres: normalizeStringArrayField(createMusicianDto.genres),
+        profilePicturePath: toProfilePicturePath(file),
+      },
+      activeUser.sub,
+    );
   }
 
   @Patch()
@@ -167,32 +194,24 @@ export class MusiciansController {
       properties: {
         firstName: { type: 'string', example: 'Kojo' },
         lastName: { type: 'string', example: 'Asare' },
-        contact: { type: 'string', example: '+233241112233' },
-        location: { type: 'string', example: 'Kumasi' },
+        username: { type: 'string', example: 'kojo_asare' },
+        phone: { type: 'string', example: '+233241112233' },
         dateOfBirth: {
           type: 'string',
           format: 'date-time',
           example: '1998-03-22T00:00:00.000Z',
         },
-        genres: {
-          type: 'array',
-          items: { type: 'string' },
-          example: ['Afrobeats', 'Highlife'],
-        },
+        address: { type: 'string', example: 'Accra' },
+        rate: { type: 'string', example: '650 GHS per session' },
         interests: {
           type: 'array',
           items: { type: 'string' },
-          example: ['Songwriting', 'Live Performance'],
+          example: ['Songwriting', 'Touring'],
         },
-      },
-    },
-    examples: {
-      updateMusician: {
-        summary: 'Musician update payload',
-        value: {
-          location: 'Accra',
-          genres: ['Afrobeats', 'Amapiano'],
-          interests: ['Songwriting', 'Touring'],
+        genres: {
+          type: 'array',
+          items: { type: 'string' },
+          example: ['Afrobeats', 'Amapiano'],
         },
       },
     },
@@ -208,13 +227,17 @@ export class MusiciansController {
           id: '3d2f64b7-5e78-488d-8663-f12131ccda39',
           firstName: 'Kojo',
           lastName: 'Asare',
-          contact: '+233241112233',
-          location: 'Accra',
+          username: 'kojo_asare',
+          phone: '+233241112233',
           dateOfBirth: '1998-03-22T00:00:00.000Z',
-          genres: ['Afrobeats', 'Amapiano'],
+          address: 'Accra',
+          rate: '650 GHS per session',
           interests: ['Songwriting', 'Touring'],
-          createdAt: '2026-03-26T10:30:00.000Z',
-          updatedAt: '2026-03-26T12:15:00.000Z',
+          genres: ['Afrobeats', 'Amapiano'],
+          profilePicturePath:
+            '/uploads/profile-pictures/5c26968d-91dd-438e-b77b-5f8c1d9fae9d.png',
+          createdAt: '2026-03-28T09:00:00.000Z',
+          updatedAt: '2026-03-28T09:30:00.000Z',
           user: {
             id: 'e10f6b2c-3d58-4c87-84fd-beff956831c9',
           },
@@ -256,6 +279,17 @@ export class MusiciansController {
     },
   })
   @ApiResponse({
+    status: 409,
+    description: 'User identity conflict',
+    schema: {
+      example: {
+        message: 'Phone number already exists',
+        error: 'Conflict',
+        statusCode: 409,
+      },
+    },
+  })
+  @ApiResponse({
     status: 504,
     description: 'Upstream users-service timeout',
     schema: {
@@ -271,6 +305,17 @@ export class MusiciansController {
     @Body() updateMusicianDto: any,
     @ActiveUser() activeUser: ActiveUserData,
   ) {
-    return this.musiciansService.update(updateMusicianDto, activeUser.sub);
+    return this.musiciansService.update(
+      {
+        ...updateMusicianDto,
+        interests:
+          normalizeStringArrayField(updateMusicianDto.interests) ??
+          updateMusicianDto.interests,
+        genres:
+          normalizeStringArrayField(updateMusicianDto.genres) ??
+          updateMusicianDto.genres,
+      },
+      activeUser.sub,
+    );
   }
 }

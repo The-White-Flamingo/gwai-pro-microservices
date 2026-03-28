@@ -1,18 +1,35 @@
-import { IsEnum, IsNotEmpty } from 'class-validator';
-import { Service } from '../enums/service.enum';
-import { SignUpDto } from '../../../iam/authentication/dto/sign-up.dto';
+import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateStudioDto {
   @IsNotEmpty()
+  @IsString()
   name: string;
 
   @IsNotEmpty()
-  contact: string;
+  @IsString()
+  username: string;
 
   @IsNotEmpty()
-  location: string;
+  @IsString()
+  phone: string;
 
   @IsNotEmpty()
-  @IsEnum(Service, { each: true })
-  services: Service[];
+  @IsString()
+  address: string;
+
+  @IsNotEmpty()
+  @IsString()
+  rate: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  services: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  equipment: string[];
+
+  @IsOptional()
+  @IsString()
+  profilePicturePath?: string;
 }

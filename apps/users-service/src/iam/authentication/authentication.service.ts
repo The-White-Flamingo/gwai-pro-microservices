@@ -3,6 +3,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -77,8 +78,6 @@ export class AuthenticationService {
   async signUp(signUpDto: SignUpDto) {
     return this.requestOtp({
       email: signUpDto.email,
-      username: signUpDto.username,
-      phoneNumber: signUpDto.phoneNumber,
     });
   }
 
@@ -86,9 +85,6 @@ export class AuthenticationService {
     try {
       const email = this.normalizeEmail(requestAuthOtpDto.email);
       const username = this.normalizeUsername(requestAuthOtpDto.username);
-      const phoneNumber = this.normalizePhoneNumber(
-        requestAuthOtpDto.phoneNumber,
-      );
 
       if (!email && !username) {
         return new BadRequestException(
@@ -104,7 +100,6 @@ export class AuthenticationService {
       if (existingUser) {
         const otpRecord = await this.prepareExistingUserOtpRecord(
           existingUser,
-          phoneNumber,
           username,
         );
         const requestGuardError = this.getOtpRequestGuardError(otpRecord);
@@ -133,26 +128,15 @@ export class AuthenticationService {
         };
       }
 
-      if (!email || !username || !phoneNumber) {
+      if (!email) {
         return new BadRequestException(
-          'email, username and phoneNumber are required for new users',
+          'Email is required for new users',
         ).getResponse();
       }
 
-      const existingPhoneNumber = await this.userRepository.findOneBy({
-        phoneNumber,
+      const existingPendingOtp = await this.signUpOtpRepository.findOneBy({
+        email,
       });
-      if (existingPhoneNumber) {
-        return new ConflictException('Phone number already exists').getResponse();
-      }
-
-      const existingPendingOtp = await this.signUpOtpRepository.findOne({
-        where: [{ email }, { username }],
-      });
-
-      if (existingPendingOtp && existingPendingOtp.email !== email) {
-        return new ConflictException('Username already exists').getResponse();
-      }
 
       const otpRecord =
         existingPendingOtp ??
@@ -176,8 +160,8 @@ export class AuthenticationService {
       }
 
       otpRecord.email = email;
-      otpRecord.username = username;
-      otpRecord.phoneNumber = phoneNumber;
+      otpRecord.username = undefined;
+      otpRecord.phoneNumber = undefined;
       otpRecord.userId = undefined;
       otpRecord.passwordHash = '';
       otpRecord.role = Role.Client;
@@ -196,6 +180,9 @@ export class AuthenticationService {
         },
       };
     } catch (error) {
+      if (error instanceof ServiceUnavailableException) {
+        return error.getResponse();
+      }
       return new BadRequestException(error.message).getResponse();
     }
   }
@@ -336,6 +323,9 @@ export class AuthenticationService {
 
       return await this.generateTokens(user);
     } catch (error) {
+      if (error instanceof ServiceUnavailableException) {
+        return error.getResponse();
+      }
       if (error instanceof InvalidateRefreshTokenError) {
         return new UnauthorizedException('Access denied').getResponse();
       }
@@ -529,7 +519,6 @@ export class AuthenticationService {
 
   private async prepareExistingUserOtpRecord(
     user: User,
-    phoneNumber?: string,
     username?: string,
   ) {
     const existingOtp = await this.signUpOtpRepository.findOneBy({
@@ -552,7 +541,7 @@ export class AuthenticationService {
 
     otpRecord.email = user.email;
     otpRecord.username = user.username ?? username ?? undefined;
-    otpRecord.phoneNumber = user.phoneNumber ?? phoneNumber ?? undefined;
+    otpRecord.phoneNumber = user.phoneNumber ?? undefined;
     otpRecord.userId = user.id;
     otpRecord.passwordHash = user.password ?? '';
     otpRecord.role = user.role ?? Role.Client;
@@ -562,18 +551,15 @@ export class AuthenticationService {
 
   private async createUserFromOtp(signUpOtp: SignUpOtp) {
     const email = this.normalizeEmail(signUpOtp.email);
-    const username = this.normalizeUsername(signUpOtp.username);
-    const phoneNumber = this.normalizePhoneNumber(signUpOtp.phoneNumber);
 
-    if (!email || !username || !phoneNumber) {
+    if (!email) {
       throw new BadRequestException(
-        'OTP record is missing email, username or phoneNumber',
+        'OTP record is missing email',
       );
     }
 
     const existingUser = await this.findUserByEmailOrUsername({
       email,
-      username,
     });
     if (existingUser) {
       return existingUser;
@@ -582,9 +568,7 @@ export class AuthenticationService {
     return this.userRepository.save(
       this.userRepository.create({
         email,
-        phoneNumber,
         role: Role.Client,
-        username,
       }),
     );
   }

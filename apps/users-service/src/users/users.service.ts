@@ -35,7 +35,7 @@ export class UsersService {
       return {
         status: true,
         message: 'Users fetched successfully',
-        data: users,
+        data: users.map((user) => this.sanitizeUser(user)),
       };
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -55,7 +55,7 @@ export class UsersService {
       return {
         status: true,
         message: 'User fetched successfully',
-        data: user,
+        data: this.sanitizeUser(user),
       };
     } catch (error) {
       if (error instanceof NotFoundException) {

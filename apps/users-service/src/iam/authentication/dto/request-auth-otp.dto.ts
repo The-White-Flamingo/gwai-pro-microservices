@@ -8,8 +8,4 @@ export class RequestAuthOtpDto {
   @IsOptional()
   @IsString()
   username?: string;
-
-  @IsOptional()
-  @IsString()
-  phoneNumber?: string;
 }
