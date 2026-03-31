@@ -1,5 +1,6 @@
 import {
   AppleTokenDto,
+  FirebaseTokenDto,
   Auth,
   AuthType,
   ForgotPasswordDto,
@@ -382,6 +383,91 @@ export class AuthController {
   })
   authenticateWithApple(@Body() appleTokenDto: AppleTokenDto) {
     return this.authenticationService.authenticateWithApple(appleTokenDto);
+  }
+
+  @Post('firebase')
+  @ApiOperation({
+    summary: 'Authenticate with Firebase ID token',
+    description:
+      'Accepts a Firebase Authentication ID token from the frontend, verifies it with Firebase Admin in users-service, stores or links the user in the users table, and returns access and refresh tokens. Use this when the frontend signs in through Firebase Auth with Google or Apple.',
+  })
+  @ApiBody({
+    type: FirebaseTokenDto,
+    examples: {
+      firebaseGoogleAuth: {
+        summary: 'Firebase ID token from Google sign-in',
+        value: {
+          token:
+            'eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpcmViYXNlLWtpZCIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJ5b3VyLWZpcmViYXNlLXByb2plY3QiLCJlbWFpbCI6ImphbmVAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidXNlcl9pZCI6ImZpcmViYXNlLXVpZC0xMjMiLCJmaXJlYmFzZSI6eyJzaWduX2luX3Byb3ZpZGVyIjoiZ29vZ2xlLmNvbSJ9fQ.signature',
+        },
+      },
+      firebaseAppleAuth: {
+        summary: 'Firebase ID token from Apple sign-in',
+        value: {
+          token:
+            'eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpcmViYXNlLWtpZCIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJ5b3VyLWZpcmViYXNlLXByb2plY3QiLCJlbWFpbCI6ImphbmVAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidXNlcl9pZCI6ImZpcmViYXNlLXVpZC1hcHBsZS0xMjMiLCJmaXJlYmFzZSI6eyJzaWduX2luX3Byb3ZpZGVyIjoiYXBwbGUuY29tIn19.signature',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Firebase authentication successful',
+    schema: {
+      example: {
+        status: true,
+        message: 'Firebase authentication successful',
+        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.access',
+        refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Malformed token payload',
+    schema: {
+      example: {
+        message: 'token should not be empty',
+        error: 'Bad Request',
+        statusCode: 400,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid Firebase token or backend config',
+    schema: {
+      example: {
+        message: 'Firebase auth is not configured',
+        error: 'Unauthorized',
+        statusCode: 401,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Firebase account linkage conflict',
+    schema: {
+      example: {
+        message: 'Firebase account already linked to another user',
+        error: 'Conflict',
+        statusCode: 409,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'Users service timeout',
+    schema: {
+      example: {
+        message: 'Request to users-service timed out for pattern auth.firebase',
+        error: 'Gateway Timeout',
+        statusCode: 504,
+      },
+    },
+  })
+  authenticateWithFirebase(@Body() firebaseTokenDto: FirebaseTokenDto) {
+    return this.authenticationService.authenticateWithFirebase(firebaseTokenDto);
   }
 
   @Post('verify-sign-up-otp')

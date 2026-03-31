@@ -34,6 +34,9 @@ export class User {
   @Column({ nullable: true })
   appleId: string;
 
+  @Column({ unique: true, nullable: true })
+  firebaseUid: string;
+
   @JoinTable()
   @OneToMany(() => ApiKey, (apiKey) => apiKey.user)
   apiKeys: ApiKey[];

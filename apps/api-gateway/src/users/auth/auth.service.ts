@@ -1,5 +1,6 @@
 import {
   AppleTokenDto,
+  FirebaseTokenDto,
   ForgotPasswordDto,
   GoogleTokenDto,
   RequestAuthOtpDto,
@@ -18,6 +19,8 @@ import {
   GatewayTimeoutException,
   Inject,
   Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
@@ -56,20 +59,49 @@ export class AuthService {
     return { username: normalizedIdentifier.toLowerCase() };
   }
 
+  private getErrorStatus(error: any): number | undefined {
+    return error?.response?.statusCode ?? error?.status;
+  }
+
+  private getErrorMessage(error: any): string {
+    return (
+      error?.response?.message ??
+      error?.message ??
+      error?.error?.message ??
+      (typeof error === 'string' ? error : JSON.stringify(error))
+    );
+  }
+
+  private rethrowMappedError(error: any): never {
+    if (error instanceof GatewayTimeoutException) {
+      throw error;
+    }
+
+    const status = this.getErrorStatus(error);
+    const message = this.getErrorMessage(error);
+
+    if (status === 401 || error instanceof UnauthorizedException) {
+      throw new UnauthorizedException(message);
+    }
+    if (status === 404 || error instanceof NotFoundException) {
+      throw new NotFoundException(message);
+    }
+    if (status === 409 || error instanceof ConflictException) {
+      throw new ConflictException(message);
+    }
+    if (status === 503 || error instanceof ServiceUnavailableException) {
+      throw new ServiceUnavailableException(message);
+    }
+
+    throw new BadRequestException(message);
+  }
+
   async signUp(signUpDto: SignUpDto) {
     try {
       const user = await this.sendWithTimeout('auth.requestOtp', signUpDto);
       return user;
     } catch (error) {
-      if (error instanceof GatewayTimeoutException) {
-        throw error;
-      }
-      if (error instanceof ConflictException) {
-        throw new ConflictException(error.message);
-      } else if (error instanceof UnauthorizedException) {
-        throw new UnauthorizedException(error.message);
-      }
-      throw new BadRequestException(error.message);
+      this.rethrowMappedError(error);
     }
   }
 
@@ -81,13 +113,7 @@ export class AuthService {
       );
       return user;
     } catch (error) {
-      if (error instanceof GatewayTimeoutException) {
-        throw error;
-      }
-      if (error instanceof UnauthorizedException) {
-        throw new UnauthorizedException(error.message);
-      }
-      throw new BadRequestException(error.message);
+      this.rethrowMappedError(error);
     }
   }
 
@@ -98,15 +124,7 @@ export class AuthService {
         verifySignUpOtpDto,
       );
     } catch (error) {
-      if (error instanceof GatewayTimeoutException) {
-        throw error;
-      }
-      if (error instanceof ConflictException) {
-        throw new ConflictException(error.message);
-      } else if (error instanceof UnauthorizedException) {
-        throw new UnauthorizedException(error.message);
-      }
-      throw new BadRequestException(error.message);
+      this.rethrowMappedError(error);
     }
   }
 
@@ -117,15 +135,7 @@ export class AuthService {
         this.mapIdentifierToRequest(resendSignUpOtpDto.identifier),
       );
     } catch (error) {
-      if (error instanceof GatewayTimeoutException) {
-        throw error;
-      }
-      if (error instanceof ConflictException) {
-        throw new ConflictException(error.message);
-      } else if (error instanceof UnauthorizedException) {
-        throw new UnauthorizedException(error.message);
-      }
-      throw new BadRequestException(error.message);
+      this.rethrowMappedError(error);
     }
   }
 
@@ -137,13 +147,7 @@ export class AuthService {
       );
       return tokens;
     } catch (error) {
-      if (error instanceof GatewayTimeoutException) {
-        throw error;
-      }
-      if (error instanceof UnauthorizedException) {
-        throw new UnauthorizedException(error.message);
-      }
-      throw new BadRequestException(error.message);
+      this.rethrowMappedError(error);
     }
   }
 
@@ -154,10 +158,7 @@ export class AuthService {
         forgotPasswordDto,
       );
     } catch (error) {
-      if (error instanceof GatewayTimeoutException) {
-        throw error;
-      }
-      throw new BadRequestException(error.message);
+      this.rethrowMappedError(error);
     }
   }
 
@@ -168,10 +169,7 @@ export class AuthService {
         resetPasswordDto,
       );
     } catch (error) {
-      if (error instanceof GatewayTimeoutException) {
-        throw error;
-      }
-      throw new BadRequestException(error.message);
+      this.rethrowMappedError(error);
     }
   }
 
@@ -179,16 +177,7 @@ export class AuthService {
     try {
       return await this.sendWithTimeout('auth.google', googleTokenDto);
     } catch (error) {
-      if (error instanceof GatewayTimeoutException) {
-        throw error;
-      }
-      if (error instanceof ConflictException) {
-        throw new ConflictException(error.message);
-      }
-      if (error instanceof UnauthorizedException) {
-        throw new UnauthorizedException(error.message);
-      }
-      throw new BadRequestException(error.message);
+      this.rethrowMappedError(error);
     }
   }
 
@@ -196,16 +185,15 @@ export class AuthService {
     try {
       return await this.sendWithTimeout('auth.apple', appleTokenDto);
     } catch (error) {
-      if (error instanceof GatewayTimeoutException) {
-        throw error;
-      }
-      if (error instanceof ConflictException) {
-        throw new ConflictException(error.message);
-      }
-      if (error instanceof UnauthorizedException) {
-        throw new UnauthorizedException(error.message);
-      }
-      throw new BadRequestException(error.message);
+      this.rethrowMappedError(error);
+    }
+  }
+
+  async authenticateWithFirebase(firebaseTokenDto: FirebaseTokenDto) {
+    try {
+      return await this.sendWithTimeout('auth.firebase', firebaseTokenDto);
+    } catch (error) {
+      this.rethrowMappedError(error);
     }
   }
 
@@ -213,16 +201,7 @@ export class AuthService {
     try {
       return await this.sendWithTimeout('auth.requestOtp', requestAuthOtpDto);
     } catch (error) {
-      if (error instanceof GatewayTimeoutException) {
-        throw error;
-      }
-      if (error instanceof ConflictException) {
-        throw new ConflictException(error.message);
-      }
-      if (error instanceof UnauthorizedException) {
-        throw new UnauthorizedException(error.message);
-      }
-      throw new BadRequestException(error.message);
+      this.rethrowMappedError(error);
     }
   }
 
@@ -230,16 +209,7 @@ export class AuthService {
     try {
       return await this.sendWithTimeout('auth.verifyOtp', verifyAuthOtpDto);
     } catch (error) {
-      if (error instanceof GatewayTimeoutException) {
-        throw error;
-      }
-      if (error instanceof ConflictException) {
-        throw new ConflictException(error.message);
-      }
-      if (error instanceof UnauthorizedException) {
-        throw new UnauthorizedException(error.message);
-      }
-      throw new BadRequestException(error.message);
+      this.rethrowMappedError(error);
     }
   }
 }

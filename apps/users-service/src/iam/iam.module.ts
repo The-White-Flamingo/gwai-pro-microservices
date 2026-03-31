@@ -19,6 +19,8 @@ import { GoogleAuthenticationService } from './authentication/social/google-auth
 import { GoogleAuthenticationController } from './authentication/social/google-authentication.controller';
 import { AppleAuthenticationService } from './authentication/social/apple-authentication.service';
 import { AppleAuthenticationController } from './authentication/social/apple-authentication.controller';
+import { FirebaseAuthenticationService } from './authentication/social/firebase-authentication.service';
+import { FirebaseAuthenticationController } from './authentication/social/firebase-authentication.controller';
 import { User } from '../users/entities/user.entity';
 import { ApiKey } from '../users/api-keys/entities/api-key.entity';
 import { Client } from '../users/clients/entities/client.entity';
@@ -77,11 +79,13 @@ import { MAILING_SERVICE } from '@app/shared';
     ApiKeysService,
     GoogleAuthenticationService,
     AppleAuthenticationService,
+    FirebaseAuthenticationService,
   ],
   controllers: [
     AuthenticationController,
     GoogleAuthenticationController,
     AppleAuthenticationController,
+    FirebaseAuthenticationController,
   ],
 })
 export class IamModule {}
