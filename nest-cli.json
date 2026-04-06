@@ -135,6 +135,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/waitlist-service/tsconfig.app.json"
       }
+    },
+    "blog-service": {
+      "type": "application",
+      "root": "apps/blog-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/blog-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/blog-service/tsconfig.app.json"
+      }
     }
   }
 }

@@ -1,4 +1,7 @@
 export enum Role {
-  Regular = 'regular',
-  Admin = 'admin',
+  Pending = 'Pending',
+  Client = 'Client',
+  Musician = 'Musician',
+  Studio = 'Studio',
+  Admin = 'Admin',
 }

@@ -1,3 +1,4 @@
+import { AdminSignInDto, AdminSignUpDto } from '@app/iam';
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { AuthenticationService } from './authentication.service';
 import { SignUpDto } from './dto/sign-up.dto';
@@ -46,6 +47,16 @@ export class AuthenticationController {
   @MessagePattern('auth.signIn')
   signIn(@Payload() signInDto: SignInDto) {
     return this.authenticationService.signIn(signInDto);
+  }
+
+  @MessagePattern('auth.adminSignUp')
+  adminSignUp(@Payload() adminSignUpDto: AdminSignUpDto) {
+    return this.authenticationService.adminSignUp(adminSignUpDto);
+  }
+
+  @MessagePattern('auth.adminSignIn')
+  adminSignIn(@Payload() adminSignInDto: AdminSignInDto) {
+    return this.authenticationService.adminSignIn(adminSignInDto);
   }
 
   @MessagePattern('auth.refreshTokens')

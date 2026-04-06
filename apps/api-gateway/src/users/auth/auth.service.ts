@@ -1,4 +1,6 @@
 import {
+  AdminSignInDto,
+  AdminSignUpDto,
   AppleTokenDto,
   FirebaseTokenDto,
   ForgotPasswordDto,
@@ -112,6 +114,22 @@ export class AuthService {
         this.mapIdentifierToRequest(signInDto.identifier),
       );
       return user;
+    } catch (error) {
+      this.rethrowMappedError(error);
+    }
+  }
+
+  async adminSignUp(adminSignUpDto: AdminSignUpDto) {
+    try {
+      return await this.sendWithTimeout('auth.adminSignUp', adminSignUpDto);
+    } catch (error) {
+      this.rethrowMappedError(error);
+    }
+  }
+
+  async adminSignIn(adminSignInDto: AdminSignInDto) {
+    try {
+      return await this.sendWithTimeout('auth.adminSignIn', adminSignInDto);
     } catch (error) {
       this.rethrowMappedError(error);
     }

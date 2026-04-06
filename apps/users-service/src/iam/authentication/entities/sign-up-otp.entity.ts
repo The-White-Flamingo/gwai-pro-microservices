@@ -30,7 +30,7 @@ export class SignUpOtp {
   @Column({ default: '' })
   passwordHash: string;
 
-  @Column('enum', { enum: Role, default: Role.Client })
+  @Column('enum', { enum: Role, default: Role.Pending })
   role: Role;
 
   @Column({ type: 'timestamp' })

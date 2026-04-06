@@ -25,7 +25,7 @@ export class User {
   @Column({ nullable: true })
   password: string;
 
-  @Column('enum', { enum: Role, default: Role.Client })
+  @Column('enum', { enum: Role, default: Role.Pending })
   role: Role;
 
   @Column({ nullable: true })

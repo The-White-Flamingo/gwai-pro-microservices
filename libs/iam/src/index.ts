@@ -4,6 +4,8 @@ export * from './config/jwt.config';
 export * from './decorators/active-user.decorator';
 export * from './decorators/auth.decorator';
 export * from './dto/apple-token.dto';
+export * from './dto/admin-sign-in.dto';
+export * from './dto/admin-sign-up.dto';
 export * from './dto/firebase-token.dto';
 export * from './dto/request-auth-otp.dto';
 export * from './dto/google-token.dto';

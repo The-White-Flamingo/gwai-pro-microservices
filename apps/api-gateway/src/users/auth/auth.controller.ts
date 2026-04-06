@@ -1,4 +1,6 @@
 import {
+  AdminSignInDto,
+  AdminSignUpDto,
   AppleTokenDto,
   FirebaseTokenDto,
   Auth,
@@ -66,6 +68,8 @@ export class AuthController {
         data: {
           email: 'jane@example.com',
           isNewUser: true,
+          hasProfile: false,
+          profileType: null,
         },
       },
     },
@@ -136,6 +140,8 @@ export class AuthController {
         data: {
           email: 'jane@example.com',
           isNewUser: false,
+          hasProfile: true,
+          profileType: 'Client',
         },
       },
     },
@@ -164,6 +170,126 @@ export class AuthController {
   })
   signIn(@Body() signInDto: SignInDto) {
     return this.authenticationService.signIn(signInDto);
+  }
+
+  @Post('admin/sign-up')
+  @ApiOperation({
+    summary: 'Create an admin account with email and password',
+    description:
+      'Creates an admin directly in the users table and returns bearer tokens. Admin accounts do not need an admin profile before accessing protected admin routes.',
+  })
+  @ApiBody({
+    type: AdminSignUpDto,
+    examples: {
+      seededAdmin: {
+        summary: 'Seeded admin credentials',
+        value: {
+          email: 'admin@gwaipro.com',
+          password: 'admingwai@123!',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Admin account created successfully',
+    schema: {
+      example: {
+        status: true,
+        message: 'Admin signed up successfully.',
+        accessToken: '<jwt-access-token>',
+        refreshToken: '<jwt-refresh-token>',
+        data: {
+          nextAction: 'AUTHENTICATED',
+          profileComplete: true,
+          profileType: 'Admin',
+          user: {
+            id: '8746dd82-89f7-46e8-89dd-f81d7a68d4f9',
+            email: 'admin@gwaipro.com',
+            username: null,
+            phoneNumber: null,
+            role: 'Admin',
+            googleId: null,
+            appleId: null,
+            firebaseUid: null,
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Admin already exists',
+    schema: {
+      example: {
+        message: 'Admin already exists',
+        error: 'Conflict',
+        statusCode: 409,
+      },
+    },
+  })
+  adminSignUp(@Body() adminSignUpDto: AdminSignUpDto) {
+    return this.authenticationService.adminSignUp(adminSignUpDto);
+  }
+
+  @Post('admin/sign-in')
+  @ApiOperation({
+    summary: 'Authenticate an admin with email and password',
+    description:
+      'Signs in an admin with direct credentials and returns bearer tokens for admin-only endpoints such as blog management.',
+  })
+  @ApiBody({
+    type: AdminSignInDto,
+    examples: {
+      adminCredentials: {
+        summary: 'Admin sign-in payload',
+        value: {
+          email: 'admin@gwaipro.com',
+          password: 'admingwai@123!',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Admin signed in successfully',
+    schema: {
+      example: {
+        status: true,
+        message: 'Admin signed in successfully.',
+        accessToken: '<jwt-access-token>',
+        refreshToken: '<jwt-refresh-token>',
+        data: {
+          nextAction: 'AUTHENTICATED',
+          profileComplete: true,
+          profileType: 'Admin',
+          user: {
+            id: '8746dd82-89f7-46e8-89dd-f81d7a68d4f9',
+            email: 'admin@gwaipro.com',
+            username: null,
+            phoneNumber: null,
+            role: 'Admin',
+            googleId: null,
+            appleId: null,
+            firebaseUid: null,
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid admin credentials',
+    schema: {
+      example: {
+        message: 'Invalid admin credentials',
+        error: 'Unauthorized',
+        statusCode: 401,
+      },
+    },
+  })
+  adminSignIn(@Body() adminSignInDto: AdminSignInDto) {
+    return this.authenticationService.adminSignIn(adminSignInDto);
   }
 
   @Post('request-otp')
@@ -199,6 +325,8 @@ export class AuthController {
         data: {
           email: 'jane@example.com',
           isNewUser: false,
+          hasProfile: true,
+          profileType: 'Client',
         },
       },
     },
@@ -502,7 +630,7 @@ export class AuthController {
             email: 'jane@example.com',
             username: 'jane_doe',
             phoneNumber: '+233201234567',
-            role: 'Client',
+            role: 'Pending',
             googleId: null,
             appleId: null,
           },

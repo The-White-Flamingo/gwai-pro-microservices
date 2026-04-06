@@ -23,6 +23,8 @@ services:
         condition: service_started
       posts-service:
         condition: service_started
+      blog-service:
+        condition: service_started
       chat-service:
         condition: service_started
       mailing-service:
@@ -110,6 +112,24 @@ services:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?heartbeat=30&connection_timeout=30000&frameMax=0
     depends_on:
       posts-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  blog-service:
+    build:
+      context: .
+      dockerfile: ./apps/blog-service/Dockerfile
+      target: production
+    env_file:
+      - ./apps/blog-service/.env
+    environment:
+      - POSTGRES_HOST=blog-db
+      - POSTGRES_PORT=5432
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?heartbeat=30&connection_timeout=30000&frameMax=0
+    depends_on:
+      blog-db:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
@@ -230,6 +250,23 @@ services:
       start_period: 90s
     restart: unless-stopped
 
+  blog-db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=blog
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - blog_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
+    restart: unless-stopped
+
   waitlist-db:
     image: postgres:16-alpine
     environment:
@@ -279,5 +316,6 @@ volumes:
   users_db_data:
   chat_db_data:
   posts_db_data:
+  blog_db_data:
   waitlist_db_data:
   rabbitmq_data:

@@ -59,6 +59,17 @@ services:
       - posts_db_data:/var/lib/postgresql/data
     restart: unless-stopped
 
+  blog-db:
+    image: postgres:15-alpine
+    container_name: blog-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: blog
+    volumes:
+      - blog_db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
   chat-db:
     image: postgres:15-alpine
     container_name: chat-db
@@ -93,6 +104,7 @@ services:
       - "3000:3000"
     depends_on:
       - rabbitmq
+      - blog-service
     restart: unless-stopped
 
   users-service:
@@ -148,6 +160,23 @@ services:
       - rabbitmq
     restart: unless-stopped
 
+  blog-service:
+    build:
+      context: .
+      dockerfile: ./apps/blog-service/Dockerfile
+      target: development
+    container_name: blog-service
+    env_file:
+      - ./apps/blog-service/.env
+    environment:
+      - POSTGRES_HOST=blog-db
+      - POSTGRES_PORT=5432
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?frameMax=0
+    depends_on:
+      - blog-db
+      - rabbitmq
+    restart: unless-stopped
+
   chat-service:
     build:
       context: .
@@ -191,6 +220,7 @@ volumes:
   bookings_db_data:
   payments_db_data:
   posts_db_data:
+  blog_db_data:
   chat_db_data:
   waitlist_db_data:
 

@@ -6,6 +6,7 @@ import {
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { AdminSignInDto, AdminSignUpDto } from '@app/iam';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ClientProxy } from '@nestjs/microservices';
 import { Repository } from 'typeorm';
@@ -33,7 +34,6 @@ import { Role } from '../../users/enums/role.enum';
 import { Client } from '../../users/clients/entities/client.entity';
 import { Musician } from '../../users/musicians/entities/musician.entity';
 import { Studio } from '../../users/studios/entities/studio.entity';
-import { Admin } from '../../users/admins/entities/admin.entity';
 import { SignUpOtp } from './entities/sign-up-otp.entity';
 import { PasswordReset } from './entities/password-reset.entity';
 
@@ -61,8 +61,6 @@ export class AuthenticationService {
     private readonly musicianRepository: Repository<Musician>,
     @InjectRepository(Studio)
     private readonly studioRepository: Repository<Studio>,
-    @InjectRepository(Admin)
-    private readonly adminRepository: Repository<Admin>,
     @InjectRepository(SignUpOtp)
     private readonly signUpOtpRepository: Repository<SignUpOtp>,
     @InjectRepository(PasswordReset)
@@ -98,6 +96,7 @@ export class AuthenticationService {
       });
 
       if (existingUser) {
+        const profileStatus = await this.getProfileStatus(existingUser);
         const otpRecord = await this.prepareExistingUserOtpRecord(
           existingUser,
           username,
@@ -124,6 +123,8 @@ export class AuthenticationService {
           data: {
             email: existingUser.email,
             isNewUser: false,
+            hasProfile: profileStatus.profileComplete,
+            profileType: profileStatus.profileType,
           },
         };
       }
@@ -144,7 +145,7 @@ export class AuthenticationService {
           email,
           otpHash: '',
           passwordHash: '',
-          role: Role.Client,
+          role: Role.Pending,
           expiresAt: this.getOtpExpiryDate(),
           requestWindowStartedAt: new Date(),
           otpRequestCount: 0,
@@ -164,7 +165,7 @@ export class AuthenticationService {
       otpRecord.phoneNumber = undefined;
       otpRecord.userId = undefined;
       otpRecord.passwordHash = '';
-      otpRecord.role = Role.Client;
+      otpRecord.role = Role.Pending;
 
       const sendOtpError = await this.saveAndSendOtp(otpRecord, email);
       if (sendOtpError) {
@@ -177,6 +178,8 @@ export class AuthenticationService {
         data: {
           email,
           isNewUser: true,
+          hasProfile: false,
+          profileType: null,
         },
       };
     } catch (error) {
@@ -268,6 +271,71 @@ export class AuthenticationService {
 
   async signIn(signInDto: SignInDto) {
     return this.requestOtp(this.mapIdentifierToRequest(signInDto.identifier));
+  }
+
+  async adminSignUp(adminSignUpDto: AdminSignUpDto) {
+    try {
+      const email = this.normalizeEmail(adminSignUpDto.email);
+      const existingUser = await this.findUserByEmailOrUsername({ email });
+
+      if (existingUser) {
+        return new ConflictException('Admin already exists').getResponse();
+      }
+
+      const passwordHash = await this.hashingService.hash(adminSignUpDto.password);
+      const user = await this.createUserWithRole({
+        email,
+        passwordHash,
+        role: Role.Admin,
+      });
+      const tokens = await this.generateTokens(user);
+
+      return this.buildDirectAuthResponse(
+        user,
+        tokens,
+        'Admin signed up successfully.',
+      );
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        return error.getResponse();
+      }
+      return new BadRequestException(error.message).getResponse();
+    }
+  }
+
+  async adminSignIn(adminSignInDto: AdminSignInDto) {
+    try {
+      const email = this.normalizeEmail(adminSignInDto.email);
+      const user = email
+        ? await this.userRepository.findOneBy({ email })
+        : null;
+
+      if (!user || user.role !== Role.Admin || !user.password) {
+        return new UnauthorizedException('Invalid admin credentials').getResponse();
+      }
+
+      const passwordMatches = await this.hashingService.compare(
+        adminSignInDto.password,
+        user.password,
+      );
+
+      if (!passwordMatches) {
+        return new UnauthorizedException('Invalid admin credentials').getResponse();
+      }
+
+      const tokens = await this.generateTokens(user);
+
+      return this.buildDirectAuthResponse(
+        user,
+        tokens,
+        'Admin signed in successfully.',
+      );
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        return error.getResponse();
+      }
+      return new BadRequestException(error.message).getResponse();
+    }
   }
 
   async generateTokens(user: User) {
@@ -533,7 +601,7 @@ export class AuthenticationService {
         otpHash: '',
         passwordHash: user.password ?? '',
         requestWindowStartedAt: new Date(),
-        role: user.role ?? Role.Client,
+        role: user.role ?? Role.Pending,
         otpRequestCount: 0,
         userId: user.id,
         verifyAttempts: 0,
@@ -544,7 +612,7 @@ export class AuthenticationService {
     otpRecord.phoneNumber = user.phoneNumber ?? undefined;
     otpRecord.userId = user.id;
     otpRecord.passwordHash = user.password ?? '';
-    otpRecord.role = user.role ?? Role.Client;
+    otpRecord.role = user.role ?? Role.Pending;
 
     return otpRecord;
   }
@@ -568,17 +636,20 @@ export class AuthenticationService {
     return this.userRepository.save(
       this.userRepository.create({
         email,
-        role: Role.Client,
+        role: signUpOtp.role ?? Role.Pending,
       }),
     );
   }
 
   private async getProfileStatus(user: User) {
+    if (user.role === Role.Admin) {
+      return { profileComplete: true, profileType: Role.Admin };
+    }
+
     const profileChecks = await Promise.all([
       this.clientRepository.findOne({ where: { user: { id: user.id } } }),
       this.musicianRepository.findOne({ where: { user: { id: user.id } } }),
       this.studioRepository.findOne({ where: { user: { id: user.id } } }),
-      this.adminRepository.findOne({ where: { user: { id: user.id } } }),
     ]);
 
     if (profileChecks[0]) {
@@ -589,9 +660,6 @@ export class AuthenticationService {
     }
     if (profileChecks[2]) {
       return { profileComplete: true, profileType: Role.Studio };
-    }
-    if (profileChecks[3]) {
-      return { profileComplete: true, profileType: Role.Admin };
     }
 
     return {
@@ -872,7 +940,7 @@ export class AuthenticationService {
     email: string;
     passwordHash: string;
     role: Role;
-  }) {
+  }): Promise<User> {
     const queryRunner =
       this.userRepository.manager.connection.createQueryRunner();
     await queryRunner.startTransaction();
@@ -901,30 +969,43 @@ export class AuthenticationService {
         });
         await queryRunner.manager.save(studio);
       } else if (role === Role.Admin) {
-        const admin = this.adminRepository.create({
-          user,
-        });
-        await queryRunner.manager.save(admin);
+        // Admins are stored in the users table and do not need a profile row.
       } else {
-        return new UnauthorizedException().getResponse();
+        throw new UnauthorizedException();
       }
 
       await queryRunner.commitTransaction();
 
-      return {
-        status: true,
-        message: `${user.role} signed up successfully`,
-      };
+      return user;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       const pgUniqueViolationErrorCode = '23505';
       if (error.code === pgUniqueViolationErrorCode) {
-        return new ConflictException('User already exists').getResponse();
+        throw new ConflictException('User already exists');
       }
-      return new BadRequestException(error.message).getResponse();
+      throw new BadRequestException(error.message);
     } finally {
       await queryRunner.release();
     }
+  }
+
+  private buildDirectAuthResponse(
+    user: User,
+    tokens: { accessToken: string; refreshToken: string },
+    message: string,
+  ) {
+    return {
+      status: true,
+      message,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      data: {
+        nextAction: 'AUTHENTICATED',
+        profileComplete: true,
+        profileType: Role.Admin,
+        user: this.sanitizeUser(user),
+      },
+    };
   }
 
   private async signToken<T>(userId: string, expiresIn: number, payload?: T) {
