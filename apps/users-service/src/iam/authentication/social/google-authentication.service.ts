@@ -28,12 +28,22 @@ export class GoogleAuthenticationService implements OnModuleInit {
   }
 
   async authenticate(token: string) {
+    if (!this.oauthClient) {
+  const clientId = this.configService.get('GOOGLE_CLIENT_ID');
+  const clientSecret = this.configService.get('GOOGLE_CLIENT_SECRET');
+  this.oauthClient = new OAuth2Client(clientId, clientSecret);
+}
     try {
       const loginTicket = await this.oauthClient.verifyIdToken({
         idToken: token,
       });
-
-      const { email, sub: googleId } = loginTicket.getPayload();
+      
+const payload = loginTicket.getPayload();
+if (!payload || !payload.sub || !payload.email) {
+  throw new UnauthorizedException('Invalid Google token');
+}
+const { email, sub: googleId } = payload;
+      
 
       const user = await this.userRepository.findOneBy({ googleId });
 
@@ -47,12 +57,12 @@ export class GoogleAuthenticationService implements OnModuleInit {
 
         return this.authenticationService.generateTokens(newUser);
       }
-    } catch (error) {
-      const pgUniqueViolationErrorCode = '23505';
-      if (error.code === pgUniqueViolationErrorCode) {
-        throw new ConflictException('User already exists');
-      }
-      throw new UnauthorizedException();
+    } catch (error: any) { // ← cast error to any
+    const pgUniqueViolationErrorCode = '23505';
+    if (error?.code === pgUniqueViolationErrorCode) {
+      throw new ConflictException('User already exists');
+    }
+    throw new UnauthorizedException();
     }
   }
 }
