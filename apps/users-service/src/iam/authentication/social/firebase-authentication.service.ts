@@ -88,7 +88,7 @@ export class FirebaseAuthenticationService implements OnModuleInit {
       }
 
       throw new UnauthorizedException(
-        error?.message ?? 'Firebase authentication failed',
+        (error as any)?.message ?? 'Firebase authentication failed',
       );
     }
   }
@@ -183,7 +183,6 @@ export class FirebaseAuthenticationService implements OnModuleInit {
 
   private getFirebaseAdmin(): FirebaseAdminModule {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       return require('firebase-admin') as FirebaseAdminModule;
     } catch {
       throw new UnauthorizedException(

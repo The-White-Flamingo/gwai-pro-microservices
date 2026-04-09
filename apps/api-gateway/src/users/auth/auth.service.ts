@@ -62,7 +62,12 @@ export class AuthService {
   }
 
   private getErrorStatus(error: any): number | undefined {
-    return error?.response?.statusCode ?? error?.status;
+    return (
+      error?.response?.statusCode ??
+      error?.status ??
+      error?.err?.response?.statusCode ??
+      error?.err?.status
+    );
   }
 
   private getErrorMessage(error: any): string {
@@ -70,6 +75,9 @@ export class AuthService {
       error?.response?.message ??
       error?.message ??
       error?.error?.message ??
+      error?.err?.response?.message ??
+      error?.err?.message ??
+      error?.err?.error?.message ??
       (typeof error === 'string' ? error : JSON.stringify(error))
     );
   }
