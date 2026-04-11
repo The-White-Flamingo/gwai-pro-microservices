@@ -67,7 +67,7 @@ export class AdminsController {
         phoneNumber: {
           type: 'string',
           example: '+233501234567',
-          description: 'Admin contact number in international format.',
+          description: 'Admin contact number in +0123456789',
         },
         country: {
           type: 'string',

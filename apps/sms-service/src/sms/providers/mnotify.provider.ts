@@ -87,9 +87,17 @@ export class MnotifyProvider implements SmsProvider {
         throw error;
       }
 
+      const axiosError = error as any;
+      console.error('MNotify sendSms error response:', {
+        status: axiosError?.response?.status,
+        headers: axiosError?.response?.headers,
+        data: axiosError?.response?.data,
+        message: axiosError?.message,
+      });
+
       throw new ServiceUnavailableException(
-        error?.response?.data?.message ??
-          error?.message ??
+        axiosError?.response?.data?.message ??
+          axiosError?.message ??
           'Failed to send SMS with MNotify',
       );
     }

@@ -19,7 +19,7 @@ export class AdminsController {
   }
 
   @MessagePattern('findOneAdmin')
-  findOne(@Payload() id: number) {
+  findOne(@Payload() id: string) {
     return this.adminsService.findOne(id);
   }
 
@@ -29,7 +29,7 @@ export class AdminsController {
   }
 
   @MessagePattern('removeAdmin')
-  remove(@Payload() id: number) {
+  remove(@Payload() id: string) {
     return this.adminsService.remove(id);
   }
 }
