@@ -30,7 +30,7 @@ import { Studio } from '../users/studios/entities/studio.entity';
 import { Admin } from '../users/admins/entities/admin.entity';
 import { SignUpOtp } from './authentication/entities/sign-up-otp.entity';
 import { PasswordReset } from './authentication/entities/password-reset.entity';
-import { MAILING_SERVICE } from '@app/shared';
+import { MAILING_SERVICE, SMS_SERVICE } from '@app/shared';
 
 @Module({
   imports: [
@@ -51,6 +51,17 @@ import { MAILING_SERVICE } from '@app/shared';
         options: {
           urls: [process.env.RABBITMQ_URL],
           queue: 'mailing-service',
+          queueOptions: {
+            durable: true,
+          },
+        },
+      },
+      {
+        name: SMS_SERVICE,
+        transport: Transport.RMQ,
+        options: {
+          urls: [process.env.RABBITMQ_URL],
+          queue: 'sms-service',
           queueOptions: {
             durable: true,
           },

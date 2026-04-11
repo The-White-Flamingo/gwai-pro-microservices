@@ -105,6 +105,7 @@ services:
       - users-db
       - redis
       - rabbitmq
+      - sms-service
     command: yarn start:dev users-service
 
   chat-service:
@@ -178,6 +179,27 @@ services:
     depends_on:
       - rabbitmq
     command: yarn start:dev mailing-service
+
+  sms-service:
+    build:
+      context: .
+      dockerfile: ./apps/sms-service/Dockerfile
+      target: development
+      args:
+        - APP_NAME=sms-service
+    env_file:
+      - ./apps/sms-service/.env
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?frameMax=0
+    volumes:
+      - ./libs:/usr/src/app/libs
+      - ./package.json:/usr/src/app/package.json
+      - ./tsconfig.json:/usr/src/app/tsconfig.json
+      - ./node_modules:/usr/src/app/node_modules
+      - ./apps/sms-service:/usr/src/app/apps/sms-service
+    depends_on:
+      - rabbitmq
+    command: yarn start:dev sms-service
 
   posts-service:
     build:

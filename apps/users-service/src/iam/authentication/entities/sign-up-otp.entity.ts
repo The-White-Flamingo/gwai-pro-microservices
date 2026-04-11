@@ -18,7 +18,7 @@ export class SignUpOtp {
   @Column({ nullable: true })
   username?: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, unique: true })
   phoneNumber?: string;
 
   @Column({ nullable: true })

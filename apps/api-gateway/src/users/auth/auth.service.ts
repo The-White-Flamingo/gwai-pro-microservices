@@ -6,6 +6,7 @@ import {
   ForgotPasswordDto,
   GoogleTokenDto,
   RequestAuthOtpDto,
+  RequestSmsOtpDto,
   ResendSignUpOtpDto,
   ResetPasswordDto,
   RefreshTokenDto,
@@ -122,6 +123,14 @@ export class AuthService {
         this.mapIdentifierToRequest(signInDto.identifier),
       );
       return user;
+    } catch (error) {
+      this.rethrowMappedError(error);
+    }
+  }
+
+  async requestSmsOtp(requestSmsOtpDto: RequestSmsOtpDto) {
+    try {
+      return await this.sendWithTimeout('auth.requestSmsOtp', requestSmsOtpDto);
     } catch (error) {
       this.rethrowMappedError(error);
     }

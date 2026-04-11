@@ -8,6 +8,7 @@ import {
   ForgotPasswordDto,
   GoogleTokenDto,
   RequestAuthOtpDto,
+  RequestSmsOtpDto,
   ResendSignUpOtpDto,
   ResetPasswordDto,
   RefreshTokenDto,
@@ -357,6 +358,62 @@ export class AuthController {
     return this.authenticationService.requestOtp(requestAuthOtpDto);
   }
 
+  @Post('request-sms-otp')
+  @ApiOperation({
+    summary: 'Request sign-in OTP by SMS',
+    description:
+      'Sends an OTP by SMS to an existing user whose profile is complete and whose phone number already exists on the account.',
+  })
+  @ApiBody({
+    type: RequestSmsOtpDto,
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'OTP sent successfully',
+    schema: {
+      example: {
+        status: true,
+        message: 'OTP sent successfully.',
+        data: {
+          email: 'jane@example.com',
+          phoneNumber: '+233201234567',
+          deliveryChannel: 'sms',
+          deliveryTarget: '+233201234567',
+          isNewUser: false,
+          hasProfile: true,
+          profileType: 'Client',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'SMS OTP request rejected',
+    schema: {
+      example: {
+        message: 'SMS OTP is only available for users with completed profiles',
+        error: 'Bad Request',
+        statusCode: 400,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'Users service timeout',
+    schema: {
+      example: {
+        message:
+          'Request to users-service timed out for pattern auth.requestSmsOtp',
+        error: 'Gateway Timeout',
+        statusCode: 504,
+      },
+    },
+  })
+  requestSmsOtp(@Body() requestSmsOtpDto: RequestSmsOtpDto) {
+    return this.authenticationService.requestSmsOtp(requestSmsOtpDto);
+  }
+
+  /*
   @Post('google')
   @ApiOperation({
     summary: 'Authenticate with Google',
@@ -512,6 +569,7 @@ export class AuthController {
   authenticateWithApple(@Body() appleTokenDto: AppleTokenDto) {
     return this.authenticationService.authenticateWithApple(appleTokenDto);
   }
+  */
 
   @Post('firebase')
   @ApiOperation({
@@ -598,7 +656,7 @@ export class AuthController {
     return this.authenticationService.authenticateWithFirebase(firebaseTokenDto);
   }
 
-  @Post('verify-sign-up-otp')
+  /* @Post('verify-sign-up-otp')
   @ApiOperation({
     summary: 'Verify signup OTP',
     description: 'Validates OTP and creates the user account.',
@@ -662,7 +720,7 @@ export class AuthController {
   })
   verifySignUpOtp(@Body() verifySignUpOtpDto: VerifySignUpOtpDto) {
     return this.authenticationService.verifySignUpOtp(verifySignUpOtpDto);
-  }
+  } */
 
   @Post('verify-otp')
   @ApiOperation({
@@ -731,7 +789,7 @@ export class AuthController {
     return this.authenticationService.verifyOtp(verifyAuthOtpDto);
   }
 
-  @Post('resend-sign-up-otp')
+  /* @Post('resend-sign-up-otp')
   @ApiOperation({
     summary: 'Resend signup OTP',
     description: 'Sends a new OTP for a pending signup, subject to rate limits.',
@@ -741,7 +799,7 @@ export class AuthController {
     examples: {
       resendOtp: {
         summary: 'Resend OTP',
-        value: { identifier: 'jane@example.com' },
+        value: { identifier: '+233201234567' },
       },
     },
   })
@@ -779,7 +837,7 @@ export class AuthController {
   })
   resendSignUpOtp(@Body() resendSignUpOtpDto: ResendSignUpOtpDto) {
     return this.authenticationService.resendSignUpOtp(resendSignUpOtpDto);
-  }
+  } */
 
   @Post('refresh-tokens')
   @ApiOperation({
@@ -836,7 +894,7 @@ export class AuthController {
     return this.authenticationService.refreshTokens(refreshTokenDto);
   }
 
-  @Post('forgot-password')
+  /* @Post('forgot-password')
   @ApiOperation({
     summary: 'Request password reset code',
     description: 'Sends a password reset code if the account exists.',
@@ -886,9 +944,9 @@ export class AuthController {
   })
   forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     return this.authenticationService.forgotPassword(forgotPasswordDto);
-  }
+  } */
 
-  @Post('reset-password')
+  /* @Post('reset-password')
   @ApiOperation({
     summary: 'Reset password using code',
     description: 'Resets account password after reset code verification.',
@@ -941,7 +999,7 @@ export class AuthController {
   })
   resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authenticationService.resetPassword(resetPasswordDto);
-  }
+  } */
 
   // @ApiBearerAuth()
   // @Auth(AuthType.Bearer)

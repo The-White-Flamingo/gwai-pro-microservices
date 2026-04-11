@@ -1,4 +1,8 @@
-import { AdminSignInDto, AdminSignUpDto } from '@app/iam';
+import {
+  AdminSignInDto,
+  AdminSignUpDto,
+  ChangePasswordDto,
+} from '@app/iam';
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { AuthenticationService } from './authentication.service';
 import { SignUpDto } from './dto/sign-up.dto';
@@ -12,6 +16,7 @@ import { ResendSignUpOtpDto } from './dto/resend-sign-up-otp.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RequestAuthOtpDto } from './dto/request-auth-otp.dto';
+import { RequestSmsOtpDto } from './dto/request-sms-otp.dto';
 import { VerifyAuthOtpDto } from './dto/verify-auth-otp.dto';
 
 @Auth(AuthType.None)
@@ -22,6 +27,11 @@ export class AuthenticationController {
   @MessagePattern('auth.requestOtp')
   requestOtp(@Payload() requestAuthOtpDto: RequestAuthOtpDto) {
     return this.authenticationService.requestOtp(requestAuthOtpDto);
+  }
+
+  @MessagePattern('auth.requestSmsOtp')
+  requestSmsOtp(@Payload() requestSmsOtpDto: RequestSmsOtpDto) {
+    return this.authenticationService.requestSmsOtp(requestSmsOtpDto);
   }
 
   @MessagePattern('auth.verifyOtp')
@@ -72,5 +82,13 @@ export class AuthenticationController {
   @MessagePattern('auth.resetPassword')
   resetPassword(@Payload() resetPasswordDto: ResetPasswordDto) {
     return this.authenticationService.resetPassword(resetPasswordDto);
+  }
+
+  @MessagePattern('auth.changePassword')
+  changePassword(
+    @Payload()
+    payload: ChangePasswordDto & { userId: string },
+  ) {
+    return this.authenticationService.changePassword(payload);
   }
 }

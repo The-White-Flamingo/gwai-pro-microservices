@@ -1,4 +1,10 @@
-import { ActiveUser, ActiveUserData, Auth, AuthType } from '@app/iam';
+import {
+  ActiveUser,
+  ActiveUserData,
+  Auth,
+  AuthType,
+  ChangePasswordDto,
+} from '@app/iam';
 import { Body, Controller, Post } from '@nestjs/common';
 import { AdminsService } from './admins.service';
 import {
@@ -25,24 +31,42 @@ export class AdminsController {
   @ApiBody({
     schema: {
       type: 'object',
-      required: ['firstName', 'lastName', 'contact'],
+      required: ['firstName', 'lastName', 'phoneNumber'],
       properties: {
+        profilePhoto: {
+          type: 'string',
+          example:
+            'https://example.com/images/admin-profile.jpg',
+        },
         firstName: { type: 'string', example: 'Ama' },
         lastName: { type: 'string', example: 'Boateng' },
-        contact: { type: 'string', example: '+233501234567' },
-        location: { type: 'string', example: 'Accra' },
-        role: { type: 'string', example: 'Super Admin' },
+        phoneNumber: { type: 'string', example: '+233501234567' },
+        country: {
+          type: 'string',
+          example: 'Ghana',
+          description: 'Select from the available countries list.',
+        },
+        address: {
+          type: 'string',
+          example: '123 Ring Road, Accra',
+        },
+        postalAddress: {
+          type: 'string',
+          example: 'P.O. Box CT 1234',
+        },
       },
     },
     examples: {
       createAdmin: {
-        summary: 'Admin payload',
+        summary: 'Admin profile payload',
         value: {
+          profilePhoto: 'https://example.com/images/admin-profile.jpg',
           firstName: 'Ama',
           lastName: 'Boateng',
-          contact: '+233501234567',
-          location: 'Accra',
-          role: 'Super Admin',
+          phoneNumber: '+233501234567',
+          country: 'Ghana',
+          address: '123 Ring Road, Accra',
+          postalAddress: 'P.O. Box CT 1234',
         },
       },
     },
@@ -130,5 +154,43 @@ export class AdminsController {
     @ActiveUser() activeUser: ActiveUserData,
   ) {
     return this.adminsService.create(createAdminDto, activeUser.sub);
+  }
+
+  @Post('change-password')
+  @ApiOperation({
+    summary: 'Change admin password',
+    description: 'Allows an authenticated admin to change their own password.',
+  })
+  @ApiBody({
+    type: ChangePasswordDto,
+    examples: {
+      changePassword: {
+        summary: 'Change password payload',
+        value: {
+          currentPassword: 'CurrentPassword123!',
+          newPassword: 'NewPassword123!',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password changed successfully',
+    schema: {
+      example: {
+        status: true,
+        message: 'Password changed successfully.',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized or invalid current password',
+  })
+  changePassword(
+    @Body() changePasswordDto: ChangePasswordDto,
+    @ActiveUser() activeUser: ActiveUserData,
+  ) {
+    return this.adminsService.changePassword(changePasswordDto, activeUser);
   }
 }

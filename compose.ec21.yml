@@ -29,6 +29,8 @@ services:
         condition: service_started
       mailing-service:
         condition: service_started
+      sms-service:
+        condition: service_started
       waitlist-service:
         condition: service_started
     restart: unless-stopped
@@ -81,6 +83,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      sms-service:
+        condition: service_started
     restart: unless-stopped
 
   chat-service:
@@ -158,6 +162,20 @@ services:
       target: production
     env_file:
       - ./apps/mailing-service/.env
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?heartbeat=30&connection_timeout=30000&frameMax=0
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  sms-service:
+    build:
+      context: .
+      dockerfile: ./apps/sms-service/Dockerfile
+      target: production
+    env_file:
+      - ./apps/sms-service/.env
     environment:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?heartbeat=30&connection_timeout=30000&frameMax=0
     depends_on:

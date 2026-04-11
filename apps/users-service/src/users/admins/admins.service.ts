@@ -43,6 +43,7 @@ export class AdminsService {
 
       const admin = this.adminsRepository.create({
         ...profilePayload,
+        role: Role.Admin,
         user,
       });
       const savedAdmin = await this.adminsRepository.save(admin);

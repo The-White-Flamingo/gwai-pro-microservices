@@ -6,12 +6,21 @@ import {
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AdminSignInDto, AdminSignUpDto } from '@app/iam';
+import {
+  AdminSignInDto,
+  AdminSignUpDto,
+  ChangePasswordDto,
+} from '@app/iam';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ClientProxy } from '@nestjs/microservices';
 import { Repository } from 'typeorm';
 import { lastValueFrom, timeout } from 'rxjs';
-import { CreateMailerDto, MAILING_SERVICE } from '@app/shared';
+import {
+  CreateMailerDto,
+  CreateSmsDto,
+  MAILING_SERVICE,
+  SMS_SERVICE,
+} from '@app/shared';
 import { HashingService } from '../hashing/hashing.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import { SignInDto } from './dto/sign-in.dto';
@@ -20,6 +29,7 @@ import { ResendSignUpOtpDto } from './dto/resend-sign-up-otp.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RequestAuthOtpDto } from './dto/request-auth-otp.dto';
+import { RequestSmsOtpDto } from './dto/request-sms-otp.dto';
 import { VerifyAuthOtpDto } from './dto/verify-auth-otp.dto';
 import { JwtService } from '@nestjs/jwt';
 import jwtConfig from '../config/jwt.config';
@@ -50,6 +60,12 @@ const PASSWORD_RESET_WINDOW_MINUTES = 15;
 const PASSWORD_RESET_RESEND_COOLDOWN_SECONDS = 60;
 const PASSWORD_RESET_BLOCK_DURATION_MINUTES = 15;
 const MAILER_RPC_TIMEOUT_MS = 10000;
+const SMS_RPC_TIMEOUT_MS = 10000;
+
+type OtpDeliveryDestination = {
+  channel: 'email' | 'sms';
+  target: string;
+};
 
 @Injectable()
 export class AuthenticationService {
@@ -66,6 +82,7 @@ export class AuthenticationService {
     @InjectRepository(PasswordReset)
     private readonly passwordResetRepository: Repository<PasswordReset>,
     @Inject(MAILING_SERVICE) private readonly mailingClient: ClientProxy,
+    @Inject(SMS_SERVICE) private readonly smsClient: ClientProxy,
     private readonly hashingService: HashingService,
     private readonly jwtService: JwtService,
     @Inject(jwtConfig.KEY)
@@ -111,7 +128,10 @@ export class AuthenticationService {
 
         const sendOtpError = await this.saveAndSendOtp(
           otpRecord,
-          existingUser.email,
+          {
+            channel: 'email',
+            target: existingUser.email,
+          },
         );
         if (sendOtpError) {
           return sendOtpError;
@@ -167,21 +187,27 @@ export class AuthenticationService {
       otpRecord.passwordHash = '';
       otpRecord.role = Role.Pending;
 
-      const sendOtpError = await this.saveAndSendOtp(otpRecord, email);
+      const sendOtpError = await this.saveAndSendOtp(
+        otpRecord,
+        {
+          channel: 'email',
+          target: email,
+        },
+      );
       if (sendOtpError) {
         return sendOtpError;
       }
 
-      return {
-        status: true,
-        message: 'OTP sent successfully.',
-        data: {
-          email,
-          isNewUser: true,
-          hasProfile: false,
-          profileType: null,
-        },
-      };
+        return {
+          status: true,
+          message: 'OTP sent successfully.',
+          data: {
+            email,
+            isNewUser: true,
+            hasProfile: false,
+            profileType: null,
+          },
+        };
     } catch (error) {
       if (error instanceof ServiceUnavailableException) {
         return error.getResponse();
@@ -194,6 +220,76 @@ export class AuthenticationService {
     return this.requestOtp(
       this.mapIdentifierToRequest(resendSignUpOtpDto.identifier),
     );
+  }
+
+  async requestSmsOtp(requestSmsOtpDto: RequestSmsOtpDto) {
+    try {
+      const phoneNumber = this.normalizePhoneNumber(requestSmsOtpDto.phoneNumber);
+
+      if (!phoneNumber) {
+        return new BadRequestException('Phone number is required').getResponse();
+      }
+
+      const existingUser = await this.userRepository.findOneBy({ phoneNumber });
+
+      if (!existingUser) {
+        return new BadRequestException('User not found').getResponse();
+      }
+
+      const profileStatus = await this.getProfileStatus(existingUser);
+      if (!profileStatus.profileComplete) {
+        return new BadRequestException(
+          'SMS OTP is only available for users with completed profiles',
+        ).getResponse();
+      }
+
+      const otpRecord = await this.prepareExistingUserOtpRecord(
+        existingUser,
+        existingUser.username ?? undefined,
+        phoneNumber,
+      );
+
+      if (!otpRecord.phoneNumber) {
+        return new BadRequestException(
+          'No phone number is available for SMS OTP delivery',
+        ).getResponse();
+      }
+
+      const requestGuardError = this.getOtpRequestGuardError(otpRecord);
+      if (requestGuardError) {
+        if (otpRecord?.blockedUntil) {
+          await this.signUpOtpRepository.save(otpRecord);
+        }
+        return requestGuardError;
+      }
+
+      const sendOtpError = await this.saveAndSendOtp(otpRecord, {
+        channel: 'sms',
+        target: otpRecord.phoneNumber,
+      });
+      if (sendOtpError) {
+        return sendOtpError;
+      }
+
+      return {
+        status: true,
+        message: 'OTP sent successfully.',
+        data: {
+          email: existingUser.email,
+          phoneNumber: otpRecord.phoneNumber,
+          deliveryChannel: 'sms',
+          deliveryTarget: otpRecord.phoneNumber,
+          isNewUser: false,
+          hasProfile: true,
+          profileType: profileStatus.profileType,
+        },
+      };
+    } catch (error) {
+      if (error instanceof ServiceUnavailableException) {
+        return error.getResponse();
+      }
+      return new BadRequestException(error.message).getResponse();
+    }
   }
 
   async verifySignUpOtp(verifySignUpOtpDto: VerifySignUpOtpDto) {
@@ -531,6 +627,40 @@ export class AuthenticationService {
     }
   }
 
+  async changePassword(payload: ChangePasswordDto & { userId: string }) {
+    try {
+      const user = await this.userRepository.findOneBy({
+        id: payload.userId,
+      });
+
+      if (!user || user.role !== Role.Admin || !user.password) {
+        return new UnauthorizedException(
+          'Invalid user or unauthorized password change request',
+        ).getResponse();
+      }
+
+      const passwordMatches = await this.hashingService.compare(
+        payload.currentPassword,
+        user.password,
+      );
+
+      if (!passwordMatches) {
+        return new UnauthorizedException('Current password is incorrect').getResponse();
+      }
+
+      user.password = await this.hashingService.hash(payload.newPassword);
+      await this.userRepository.save(user);
+      await this.refreshTokenIdsStorage.invalidate(user.id);
+
+      return {
+        status: true,
+        message: 'Password changed successfully.',
+      };
+    } catch (error) {
+      return new BadRequestException(error.message).getResponse();
+    }
+  }
+
   private mapIdentifierToRequest(identifier: string): RequestAuthOtpDto {
     const normalizedIdentifier = this.normalizeIdentifier(identifier);
 
@@ -544,6 +674,7 @@ export class AuthenticationService {
   private async findUserByEmailOrUsername(params: {
     email?: string;
     username?: string;
+    phoneNumber?: string;
   }) {
     const userByEmail = params.email
       ? await this.userRepository.findOneBy({ email: params.email })
@@ -551,23 +682,31 @@ export class AuthenticationService {
     const userByUsername = params.username
       ? await this.userRepository.findOneBy({ username: params.username })
       : null;
+    const userByPhone = params.phoneNumber
+      ? await this.userRepository.findOneBy({ phoneNumber: params.phoneNumber })
+      : null;
 
-    if (
-      userByEmail &&
-      userByUsername &&
-      userByEmail.id !== userByUsername.id
-    ) {
+    const matchedUsers = [userByEmail, userByUsername, userByPhone].filter(
+      (user): user is User => Boolean(user),
+    );
+    const uniqueUserIds = [...new Set(matchedUsers.map((user) => user.id))];
+
+    if (uniqueUserIds.length > 1) {
       throw new BadRequestException(
-        'Email and username belong to different users',
+        'Provided identifiers belong to different users',
       );
     }
 
-    return userByEmail ?? userByUsername;
+    return userByEmail ?? userByUsername ?? userByPhone;
   }
 
   private async findUserByIdentifier(identifier: string) {
     if (this.looksLikeEmail(identifier)) {
       return this.userRepository.findOneBy({ email: identifier });
+    }
+
+    if (this.looksLikePhoneNumber(identifier)) {
+      return this.userRepository.findOneBy({ phoneNumber: identifier });
     }
 
     return this.userRepository.findOneBy({ username: identifier });
@@ -582,12 +721,17 @@ export class AuthenticationService {
       return this.signUpOtpRepository.findOneBy({ email: identifier });
     }
 
+    if (this.looksLikePhoneNumber(identifier)) {
+      return this.signUpOtpRepository.findOneBy({ phoneNumber: identifier });
+    }
+
     return this.signUpOtpRepository.findOneBy({ username: identifier });
   }
 
   private async prepareExistingUserOtpRecord(
     user: User,
     username?: string,
+    phoneNumber?: string,
   ) {
     const existingOtp = await this.signUpOtpRepository.findOneBy({
       email: user.email,
@@ -609,7 +753,7 @@ export class AuthenticationService {
 
     otpRecord.email = user.email;
     otpRecord.username = user.username ?? username ?? undefined;
-    otpRecord.phoneNumber = user.phoneNumber ?? undefined;
+    otpRecord.phoneNumber = user.phoneNumber ?? phoneNumber ?? undefined;
     otpRecord.userId = user.id;
     otpRecord.passwordHash = user.password ?? '';
     otpRecord.role = user.role ?? Role.Pending;
@@ -628,6 +772,7 @@ export class AuthenticationService {
 
     const existingUser = await this.findUserByEmailOrUsername({
       email,
+      phoneNumber: this.normalizePhoneNumber(signUpOtp.phoneNumber),
     });
     if (existingUser) {
       return existingUser;
@@ -636,6 +781,7 @@ export class AuthenticationService {
     return this.userRepository.save(
       this.userRepository.create({
         email,
+        phoneNumber: this.normalizePhoneNumber(signUpOtp.phoneNumber),
         role: signUpOtp.role ?? Role.Pending,
       }),
     );
@@ -682,11 +828,30 @@ export class AuthenticationService {
   }
 
   private normalizePhoneNumber(phoneNumber?: string | null) {
-    return phoneNumber?.trim() || undefined;
+    if (!phoneNumber) {
+      return undefined;
+    }
+
+    const trimmedPhoneNumber = phoneNumber.trim();
+
+    if (!trimmedPhoneNumber) {
+      return undefined;
+    }
+
+    if (trimmedPhoneNumber.startsWith('+')) {
+      return `+${trimmedPhoneNumber.slice(1).replace(/\D/g, '')}`;
+    }
+
+    return trimmedPhoneNumber.replace(/\D/g, '');
   }
 
   private normalizeIdentifier(identifier?: string | null) {
     const trimmedIdentifier = identifier?.trim() || '';
+
+    if (this.looksLikePhoneNumber(trimmedIdentifier)) {
+      return this.normalizePhoneNumber(trimmedIdentifier) ?? '';
+    }
+
     return this.looksLikeEmail(trimmedIdentifier)
       ? trimmedIdentifier.toLowerCase()
       : trimmedIdentifier.toLowerCase();
@@ -694,6 +859,10 @@ export class AuthenticationService {
 
   private looksLikeEmail(value: string) {
     return value.includes('@');
+  }
+
+  private looksLikePhoneNumber(value: string) {
+    return /^\+?\d{9,15}$/.test(value.replace(/[\s()-]/g, ''));
   }
 
   private generateOtp(): string {
@@ -762,7 +931,7 @@ export class AuthenticationService {
 
   private async saveAndSendOtp(
     signUpOtp: SignUpOtp,
-    recipientEmail: string,
+    destination: OtpDeliveryDestination,
   ) {
     const otp = this.generateOtp();
     const otpHash = await this.hashingService.hash(otp);
@@ -778,18 +947,32 @@ export class AuthenticationService {
     await this.signUpOtpRepository.save(signUpOtp);
 
     try {
-      await lastValueFrom(
-        this.mailingClient
-          .send<CreateMailerDto>('mailer.send', {
-            to: recipientEmail,
-            subject: 'Verify your GwaiPro account',
-            text: `Your verification code is ${otp}. It expires in ${SIGN_UP_OTP_TTL_MINUTES} minutes.`,
-          })
-          .pipe(timeout(MAILER_RPC_TIMEOUT_MS)),
-      );
-    } catch (mailError) {
+      if (destination.channel === 'sms') {
+        await lastValueFrom(
+          this.smsClient
+            .send<CreateSmsDto>('sms.send', {
+              to: destination.target,
+              message: `Your GwaiPro verification code is ${otp}. It expires in ${SIGN_UP_OTP_TTL_MINUTES} minutes.`,
+              purpose: 'otp',
+            })
+            .pipe(timeout(SMS_RPC_TIMEOUT_MS)),
+        );
+      } else {
+        await lastValueFrom(
+          this.mailingClient
+            .send<CreateMailerDto>('mailer.send', {
+              to: destination.target,
+              subject: 'Verify your GwaiPro account',
+              text: `Your verification code is ${otp}. It expires in ${SIGN_UP_OTP_TTL_MINUTES} minutes.`,
+            })
+            .pipe(timeout(MAILER_RPC_TIMEOUT_MS)),
+        );
+      }
+    } catch (deliveryError) {
       return new BadRequestException(
-        `OTP email could not be sent: ${mailError?.message ?? 'unknown error'}`,
+        destination.channel === 'sms'
+          ? `OTP SMS could not be sent: ${deliveryError?.message ?? 'unknown error'}`
+          : `OTP email could not be sent: ${deliveryError?.message ?? 'unknown error'}`,
       ).getResponse();
     }
 

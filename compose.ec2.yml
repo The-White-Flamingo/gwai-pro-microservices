@@ -119,6 +119,7 @@ services:
       - users-db
       - redis
       - rabbitmq
+      - sms-service
     restart: unless-stopped
 
   booking-service:
@@ -198,6 +199,18 @@ services:
     container_name: mailing-service
     env_file:
       - ./apps/mailing-service/.env
+    depends_on:
+      - rabbitmq
+    restart: unless-stopped
+
+  sms-service:
+    build:
+      context: .
+      dockerfile: ./apps/sms-service/Dockerfile
+      target: development
+    container_name: sms-service
+    env_file:
+      - ./apps/sms-service/.env
     depends_on:
       - rabbitmq
     restart: unless-stopped

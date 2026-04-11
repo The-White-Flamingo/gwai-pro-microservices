@@ -1,9 +1,9 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEmail, IsOptional, IsString } from 'class-validator';
 
 export class RequestAuthOtpDto {
   @ApiPropertyOptional({
-    example: 'jane@example.com',
+    example: 'gwaipro@gwaipro.com',
     description:
       'Required for first-time authentication. Returning users can also use it to request a login OTP.',
   })
@@ -12,7 +12,7 @@ export class RequestAuthOtpDto {
   email?: string;
 
   @ApiPropertyOptional({
-    example: 'jane_doe',
+    example: 'gwai_pro',
     description:
       'Used only for returning users. The OTP will still be sent to the email already linked to that username.',
   })

@@ -3,8 +3,8 @@ import { IsNumberString, IsString, Length } from 'class-validator';
 
 export class VerifyAuthOtpDto {
   @ApiProperty({
-    example: 'jane@example.com',
-    description: 'Email or username used to request the OTP.',
+    example: '+233201234567',
+    description: 'Email, username, or phone number used to request the OTP.',
   })
   @IsString()
   identifier: string;
