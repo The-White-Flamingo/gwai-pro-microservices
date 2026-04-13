@@ -12,7 +12,7 @@ export class GoogleAuthenticationController {
   ) {}
 
   @Post()
-  authenticate(@Body() tokenDto: GoogleTokenDto) {
-    return this.googleAuthenticationService.authenticate(tokenDto.token);
-  }
+async authenticate(@Body() tokenDto: GoogleTokenDto) {
+  return await this.googleAuthenticationService.authenticate(tokenDto.token);
+}
 }
