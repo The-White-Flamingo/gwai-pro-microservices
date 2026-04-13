@@ -33,7 +33,7 @@ export async function seedAdmin(dataSource: DataSource) {
   const admin = adminRepository.create({
     firstName: process.env.ADMIN_FIRST_NAME || 'Super',
     lastName: process.env.ADMIN_LAST_NAME || 'Admin',
-    role: 'Super Admin', // this is the display role label on blog posts
+    role: 'Admin', // this is the display role label on blog posts
     user,
   });
 

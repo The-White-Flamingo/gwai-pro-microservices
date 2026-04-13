@@ -1,12 +1,35 @@
+// apps/users-service/src/users/admins/admins.module.ts
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AdminsService } from './admins.service';
 import { AdminsController } from './admins.controller';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { Admin } from './entities/admin.entity';
+import { User } from '../entities/user.entity';
+import { HashingService } from '../../iam/hashing/hashing.service';
+import { BcryptService } from '../../iam/hashing/bcrypt.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Admin])],
+  imports: [TypeOrmModule.forFeature([Admin, User])],
   controllers: [AdminsController],
-  providers: [AdminsService],
+  providers: [
+    AdminsService,
+    {
+      provide: HashingService,
+      useClass: BcryptService,
+    },
+  ],
 })
 export class AdminsModule {}
+
+// import { Module } from '@nestjs/common';
+// import { AdminsService } from './admins.service';
+// import { AdminsController } from './admins.controller';
+// import { TypeOrmModule } from '@nestjs/typeorm';
+// import { Admin } from './entities/admin.entity';
+
+// @Module({
+//   imports: [TypeOrmModule.forFeature([Admin])],
+//   controllers: [AdminsController],
+//   providers: [AdminsService],
+// })
+// export class AdminsModule {}
