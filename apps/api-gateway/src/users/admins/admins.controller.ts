@@ -7,6 +7,8 @@ import {
   Post,
   UploadedFile,
   UseInterceptors,
+  Delete,
+  Param,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -22,6 +24,9 @@ import { Role } from '@app/users/enums/role.enum';
 import { AdminsService } from './admins.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { CreateRoleDto } from './dto/create-role.dto';
+import { UpdateRoleDto } from './dto/update-role.dto';
+import { InviteStaffDto } from './dto/invite-staff.dto';
 
 @ApiBearerAuth()
 @ApiTags('admins')
@@ -29,6 +34,55 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 @Controller('admins')
 export class AdminsController {
   constructor(private readonly adminsService: AdminsService) {}
+
+  // ── Settings: Roles ───────────────────────────────────────────────────────
+
+@Get('settings/admins/roles')
+@ApiOperation({ summary: 'Get all admin roles' })
+@ApiResponse({ status: 200, description: 'Roles fetched successfully' })
+getRoles() {
+  return this.adminsService.getRoles();
+}
+
+@Post('settings/admins/roles')
+@ApiOperation({ summary: 'Create a new admin role' })
+@ApiResponse({ status: 201, description: 'Role created successfully' })
+@ApiResponse({ status: 409, description: 'Role already exists' })
+createRole(@Body() createRoleDto: CreateRoleDto) {
+  return this.adminsService.createRole(createRoleDto);
+}
+
+@Patch('settings/admins/roles/:id')
+@ApiOperation({ summary: 'Update an admin role' })
+@ApiResponse({ status: 200, description: 'Role updated successfully' })
+@ApiResponse({ status: 404, description: 'Role not found' })
+updateRole(
+  @Param('id') id: string,
+  @Body() updateRoleDto: UpdateRoleDto,
+) {
+  return this.adminsService.updateRole(id, updateRoleDto);
+}
+
+@Delete('settings/admins/roles/:id')
+@ApiOperation({ summary: 'Delete an admin role' })
+@ApiResponse({ status: 200, description: 'Role deleted successfully' })
+@ApiResponse({ status: 404, description: 'Role not found' })
+deleteRole(@Param('id') id: string) {
+  return this.adminsService.deleteRole(id);
+}
+
+// ── Settings: Staff ───────────────────────────────────────────────────────
+
+@Post('settings/admins/invite')
+@ApiOperation({ summary: 'Invite a new staff member' })
+@ApiResponse({ status: 201, description: 'Staff invited successfully' })
+@ApiResponse({ status: 409, description: 'Email already exists' })
+inviteStaff(
+  @Body() inviteStaffDto: InviteStaffDto,
+  @ActiveUser() activeUser: ActiveUserData,
+) {
+  return this.adminsService.inviteStaff(inviteStaffDto, activeUser.email);
+}
 
   // ── Existing ──────────────────────────────────────────────────────────────
 
@@ -108,6 +162,63 @@ export class AdminsController {
     return this.adminsService.changePassword(activeUser.sub, changePasswordDto);
   }
 }
+
+/**
+ * // apps/api-gateway/src/users/admins/admins.controller.ts
+import { Delete, Param } from '@nestjs/common';
+import { CreateRoleDto } from './dto/create-role.dto';
+import { UpdateRoleDto } from './dto/update-role.dto';
+import { InviteStaffDto } from './dto/invite-staff.dto';
+
+// ── Settings: Roles ───────────────────────────────────────────────────────
+
+@Get('settings/admins/roles')
+@ApiOperation({ summary: 'Get all admin roles' })
+@ApiResponse({ status: 200, description: 'Roles fetched successfully' })
+getRoles() {
+  return this.adminsService.getRoles();
+}
+
+@Post('settings/admins/roles')
+@ApiOperation({ summary: 'Create a new admin role' })
+@ApiResponse({ status: 201, description: 'Role created successfully' })
+@ApiResponse({ status: 409, description: 'Role already exists' })
+createRole(@Body() createRoleDto: CreateRoleDto) {
+  return this.adminsService.createRole(createRoleDto);
+}
+
+@Patch('settings/admins/roles/:id')
+@ApiOperation({ summary: 'Update an admin role' })
+@ApiResponse({ status: 200, description: 'Role updated successfully' })
+@ApiResponse({ status: 404, description: 'Role not found' })
+updateRole(
+  @Param('id') id: string,
+  @Body() updateRoleDto: UpdateRoleDto,
+) {
+  return this.adminsService.updateRole(id, updateRoleDto);
+}
+
+@Delete('settings/admins/roles/:id')
+@ApiOperation({ summary: 'Delete an admin role' })
+@ApiResponse({ status: 200, description: 'Role deleted successfully' })
+@ApiResponse({ status: 404, description: 'Role not found' })
+deleteRole(@Param('id') id: string) {
+  return this.adminsService.deleteRole(id);
+}
+
+// ── Settings: Staff ───────────────────────────────────────────────────────
+
+@Post('settings/admins/invite')
+@ApiOperation({ summary: 'Invite a new staff member' })
+@ApiResponse({ status: 201, description: 'Staff invited successfully' })
+@ApiResponse({ status: 409, description: 'Email already exists' })
+inviteStaff(
+  @Body() inviteStaffDto: InviteStaffDto,
+  @ActiveUser() activeUser: ActiveUserData,
+) {
+  return this.adminsService.inviteStaff(inviteStaffDto, activeUser.email);
+}
+ */
 
 // import { Body, Controller, Post } from '@nestjs/common';
 // import { AdminsService } from './admins.service';

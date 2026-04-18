@@ -11,12 +11,66 @@ import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom, timeout, TimeoutError } from 'rxjs';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { CreateRoleDto } from './dto/create-role.dto';
+import { UpdateRoleDto } from './dto/update-role.dto';
+import { InviteStaffDto } from './dto/invite-staff.dto';
 
 @Injectable()
 export class AdminsService {
   private static readonly RMQ_TIMEOUT_MS = 15000;
 
   constructor(@Inject(USERS_SERVICE) private readonly client: ClientProxy) {}
+
+  async getRoles() {
+  try {
+    return await this.sendWithTimeout('admin.getRoles', {});
+  } catch (error) {
+    if (error instanceof GatewayTimeoutException) throw error;
+    throw new BadRequestException(this.getErrorMessage(error));
+  }
+}
+
+async createRole(createRoleDto: CreateRoleDto) {
+  try {
+    return await this.sendWithTimeout('admin.createRole', { createRoleDto });
+  } catch (error) {
+    if (error instanceof GatewayTimeoutException) throw error;
+    throw new BadRequestException(this.getErrorMessage(error));
+  }
+}
+
+async updateRole(id: string, updateRoleDto: UpdateRoleDto) {
+  try {
+    return await this.sendWithTimeout('admin.updateRole', {
+      id,
+      updateRoleDto,
+    });
+  } catch (error) {
+    if (error instanceof GatewayTimeoutException) throw error;
+    throw new BadRequestException(this.getErrorMessage(error));
+  }
+}
+
+async deleteRole(id: string) {
+  try {
+    return await this.sendWithTimeout('admin.deleteRole', { id });
+  } catch (error) {
+    if (error instanceof GatewayTimeoutException) throw error;
+    throw new BadRequestException(this.getErrorMessage(error));
+  }
+}
+
+async inviteStaff(inviteStaffDto: InviteStaffDto, invitedByEmail: string) {
+  try {
+    return await this.sendWithTimeout('admin.inviteStaff', {
+      inviteStaffDto,
+      invitedByEmail,
+    });
+  } catch (error) {
+    if (error instanceof GatewayTimeoutException) throw error;
+    throw new BadRequestException(this.getErrorMessage(error));
+  }
+}
 
   // ── Existing ──────────────────────────────────────────────────────────────
 
@@ -119,6 +173,65 @@ export class AdminsService {
     );
   }
 }
+
+/**
+ * apps/api-gateway/src/users/admins/admins.service.ts
+import { CreateRoleDto } from './dto/create-role.dto';
+import { UpdateRoleDto } from './dto/update-role.dto';
+import { InviteStaffDto } from './dto/invite-staff.dto';
+
+async getRoles() {
+  try {
+    return await this.sendWithTimeout('admin.getRoles', {});
+  } catch (error) {
+    if (error instanceof GatewayTimeoutException) throw error;
+    throw new BadRequestException(this.getErrorMessage(error));
+  }
+}
+
+async createRole(createRoleDto: CreateRoleDto) {
+  try {
+    return await this.sendWithTimeout('admin.createRole', { createRoleDto });
+  } catch (error) {
+    if (error instanceof GatewayTimeoutException) throw error;
+    throw new BadRequestException(this.getErrorMessage(error));
+  }
+}
+
+async updateRole(id: string, updateRoleDto: UpdateRoleDto) {
+  try {
+    return await this.sendWithTimeout('admin.updateRole', {
+      id,
+      updateRoleDto,
+    });
+  } catch (error) {
+    if (error instanceof GatewayTimeoutException) throw error;
+    throw new BadRequestException(this.getErrorMessage(error));
+  }
+}
+
+async deleteRole(id: string) {
+  try {
+    return await this.sendWithTimeout('admin.deleteRole', { id });
+  } catch (error) {
+    if (error instanceof GatewayTimeoutException) throw error;
+    throw new BadRequestException(this.getErrorMessage(error));
+  }
+}
+
+async inviteStaff(inviteStaffDto: InviteStaffDto, invitedByEmail: string) {
+  try {
+    return await this.sendWithTimeout('admin.inviteStaff', {
+      inviteStaffDto,
+      invitedByEmail,
+    });
+  } catch (error) {
+    if (error instanceof GatewayTimeoutException) throw error;
+    throw new BadRequestException(this.getErrorMessage(error));
+  }
+} 
+ */
+
 // import { USERS_SERVICE } from '@app/shared';
 // import {
 //   BadRequestException,

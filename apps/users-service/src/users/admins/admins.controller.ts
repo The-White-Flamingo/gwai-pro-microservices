@@ -5,6 +5,9 @@ import { AdminsService } from './admins.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 // import { UpdateNotificationsDto } from './dto/update-notifications.dto';
+import { CreateRoleDto } from './dto/create-role.dto';
+import { UpdateRoleDto } from './dto/update-role.dto';
+import { InviteStaffDto } from './dto/invite-staff.dto';
 
 @Controller()
 export class AdminsController {
@@ -44,6 +47,39 @@ export class AdminsController {
       payload.changePasswordDto,
     );
   }
+
+  
+@MessagePattern('admin.getRoles')
+getRoles() {
+  return this.adminsService.getRoles();
+}
+
+@MessagePattern('admin.createRole')
+createRole(@Payload() payload: { createRoleDto: CreateRoleDto }) {
+  return this.adminsService.createRole(payload.createRoleDto);
+}
+
+@MessagePattern('admin.updateRole')
+updateRole(
+  @Payload() payload: { id: string; updateRoleDto: UpdateRoleDto },
+) {
+  return this.adminsService.updateRole(payload.id, payload.updateRoleDto);
+}
+
+@MessagePattern('admin.deleteRole')
+deleteRole(@Payload() payload: { id: string }) {
+  return this.adminsService.deleteRole(payload.id);
+}
+
+@MessagePattern('admin.inviteStaff')
+inviteStaff(
+  @Payload() payload: { inviteStaffDto: InviteStaffDto; invitedByEmail: string },
+) {
+  return this.adminsService.inviteStaff(
+    payload.inviteStaffDto,
+    payload.invitedByEmail,
+  );
+}
 
   // @MessagePattern('admin.getNotifications')
   // getNotifications(@Payload() payload: { userId: string }) {

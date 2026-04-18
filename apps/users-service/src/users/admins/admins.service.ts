@@ -12,6 +12,13 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 // import { UpdateNotificationsDto } from './dto/update-notifications.dto';
 import { HashingService } from '../../iam/hashing/hashing.service';
+import { AdminRole } from './entities/admin-role.entity';
+import { CreateRoleDto } from './dto/create-role.dto';
+import { UpdateRoleDto } from './dto/update-role.dto';
+import { InviteStaffDto } from './dto/invite-staff.dto';
+import { ConflictException } from '@nestjs/common';
+import { Role } from '@app/iam/authorization/enums/role.enum';
+
 
 @Injectable()
 export class AdminsService {
@@ -21,6 +28,9 @@ export class AdminsService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly hashingService: HashingService,
+    @InjectRepository(AdminRole)
+    private readonly adminRoleRepository: Repository<AdminRole>,
+
   ) {}
 
   // ── GET /settings/profile ──────────────────────────────────────────────
@@ -138,7 +148,339 @@ if (!isCurrentPasswordValid) {
       status: true,
       message: 'Password changed successfully.',
     };
+
   }
+
+  // ── GET /settings/admins/roles ─────────────────────────────────────────
+
+async getRoles() {
+  const roles = await this.adminRoleRepository.find({
+    order: { createdAt: 'DESC' },
+  });
+
+  return roles.map((role) => ({
+    id: role.id,
+    name: role.name,
+    description: role.description,
+    permissions: role.permissions || [],
+    permissionsSummary: (role.permissions || []).join(', '),
+    users: role.users,
+    createdAt: role.createdAt,
+  }));
+}
+
+// ── POST /settings/admins/roles ────────────────────────────────────────
+
+async createRole(createRoleDto: CreateRoleDto) {
+  const existing = await this.adminRoleRepository.findOneBy({
+    name: createRoleDto.name,
+  });
+
+  if (existing) {
+    return new ConflictException(
+      `Role "${createRoleDto.name}" already exists`,
+    ).getResponse();
+  }
+
+  const role = this.adminRoleRepository.create({
+    name: createRoleDto.name,
+    description:
+      createRoleDto.description ||
+      'Lorem ipsum dolor sit amet consectetur adipiscing elit.',
+    permissions: createRoleDto.permissions || [],
+    users: 0,
+  });
+
+  await this.adminRoleRepository.save(role);
+
+  return {
+    status: true,
+    message: 'Role created successfully.',
+    data: {
+      id: role.id,
+      name: role.name,
+      description: role.description,
+      permissions: role.permissions,
+      permissionsSummary: role.permissions.join(', '),
+      users: role.users,
+      createdAt: role.createdAt,
+    },
+  };
+}
+
+// ── PATCH /settings/admins/roles/:id ──────────────────────────────────
+
+async updateRole(id: string, updateRoleDto: UpdateRoleDto) {
+  const role = await this.adminRoleRepository.findOneBy({ id });
+
+  if (!role) {
+    return new NotFoundException('Role not found').getResponse();
+  }
+
+  if (updateRoleDto.name !== undefined) role.name = updateRoleDto.name;
+  if (updateRoleDto.description !== undefined)
+    role.description = updateRoleDto.description;
+  if (updateRoleDto.permissions !== undefined)
+    role.permissions = updateRoleDto.permissions;
+
+  await this.adminRoleRepository.save(role);
+
+  return {
+    id: role.id,
+    name: role.name,
+    description: role.description,
+    permissions: role.permissions,
+    permissionsSummary: role.permissions.join(', '),
+    users: role.users,
+    createdAt: role.createdAt,
+  };
+}
+
+// ── DELETE /settings/admins/roles/:id ─────────────────────────────────
+
+async deleteRole(id: string) {
+  const role = await this.adminRoleRepository.findOneBy({ id });
+
+  if (!role) {
+    return new NotFoundException('Role not found').getResponse();
+  }
+
+  await this.adminRoleRepository.remove(role);
+
+  return { status: true, message: 'Role deleted successfully.' };
+}
+
+// ── POST /settings/admins/invite ───────────────────────────────────────
+
+async inviteStaff(inviteStaffDto: InviteStaffDto, invitedByEmail: string) {
+  // Check if user already exists
+  const existing = await this.userRepository.findOneBy({
+    email: inviteStaffDto.email,
+  });
+
+  if (existing) {
+    return new ConflictException(
+      'A user with this email already exists',
+    ).getResponse();
+  }
+
+  // Check the role exists
+  const role = await this.adminRoleRepository.findOneBy({
+    name: inviteStaffDto.role,
+  });
+
+  if (!role) {
+    return new NotFoundException(
+      `Role "${inviteStaffDto.role}" not found`,
+    ).getResponse();
+  }
+
+  // Generate a temporary password — staff must reset on first login
+  const tempPassword = `Temp@${Math.random().toString(36).slice(2, 10)}!`;
+
+  const user = this.userRepository.create({
+    email: inviteStaffDto.email,
+    password: await this.hashingService.hash(tempPassword),
+    role: Role.Admin,
+    isEmailVerified: true,
+  });
+
+  await this.userRepository.save(user);
+
+  const admin = this.adminRepository.create({
+    firstName: inviteStaffDto.firstName,
+    lastName: inviteStaffDto.lastName,
+    role: inviteStaffDto.role,
+    user,
+  });
+
+  await this.adminRepository.save(admin);
+
+  // Increment the users count on the role
+  role.users = (role.users || 0) + 1;
+  await this.adminRoleRepository.save(role);
+
+  return {
+    status: true,
+    message: `Staff member invited successfully. A temporary password has been sent to ${inviteStaffDto.email}.`,
+    // In production, emit an email with the temp password via mailing service
+    // For now returning it so you can test locally
+    tempPassword,
+  };
+}
+
+  /**
+   * // apps/users-service/src/users/admins/admins.service.ts
+// Add these imports at the top
+import { AdminRole } from './entities/admin-role.entity';
+import { CreateRoleDto } from './dto/create-role.dto';
+import { UpdateRoleDto } from './dto/update-role.dto';
+import { InviteStaffDto } from './dto/invite-staff.dto';
+import { ConflictException } from '@nestjs/common';
+
+// Add to constructor:
+@InjectRepository(AdminRole)
+private readonly adminRoleRepository: Repository<AdminRole>,
+
+// ── GET /settings/admins/roles ─────────────────────────────────────────
+
+async getRoles() {
+  const roles = await this.adminRoleRepository.find({
+    order: { createdAt: 'DESC' },
+  });
+
+  return roles.map((role) => ({
+    id: role.id,
+    name: role.name,
+    description: role.description,
+    permissions: role.permissions || [],
+    permissionsSummary: (role.permissions || []).join(', '),
+    users: role.users,
+    createdAt: role.createdAt,
+  }));
+}
+
+// ── POST /settings/admins/roles ────────────────────────────────────────
+
+async createRole(createRoleDto: CreateRoleDto) {
+  const existing = await this.adminRoleRepository.findOneBy({
+    name: createRoleDto.name,
+  });
+
+  if (existing) {
+    return new ConflictException(
+      Role "${createRoleDto.name}" already exists,
+    ).getResponse();
+  }
+
+  const role = this.adminRoleRepository.create({
+    name: createRoleDto.name,
+    description:
+      createRoleDto.description ||
+      'Lorem ipsum dolor sit amet consectetur adipiscing elit.',
+    permissions: createRoleDto.permissions || [],
+    users: 0,
+  });
+
+  await this.adminRoleRepository.save(role);
+
+  return {
+    status: true,
+    message: 'Role created successfully.',
+    data: {
+      id: role.id,
+      name: role.name,
+      description: role.description,
+      permissions: role.permissions,
+      permissionsSummary: role.permissions.join(', '),
+      users: role.users,
+      createdAt: role.createdAt,
+    },
+  };
+}
+
+// ── PATCH /settings/admins/roles/:id ──────────────────────────────────
+
+async updateRole(id: string, updateRoleDto: UpdateRoleDto) {
+  const role = await this.adminRoleRepository.findOneBy({ id });
+
+  if (!role) {
+    return new NotFoundException('Role not found').getResponse();
+  }
+
+  if (updateRoleDto.name !== undefined) role.name = updateRoleDto.name;
+  if (updateRoleDto.description !== undefined)
+    role.description = updateRoleDto.description;
+  if (updateRoleDto.permissions !== undefined)
+    role.permissions = updateRoleDto.permissions;
+
+  await this.adminRoleRepository.save(role);
+
+  return {
+    id: role.id,
+    name: role.name,
+    description: role.description,
+    permissions: role.permissions,
+    permissionsSummary: role.permissions.join(', '),
+    users: role.users,
+    createdAt: role.createdAt,
+  };
+}
+
+// ── DELETE /settings/admins/roles/:id ─────────────────────────────────
+
+async deleteRole(id: string) {
+  const role = await this.adminRoleRepository.findOneBy({ id });
+
+  if (!role) {
+    return new NotFoundException('Role not found').getResponse();
+  }
+
+  await this.adminRoleRepository.remove(role);
+
+  return { status: true, message: 'Role deleted successfully.' };
+}
+
+// ── POST /settings/admins/invite ───────────────────────────────────────
+
+async inviteStaff(inviteStaffDto: InviteStaffDto, invitedByEmail: string) {
+  // Check if user already exists
+  const existing = await this.userRepository.findOneBy({
+    email: inviteStaffDto.email,
+  });
+
+  if (existing) {
+    return new ConflictException(
+      'A user with this email already exists',
+    ).getResponse();
+  }
+
+  // Check the role exists
+  const role = await this.adminRoleRepository.findOneBy({
+    name: inviteStaffDto.role,
+  });
+
+  if (!role) {
+    return new NotFoundException(
+      Role "${inviteStaffDto.role}" not found,
+    ).getResponse();
+  }
+
+  // Generate a temporary password — staff must reset on first login
+  const tempPassword = Temp@${Math.random().toString(36).slice(2, 10)}!;
+
+  const user = this.userRepository.create({
+    email: inviteStaffDto.email,
+    password: await this.hashingService.hash(tempPassword),
+    role: Role.
+   * Admin,
+    isEmailVerified: true,
+  });
+
+  await this.userRepository.save(user);
+
+  const admin = this.adminRepository.create({
+    firstName: inviteStaffDto.firstName,
+    lastName: inviteStaffDto.lastName,
+    role: inviteStaffDto.role,
+    user,
+  });
+
+  await this.adminRepository.save(admin);
+
+  // Increment the users count on the role
+  role.users = (role.users || 0) + 1;
+  await this.adminRoleRepository.save(role);
+
+  return {
+    status: true,
+    message: Staff member invited successfully. A temporary password has been sent to ${inviteStaffDto.email}.,
+    // In production, emit an email with the temp password via mailing service
+    // For now returning it so you can test locally
+    tempPassword,
+  };
+}
+   */
 
   // ── PATCH /settings/account/notifications ──────────────────────────────
 
