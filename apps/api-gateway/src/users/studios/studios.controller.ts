@@ -18,6 +18,8 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
+  ensureRequiredProfileFields,
+  omitUndefinedFields,
   normalizeStringArrayField,
   profilePictureUploadOptions,
   toProfilePicturePath,
@@ -51,6 +53,7 @@ export class StudiosController {
         'rate',
         'services',
         'equipment',
+        'profilePicture',
       ],
       properties: {
         name: { type: 'string', example: 'Echo Chamber Studios' },
@@ -160,23 +163,40 @@ export class StudiosController {
     @UploadedFile() file: Express.Multer.File,
     @ActiveUser() activeUser: ActiveUserData,
   ) {
+    const payload = {
+      ...createStudioDto,
+      services: normalizeStringArrayField(createStudioDto.services),
+      equipment: normalizeStringArrayField(createStudioDto.equipment),
+      profilePicturePath: toProfilePicturePath(file),
+    };
+
+    ensureRequiredProfileFields(payload, [
+      'name',
+      'username',
+      'phone',
+      'address',
+      'rate',
+      'services',
+      'equipment',
+      'profilePicturePath',
+    ]);
+
     return this.studiosService.create(
-      {
-        ...createStudioDto,
-        services: normalizeStringArrayField(createStudioDto.services),
-        equipment: normalizeStringArrayField(createStudioDto.equipment),
-        profilePicturePath: toProfilePicturePath(file),
-      },
+      payload,
       activeUser.sub,
     );
   }
 
   @Patch()
+  @UseInterceptors(
+    FileInterceptor('profilePicture', profilePictureUploadOptions),
+  )
   @ApiOperation({
     summary: 'Update studio profile',
     description:
       'Updates the authenticated user studio profile. Only the current authenticated studio profile is modified.',
   })
+  @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
@@ -187,14 +207,16 @@ export class StudiosController {
         address: { type: 'string', example: 'Osu, Accra' },
         rate: { type: 'string', example: '1500 GHS per session' },
         services: {
-          type: 'array',
-          items: { type: 'string' },
-          example: ['Recording', 'Mixing', 'Mastering'],
+          type: 'string',
+          example: '["Recording","Mixing","Mastering"]',
         },
         equipment: {
-          type: 'array',
-          items: { type: 'string' },
-          example: ['Neumann U87', 'Apollo Twin X', 'Yamaha HS8'],
+          type: 'string',
+          example: '["Neumann U87","Apollo Twin X","Yamaha HS8"]',
+        },
+        profilePicture: {
+          type: 'string',
+          format: 'binary',
         },
       },
     },
@@ -285,17 +307,15 @@ export class StudiosController {
   update(
     @Body() updateStudioDto: any,
     @ActiveUser() activeUser: ActiveUserData,
+    @UploadedFile() file?: Express.Multer.File,
   ) {
     return this.studiosService.update(
-      {
+      omitUndefinedFields({
         ...updateStudioDto,
-        services:
-          normalizeStringArrayField(updateStudioDto.services) ??
-          updateStudioDto.services,
-        equipment:
-          normalizeStringArrayField(updateStudioDto.equipment) ??
-          updateStudioDto.equipment,
-      },
+        services: normalizeStringArrayField(updateStudioDto.services),
+        equipment: normalizeStringArrayField(updateStudioDto.equipment),
+        profilePicturePath: toProfilePicturePath(file),
+      }),
       activeUser.sub,
     );
   }

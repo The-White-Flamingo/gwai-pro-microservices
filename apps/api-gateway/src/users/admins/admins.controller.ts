@@ -23,6 +23,7 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
+  ensureRequiredProfileFields,
   profilePictureUploadOptions,
   toProfilePicturePath,
 } from '../profile-payload.util';
@@ -47,7 +48,7 @@ export class AdminsController {
   @ApiBody({
     schema: {
       type: 'object',
-      required: ['firstName', 'lastName', 'phoneNumber'],
+      required: ['profilePicture', 'firstName', 'lastName', 'phoneNumber'],
       properties: {
         profilePicture: {
           type: 'string',
@@ -175,11 +176,20 @@ export class AdminsController {
     @UploadedFile() file: Express.Multer.File,
     @ActiveUser() activeUser: ActiveUserData,
   ) {
+    const payload = {
+      ...createAdminDto,
+      profilePhoto: toProfilePicturePath(file),
+    };
+
+    ensureRequiredProfileFields(payload, [
+      'profilePhoto',
+      'firstName',
+      'lastName',
+      'phoneNumber',
+    ]);
+
     return this.adminsService.create(
-      {
-        ...createAdminDto,
-        profilePhoto: toProfilePicturePath(file),
-      },
+      payload,
       activeUser.sub,
     );
   }

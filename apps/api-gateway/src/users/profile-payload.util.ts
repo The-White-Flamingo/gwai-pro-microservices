@@ -86,3 +86,58 @@ export function normalizeStringArrayField(value: unknown) {
 
   return undefined;
 }
+
+export function normalizeDateField(value: unknown) {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? undefined : value.toISOString();
+  }
+
+  if (typeof value === 'string') {
+    const trimmedValue = value.trim();
+    if (!trimmedValue) {
+      return undefined;
+    }
+
+    const parsedDate = new Date(trimmedValue);
+    if (Number.isNaN(parsedDate.getTime())) {
+      throw new BadRequestException('dateOfBirth must be a valid date');
+    }
+
+    return parsedDate.toISOString();
+  }
+
+  return undefined;
+}
+
+export function ensureRequiredProfileFields(
+  payload: Record<string, unknown>,
+  requiredFields: string[],
+) {
+  const missingFields = requiredFields.filter((field) => {
+    const value = payload[field];
+
+    if (Array.isArray(value)) {
+      return value.length === 0;
+    }
+
+    return value === undefined || value === null || value === '';
+  });
+
+  if (missingFields.length > 0) {
+    throw new BadRequestException(
+      `Missing required field(s): ${missingFields.join(', ')}`,
+    );
+  }
+}
+
+export function omitUndefinedFields<T extends Record<string, unknown>>(
+  payload: T,
+): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== undefined),
+  ) as Partial<T>;
+}

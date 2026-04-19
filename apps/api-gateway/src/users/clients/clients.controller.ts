@@ -18,6 +18,9 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
+  ensureRequiredProfileFields,
+  omitUndefinedFields,
+  normalizeDateField,
   normalizeStringArrayField,
   profilePictureUploadOptions,
   toProfilePicturePath,
@@ -52,6 +55,7 @@ export class ClientsController {
         'address',
         'interests',
         'genres',
+        'profilePicture',
       ],
       properties: {
         firstName: { type: 'string', example: 'Kwame' },
@@ -167,23 +171,42 @@ export class ClientsController {
     @UploadedFile() file: Express.Multer.File,
     @ActiveUser() activeUser: ActiveUserData,
   ) {
+    const payload = {
+      ...createClientDto,
+      dateOfBirth: normalizeDateField(createClientDto.dateOfBirth),
+      interests: normalizeStringArrayField(createClientDto.interests),
+      genres: normalizeStringArrayField(createClientDto.genres),
+      profilePicturePath: toProfilePicturePath(file),
+    };
+
+    ensureRequiredProfileFields(payload, [
+      'firstName',
+      'lastName',
+      'username',
+      'phone',
+      'dateOfBirth',
+      'address',
+      'interests',
+      'genres',
+      'profilePicturePath',
+    ]);
+
     return this.clientsService.create(
-      {
-        ...createClientDto,
-        interests: normalizeStringArrayField(createClientDto.interests),
-        genres: normalizeStringArrayField(createClientDto.genres),
-        profilePicturePath: toProfilePicturePath(file),
-      },
+      payload,
       activeUser.sub,
     );
   }
 
   @Patch()
+  @UseInterceptors(
+    FileInterceptor('profilePicture', profilePictureUploadOptions),
+  )
   @ApiOperation({
     summary: 'Update client profile',
     description:
       'Updates the authenticated user client profile. Only the current authenticated client profile is modified.',
   })
+  @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
@@ -199,14 +222,16 @@ export class ClientsController {
         },
         address: { type: 'string', example: 'Tema, Accra' },
         interests: {
-          type: 'array',
-          items: { type: 'string' },
-          example: ['Music Production', 'Songwriting'],
+          type: 'string',
+          example: '["Music Production","Songwriting"]',
         },
         genres: {
-          type: 'array',
-          items: { type: 'string' },
-          example: ['Gospel', 'Jazz'],
+          type: 'string',
+          example: '["Gospel","Jazz"]',
+        },
+        profilePicture: {
+          type: 'string',
+          format: 'binary',
         },
       },
     },
@@ -298,17 +323,16 @@ export class ClientsController {
   update(
     @Body() updateClientDto: any,
     @ActiveUser() activeUser: ActiveUserData,
+    @UploadedFile() file?: Express.Multer.File,
   ) {
     return this.clientsService.update(
-      {
+      omitUndefinedFields({
         ...updateClientDto,
-        interests:
-          normalizeStringArrayField(updateClientDto.interests) ??
-          updateClientDto.interests,
-        genres:
-          normalizeStringArrayField(updateClientDto.genres) ??
-          updateClientDto.genres,
-      },
+        dateOfBirth: normalizeDateField(updateClientDto.dateOfBirth),
+        interests: normalizeStringArrayField(updateClientDto.interests),
+        genres: normalizeStringArrayField(updateClientDto.genres),
+        profilePicturePath: toProfilePicturePath(file),
+      }),
       activeUser.sub,
     );
   }

@@ -18,6 +18,9 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
+  ensureRequiredProfileFields,
+  omitUndefinedFields,
+  normalizeDateField,
   normalizeStringArrayField,
   profilePictureUploadOptions,
   toProfilePicturePath,
@@ -53,6 +56,7 @@ export class MusiciansController {
         'rate',
         'interests',
         'genres',
+        'profilePicture',
       ],
       properties: {
         firstName: { type: 'string', example: 'Kojo' },
@@ -171,23 +175,43 @@ export class MusiciansController {
     @UploadedFile() file: Express.Multer.File,
     @ActiveUser() activeUser: ActiveUserData,
   ) {
+    const payload = {
+      ...createMusicianDto,
+      dateOfBirth: normalizeDateField(createMusicianDto.dateOfBirth),
+      interests: normalizeStringArrayField(createMusicianDto.interests),
+      genres: normalizeStringArrayField(createMusicianDto.genres),
+      profilePicturePath: toProfilePicturePath(file),
+    };
+
+    ensureRequiredProfileFields(payload, [
+      'firstName',
+      'lastName',
+      'username',
+      'phone',
+      'dateOfBirth',
+      'address',
+      'rate',
+      'interests',
+      'genres',
+      'profilePicturePath',
+    ]);
+
     return this.musiciansService.create(
-      {
-        ...createMusicianDto,
-        interests: normalizeStringArrayField(createMusicianDto.interests),
-        genres: normalizeStringArrayField(createMusicianDto.genres),
-        profilePicturePath: toProfilePicturePath(file),
-      },
+      payload,
       activeUser.sub,
     );
   }
 
   @Patch()
+  @UseInterceptors(
+    FileInterceptor('profilePicture', profilePictureUploadOptions),
+  )
   @ApiOperation({
     summary: 'Update musician profile',
     description:
       'Updates the authenticated user musician profile. Only the current authenticated musician profile is modified.',
   })
+  @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
@@ -204,14 +228,16 @@ export class MusiciansController {
         address: { type: 'string', example: 'Accra' },
         rate: { type: 'string', example: '650 GHS per session' },
         interests: {
-          type: 'array',
-          items: { type: 'string' },
-          example: ['Songwriting', 'Touring'],
+          type: 'string',
+          example: '["Songwriting","Touring"]',
         },
         genres: {
-          type: 'array',
-          items: { type: 'string' },
-          example: ['Afrobeats', 'Amapiano'],
+          type: 'string',
+          example: '["Afrobeats","Amapiano"]',
+        },
+        profilePicture: {
+          type: 'string',
+          format: 'binary',
         },
       },
     },
@@ -304,17 +330,16 @@ export class MusiciansController {
   update(
     @Body() updateMusicianDto: any,
     @ActiveUser() activeUser: ActiveUserData,
+    @UploadedFile() file?: Express.Multer.File,
   ) {
     return this.musiciansService.update(
-      {
+      omitUndefinedFields({
         ...updateMusicianDto,
-        interests:
-          normalizeStringArrayField(updateMusicianDto.interests) ??
-          updateMusicianDto.interests,
-        genres:
-          normalizeStringArrayField(updateMusicianDto.genres) ??
-          updateMusicianDto.genres,
-      },
+        dateOfBirth: normalizeDateField(updateMusicianDto.dateOfBirth),
+        interests: normalizeStringArrayField(updateMusicianDto.interests),
+        genres: normalizeStringArrayField(updateMusicianDto.genres),
+        profilePicturePath: toProfilePicturePath(file),
+      }),
       activeUser.sub,
     );
   }
