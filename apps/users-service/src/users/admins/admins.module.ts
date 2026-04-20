@@ -8,9 +8,10 @@ import { User } from '../entities/user.entity';
 import { HashingService } from '../../iam/hashing/hashing.service';
 import { BcryptService } from '../../iam/hashing/bcrypt.service';
 import {AdminRole} from "./entities/admin-role.entity";
+import { SystemSettings } from './entities/system-settings.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Admin, User, AdminRole])],
+  imports: [TypeOrmModule.forFeature([Admin, User, AdminRole, SystemSettings])],
   controllers: [AdminsController],
   providers: [
     AdminsService,

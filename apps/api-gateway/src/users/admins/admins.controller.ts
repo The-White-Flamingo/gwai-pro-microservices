@@ -27,6 +27,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { InviteStaffDto } from './dto/invite-staff.dto';
+import { UpdateSystemSettingsDto } from './dto/update-system-settings.dto';
 
 @ApiBearerAuth()
 @ApiTags('admins')
@@ -34,6 +35,20 @@ import { InviteStaffDto } from './dto/invite-staff.dto';
 @Controller('admins')
 export class AdminsController {
   constructor(private readonly adminsService: AdminsService) {}
+
+  @Get('settings/system')
+  @ApiOperation({ summary: 'Get system settings' })
+  @ApiResponse({ status: 200, description: 'System settings fetched successfully' })
+  getSystemSettings() {
+    return this.adminsService.getSystemSettings();
+  }
+
+  @Patch('settings/system')
+  @ApiOperation({ summary: 'Update system settings' })
+  @ApiResponse({ status: 200, description: 'System settings updated successfully' })
+  updateSystemSettings(@Body() updateDto: UpdateSystemSettingsDto) {
+    return this.adminsService.updateSystemSettings(updateDto);
+  }
 
   // ── Settings: Roles ───────────────────────────────────────────────────────
 

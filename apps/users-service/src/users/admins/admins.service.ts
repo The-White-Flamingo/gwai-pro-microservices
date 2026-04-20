@@ -18,6 +18,9 @@ import { UpdateRoleDto } from './dto/update-role.dto';
 import { InviteStaffDto } from './dto/invite-staff.dto';
 import { ConflictException } from '@nestjs/common';
 import { Role } from '@app/iam/authorization/enums/role.enum';
+// Add to imports:
+import { SystemSettings } from './entities/system-settings.entity';
+import { UpdateSystemSettingsDto } from './dto/update-system-settings.dto';
 
 
 @Injectable()
@@ -30,8 +33,71 @@ export class AdminsService {
     private readonly hashingService: HashingService,
     @InjectRepository(AdminRole)
     private readonly adminRoleRepository: Repository<AdminRole>,
-
+    // Add to constructor:
+    @InjectRepository(SystemSettings)
+    private readonly systemSettingsRepository: Repository<SystemSettings>,
   ) {}
+
+  // ── GET /settings/system ───────────────────────────────────────────────
+
+async getSystemSettings() {
+  // Singleton pattern — always only one row
+  let settings = await this.systemSettingsRepository.findOne({
+    where: {},
+    order: { updatedAt: 'ASC' },
+  });
+
+  // Auto-create with defaults if it doesn't exist yet
+  if (!settings) {
+    settings = this.systemSettingsRepository.create();
+    await this.systemSettingsRepository.save(settings);
+  }
+
+  return this.formatSystemSettings(settings);
+}
+
+// ── PATCH /settings/system ─────────────────────────────────────────────
+
+async updateSystemSettings(updateDto: UpdateSystemSettingsDto) {
+  let settings = await this.systemSettingsRepository.findOne({
+    where: {},
+    order: { updatedAt: 'ASC' },
+  });
+
+  if (!settings) {
+    settings = this.systemSettingsRepository.create();
+  }
+
+  // Apply only the fields that were sent
+  Object.assign(settings, updateDto);
+  await this.systemSettingsRepository.save(settings);
+
+  return {
+    status: true,
+    message: 'System settings updated successfully.',
+    data: this.formatSystemSettings(settings),
+  };
+}
+
+// ── Private formatter ──────────────────────────────────────────────────
+
+private formatSystemSettings(settings: SystemSettings) {
+  return {
+    minimumBookingNotice: settings.minimumBookingNotice,
+    maximumBookingWindow: settings.maximumBookingWindow,
+    musicianCommissionRate: Number(settings.musicianCommissionRate),
+    studioCommissionRate: Number(settings.studioCommissionRate),
+    freeCancellationUntil: settings.freeCancellationUntil,
+    refundPercentageAfter: settings.refundPercentageAfter,
+    policyDescription: settings.policyDescription,
+    bookingConfirmations: settings.bookingConfirmations,
+    bookingChanges: settings.bookingChanges,
+    payoutUpdates: settings.payoutUpdates,
+    refundRequests: settings.refundRequests,
+    paymentFailures: settings.paymentFailures,
+    adminNotesComments: settings.adminNotesComments,
+  };
+}
 
   // ── GET /settings/profile ──────────────────────────────────────────────
 

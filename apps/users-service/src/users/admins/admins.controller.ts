@@ -8,6 +8,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { InviteStaffDto } from './dto/invite-staff.dto';
+import { UpdateSystemSettingsDto } from './dto/update-system-settings.dto';
 
 @Controller()
 export class AdminsController {
@@ -80,6 +81,17 @@ inviteStaff(
     payload.invitedByEmail,
   );
 }
+
+@MessagePattern('admin.getSystemSettings')
+getSystemSettings() {
+  return this.adminsService.getSystemSettings();
+}
+
+@MessagePattern('admin.updateSystemSettings')
+updateSystemSettings(@Payload() payload: { updateDto: UpdateSystemSettingsDto }) {
+  return this.adminsService.updateSystemSettings(payload.updateDto);
+}
+
 
   // @MessagePattern('admin.getNotifications')
   // getNotifications(@Payload() payload: { userId: string }) {

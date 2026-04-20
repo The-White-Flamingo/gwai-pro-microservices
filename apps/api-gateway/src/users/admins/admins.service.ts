@@ -14,6 +14,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { InviteStaffDto } from './dto/invite-staff.dto';
+import { UpdateSystemSettingsDto } from './dto/update-system-settings.dto';
 
 @Injectable()
 export class AdminsService {
@@ -71,6 +72,27 @@ async inviteStaff(inviteStaffDto: InviteStaffDto, invitedByEmail: string) {
     throw new BadRequestException(this.getErrorMessage(error));
   }
 }
+
+async getSystemSettings() {
+  try {
+    return await this.sendWithTimeout('admin.getSystemSettings', {});
+  } catch (error) {
+    if (error instanceof GatewayTimeoutException) throw error;
+    throw new BadRequestException(this.getErrorMessage(error));
+  }
+}
+
+async updateSystemSettings(updateDto: UpdateSystemSettingsDto) {
+  try {
+    return await this.sendWithTimeout('admin.updateSystemSettings', {
+      updateDto,
+    });
+  } catch (error) {
+    if (error instanceof GatewayTimeoutException) throw error;
+    throw new BadRequestException(this.getErrorMessage(error));
+  }
+}
+
 
   // ── Existing ──────────────────────────────────────────────────────────────
 
