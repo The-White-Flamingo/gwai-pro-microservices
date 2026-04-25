@@ -36,208 +36,208 @@ import {
 export class AuthController {
   constructor(private readonly authenticationService: AuthService) {}
 
-  @Post('sign-up')
-  @ApiOperation({
-    summary: 'Request sign-up OTP',
-    description:
-      'Creates or updates a pending signup and sends a 6-digit OTP to the provided email.',
-  })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['email'],
-      properties: {
-        email: { type: 'string', format: 'email', example: 'jane@example.com' },
-      },
-    },
-    examples: {
-      clientSignUp: {
-        summary: 'New user OTP request',
-        value: {
-          email: 'jane@example.com',
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'OTP sent successfully',
-    schema: {
-      example: {
-        status: true,
-        message: 'OTP sent successfully.',
-        data: {
-          email: 'jane@example.com',
-          isNewUser: true,
-          hasProfile: false,
-          profileType: null,
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid request payload',
-    schema: {
-      example: {
-        message: 'Email is required for new users',
-        error: 'Bad Request',
-        statusCode: 400,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'User conflict',
-    schema: {
-      example: {
-        message: 'Username already exists',
-        error: 'Conflict',
-        statusCode: 409,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 504,
-    description: 'Users service timeout',
-    schema: {
-      example: {
-        message: 'Request to users-service timed out for pattern auth.requestOtp',
-        error: 'Gateway Timeout',
-        statusCode: 504,
-      },
-    },
-  })
-  signUp(@Body() signUpDto: SignUpDto) {
-    return this.authenticationService.signUp(signUpDto);
-  }
+  // @Post('sign-up')
+  // @ApiOperation({
+  //   summary: 'Request sign-up OTP',
+  //   description:
+  //     'Creates or updates a pending signup and sends a 6-digit OTP to the provided email.',
+  // })
+  // @ApiBody({
+  //   schema: {
+  //     type: 'object',
+  //     required: ['email'],
+  //     properties: {
+  //       email: { type: 'string', format: 'email', example: 'jane@example.com' },
+  //     },
+  //   },
+  //   examples: {
+  //     clientSignUp: {
+  //       summary: 'New user OTP request',
+  //       value: {
+  //         email: 'jane@example.com',
+  //       },
+  //     },
+  //   },
+  // })
+  // @ApiResponse({
+  //   status: 201,
+  //   description: 'OTP sent successfully',
+  //   schema: {
+  //     example: {
+  //       status: true,
+  //       message: 'OTP sent successfully.',
+  //       data: {
+  //         email: 'jane@example.com',
+  //         isNewUser: true,
+  //         hasProfile: false,
+  //         profileType: null,
+  //       },
+  //     },
+  //   },
+  // })
+  // @ApiResponse({
+  //   status: 400,
+  //   description: 'Invalid request payload',
+  //   schema: {
+  //     example: {
+  //       message: 'Email is required for new users',
+  //       error: 'Bad Request',
+  //       statusCode: 400,
+  //     },
+  //   },
+  // })
+  // @ApiResponse({
+  //   status: 409,
+  //   description: 'User conflict',
+  //   schema: {
+  //     example: {
+  //       message: 'Username already exists',
+  //       error: 'Conflict',
+  //       statusCode: 409,
+  //     },
+  //   },
+  // })
+  // @ApiResponse({
+  //   status: 504,
+  //   description: 'Users service timeout',
+  //   schema: {
+  //     example: {
+  //       message: 'Request to users-service timed out for pattern auth.requestOtp',
+  //       error: 'Gateway Timeout',
+  //       statusCode: 504,
+  //     },
+  //   },
+  // })
+  // signUp(@Body() signUpDto: SignUpDto) {
+  //   return this.authenticationService.signUp(signUpDto);
+  // }
 
-  @Post('sign-in')
-  @ApiOperation({
-    summary: 'Request OTP for existing user',
-    description:
-      'Requests an authentication OTP for an existing user using email or username.',
-  })
-  @ApiBody({
-    type: SignInDto,
-    examples: {
-      signInWithEmail: {
-        summary: 'Sign in with email',
-        value: { identifier: 'jane@example.com' },
-      },
-      signInWithUsername: {
-        summary: 'Sign in with username',
-        value: { identifier: 'jane_doe' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'OTP sent successfully',
-    schema: {
-      example: {
-        status: true,
-        message: 'OTP sent successfully.',
-        data: {
-          email: 'jane@example.com',
-          isNewUser: false,
-          hasProfile: true,
-          profileType: 'Client',
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Identifier is invalid or user not found',
-    schema: {
-      example: {
-        message: 'Provide at least an email or username',
-        error: 'Bad Request',
-        statusCode: 400,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 504,
-    description: 'Users service timeout',
-    schema: {
-      example: {
-        message: 'Request to users-service timed out for pattern auth.requestOtp',
-        error: 'Gateway Timeout',
-        statusCode: 504,
-      },
-    },
-  })
-  signIn(@Body() signInDto: SignInDto) {
-    return this.authenticationService.signIn(signInDto);
-  }
+  // @Post('sign-in')
+  // @ApiOperation({
+  //   summary: 'Request OTP for existing user',
+  //   description:
+  //     'Requests an authentication OTP for an existing user using email or username.',
+  // })
+  // @ApiBody({
+  //   type: SignInDto,
+  //   examples: {
+  //     signInWithEmail: {
+  //       summary: 'Sign in with email',
+  //       value: { identifier: 'jane@example.com' },
+  //     },
+  //     signInWithUsername: {
+  //       summary: 'Sign in with username',
+  //       value: { identifier: 'jane_doe' },
+  //     },
+  //   },
+  // })
+  // @ApiResponse({
+  //   status: 201,
+  //   description: 'OTP sent successfully',
+  //   schema: {
+  //     example: {
+  //       status: true,
+  //       message: 'OTP sent successfully.',
+  //       data: {
+  //         email: 'jane@example.com',
+  //         isNewUser: false,
+  //         hasProfile: true,
+  //         profileType: 'Client',
+  //       },
+  //     },
+  //   },
+  // })
+  // @ApiResponse({
+  //   status: 400,
+  //   description: 'Identifier is invalid or user not found',
+  //   schema: {
+  //     example: {
+  //       message: 'Provide at least an email or username',
+  //       error: 'Bad Request',
+  //       statusCode: 400,
+  //     },
+  //   },
+  // })
+  // @ApiResponse({
+  //   status: 504,
+  //   description: 'Users service timeout',
+  //   schema: {
+  //     example: {
+  //       message: 'Request to users-service timed out for pattern auth.requestOtp',
+  //       error: 'Gateway Timeout',
+  //       statusCode: 504,
+  //     },
+  //   },
+  // })
+  // signIn(@Body() signInDto: SignInDto) {
+  //   return this.authenticationService.signIn(signInDto);
+  // }
 
-  @Post('admin/sign-up')
-  @ApiOperation({
-    summary: 'Create an admin account with email and password',
-    description:
-      'Creates an admin directly in the users table and returns bearer tokens. Admin accounts do not need an admin profile before accessing protected admin routes.',
-  })
-  @ApiBody({
-    type: AdminSignUpDto,
-    examples: {
-      seededAdmin: {
-        summary: 'Seeded admin credentials',
-        value: {
-          email: 'admin@gwaipro.com',
-          password: 'admingwai@123!',
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'Admin account created successfully',
-    schema: {
-      example: {
-        status: true,
-        message: 'Admin signed up successfully.',
-        accessToken: '<jwt-access-token>',
-        refreshToken: '<jwt-refresh-token>',
-        data: {
-          nextAction: 'AUTHENTICATED',
-          profileComplete: true,
-          profileType: 'Admin',
-          user: {
-            id: '8746dd82-89f7-46e8-89dd-f81d7a68d4f9',
-            email: 'admin@gwaipro.com',
-            username: null,
-            phoneNumber: null,
-            role: 'Admin',
-            googleId: null,
-            appleId: null,
-            firebaseUid: null,
-          },
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'Admin already exists',
-    schema: {
-      example: {
-        message: 'Admin already exists',
-        error: 'Conflict',
-        statusCode: 409,
-      },
-    },
-  })
-  adminSignUp(@Body() adminSignUpDto: AdminSignUpDto) {
-    return this.authenticationService.adminSignUp(adminSignUpDto);
-  }
+  // @Post('admin/sign-up')
+  // @ApiOperation({
+  //   summary: 'Create an admin account with email and password',
+  //   description:
+  //     'Creates an admin directly in the users table and returns bearer tokens. Admin accounts do not need an admin profile before accessing protected admin routes.',
+  // })
+  // @ApiBody({
+  //   type: AdminSignUpDto,
+  //   examples: {
+  //     seededAdmin: {
+  //       summary: 'Seeded admin credentials',
+  //       value: {
+  //         email: 'admin@gwaipro.com',
+  //         password: 'admingwai@123!',
+  //       },
+  //     },
+  //   },
+  // })
+  // @ApiResponse({
+  //   status: 201,
+  //   description: 'Admin account created successfully',
+  //   schema: {
+  //     example: {
+  //       status: true,
+  //       message: 'Admin signed up successfully.',
+  //       accessToken: '<jwt-access-token>',
+  //       refreshToken: '<jwt-refresh-token>',
+  //       data: {
+  //         nextAction: 'AUTHENTICATED',
+  //         profileComplete: true,
+  //         profileType: 'Admin',
+  //         user: {
+  //           id: '8746dd82-89f7-46e8-89dd-f81d7a68d4f9',
+  //           email: 'admin@gwaipro.com',
+  //           username: null,
+  //           phoneNumber: null,
+  //           role: 'Admin',
+  //           googleId: null,
+  //           appleId: null,
+  //           firebaseUid: null,
+  //         },
+  //       },
+  //     },
+  //   },
+  // })
+  // @ApiResponse({
+  //   status: 409,
+  //   description: 'Admin already exists',
+  //   schema: {
+  //     example: {
+  //       message: 'Admin already exists',
+  //       error: 'Conflict',
+  //       statusCode: 409,
+  //     },
+  //   },
+  // })
+  // adminSignUp(@Body() adminSignUpDto: AdminSignUpDto) {
+  //   return this.authenticationService.adminSignUp(adminSignUpDto);
+  // }
 
   @Post('admin/sign-in')
   @ApiOperation({
     summary: 'Authenticate an admin with email and password',
     description:
-      'Signs in an admin with direct credentials and returns bearer tokens for admin-only endpoints such as blog management.',
+      'Signs in an admin with direct credentials and returns bearer tokens for admin-only endpoints',
   })
   @ApiBody({
     type: AdminSignInDto,
@@ -267,12 +267,12 @@ export class AuthController {
           user: {
             id: '8746dd82-89f7-46e8-89dd-f81d7a68d4f9',
             email: 'admin@gwaipro.com',
-            username: null,
-            phoneNumber: null,
-            role: 'Admin',
-            googleId: null,
-            appleId: null,
-            firebaseUid: null,
+            // username: null,
+            // phoneNumber: null,
+            // role: 'Admin',
+            // googleId: null,
+            // appleId: null,
+            // firebaseUid: null,
           },
         },
       },
@@ -375,7 +375,7 @@ export class AuthController {
         status: true,
         message: 'OTP sent successfully.',
         data: {
-          email: 'jane@example.com',
+          email: 'gwai@domain.com',
           phoneNumber: '+233201234567',
           deliveryChannel: 'sms',
           deliveryTarget: '+233201234567',
@@ -605,6 +605,21 @@ export class AuthController {
         message: 'Firebase authentication successful',
         accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.access',
         refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh',
+        data: {
+          nextAction: 'CREATE_PROFILE',
+          profileComplete: false,
+          profileType: null,
+          user: {
+            id: '0b542e13-b426-456d-a615-1d2c1c3b8a31',
+            email: 'jane@example.com',
+            username: null,
+            phoneNumber: null,
+            role: 'Pending',
+            googleId: null,
+            appleId: null,
+            firebaseUid: 'firebase-uid-123',
+          },
+        },
       },
     },
   })
@@ -733,7 +748,7 @@ export class AuthController {
     examples: {
       verifyOtp: {
         summary: 'Verify OTP',
-        value: { identifier: 'jane_doe', otp: '123456' },
+        value: { identifier: 'bobbai', otp: '123456' },
       },
     },
   })

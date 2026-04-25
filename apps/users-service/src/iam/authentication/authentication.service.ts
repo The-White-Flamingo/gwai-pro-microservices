@@ -342,24 +342,14 @@ export class AuthenticationService {
 
       const user = existingUser ?? (await this.createUserFromOtp(signUpOtp));
       const tokens = await this.generateTokens(user);
-      const profileStatus = await this.getProfileStatus(user);
 
       await this.signUpOtpRepository.delete({ id: signUpOtp.id });
 
-      return {
-        status: true,
-        message: 'OTP verified successfully.',
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        data: {
-          nextAction: profileStatus.profileComplete
-            ? 'AUTHENTICATED'
-            : 'CREATE_PROFILE',
-          profileComplete: profileStatus.profileComplete,
-          profileType: profileStatus.profileType,
-          user: this.sanitizeUser(user),
-        },
-      };
+      return this.buildAuthSuccessResponse(
+        user,
+        tokens,
+        'OTP verified successfully.',
+      );
     } catch (error) {
       return new BadRequestException(error.message).getResponse();
     }
@@ -386,7 +376,7 @@ export class AuthenticationService {
       });
       const tokens = await this.generateTokens(user);
 
-      return this.buildDirectAuthResponse(
+      return this.buildAuthSuccessResponse(
         user,
         tokens,
         'Admin signed up successfully.',
@@ -421,7 +411,7 @@ export class AuthenticationService {
 
       const tokens = await this.generateTokens(user);
 
-      return this.buildDirectAuthResponse(
+      return this.buildAuthSuccessResponse(
         user,
         tokens,
         'Admin signed in successfully.',
@@ -455,6 +445,29 @@ export class AuthenticationService {
     return {
       accessToken,
       refreshToken,
+    };
+  }
+
+  async buildAuthSuccessResponse(
+    user: User,
+    tokens: { accessToken: string; refreshToken: string },
+    message: string,
+  ) {
+    const profileStatus = await this.getProfileStatus(user);
+
+    return {
+      status: true,
+      message,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      data: {
+        nextAction: profileStatus.profileComplete
+          ? 'AUTHENTICATED'
+          : 'CREATE_PROFILE',
+        profileComplete: profileStatus.profileComplete,
+        profileType: profileStatus.profileType,
+        user: this.sanitizeUser(user),
+      },
     };
   }
 
@@ -1170,25 +1183,6 @@ export class AuthenticationService {
     } finally {
       await queryRunner.release();
     }
-  }
-
-  private buildDirectAuthResponse(
-    user: User,
-    tokens: { accessToken: string; refreshToken: string },
-    message: string,
-  ) {
-    return {
-      status: true,
-      message,
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      data: {
-        nextAction: 'AUTHENTICATED',
-        profileComplete: true,
-        profileType: Role.Admin,
-        user: this.sanitizeUser(user),
-      },
-    };
   }
 
   private async signToken<T>(userId: string, expiresIn: number, payload?: T) {

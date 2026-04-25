@@ -9,6 +9,7 @@ import { AuthenticationService } from '../authentication.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../../../users/entities/user.entity';
+import { Role } from '../../../users/enums/role.enum';
 
 type FirebaseDecodedToken = {
   uid: string;
@@ -74,11 +75,11 @@ export class FirebaseAuthenticationService implements OnModuleInit {
       const user = await this.findOrCreateUser(decodedToken);
       const tokens = await this.authenticationService.generateTokens(user);
 
-      return {
-        status: true,
-        message: 'Firebase authentication successful',
-        ...tokens,
-      };
+      return this.authenticationService.buildAuthSuccessResponse(
+        user,
+        tokens,
+        'Firebase authentication successful',
+      );
     } catch (error) {
       if (
         error instanceof UnauthorizedException ||
@@ -123,6 +124,7 @@ export class FirebaseAuthenticationService implements OnModuleInit {
       this.userRepository.create({
         email: decodedToken.email,
         firebaseUid: decodedToken.uid,
+        role: Role.Pending,
       }),
     );
   }
