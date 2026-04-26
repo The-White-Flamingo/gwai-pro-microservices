@@ -16,6 +16,6 @@ Content-Type: application/json
 
 {
   "email": "developer@gwaipro.com",
-  "password": "admin@gwaipro",
+  "password": "admin@gwaipro"
 }
 ###

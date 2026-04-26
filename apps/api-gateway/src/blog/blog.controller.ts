@@ -11,7 +11,7 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ActiveUser, ActiveUserData, Auth, AuthType } from '@app/iam';
 import { Roles } from '@app/iam'; // reuse your existing decorator
-import { Role } from '@app/users/enums/role.enum'; // reuse your existing enum
+import { Role } from '@app/iam'; // reuse your existing enum
 import { BlogService } from './blog.service';
 import { CreateBlogDto } from './dto/create-blog.dto';
 import { UpdateBlogDto } from './dto/update-blog.dto';

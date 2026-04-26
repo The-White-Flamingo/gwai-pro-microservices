@@ -20,7 +20,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ActiveUser, ActiveUserData, Roles } from '@app/iam';
-import { Role } from '@app/users/enums/role.enum';
+import { Role } from '@app/iam'; // reuse your existing enum
 import { AdminsService } from './admins.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';

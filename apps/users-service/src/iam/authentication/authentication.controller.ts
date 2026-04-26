@@ -17,7 +17,7 @@ import { AdminSignInDto} from '@app/iam';
 
 
 @Auth(AuthType.None)
-@Controller('auth')
+@Controller()
 export class AuthenticationController {
   constructor(private readonly authenticationService: AuthenticationService) {}
 
