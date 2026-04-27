@@ -48,7 +48,12 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(ApiGatewayModule);
 
   app.enableCors();
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+    }),
+  );
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads/',
   });
