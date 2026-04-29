@@ -9,8 +9,8 @@ export class MusiciansController {
   constructor(private readonly musiciansService: MusiciansService) {}
 
   @MessagePattern('createMusician')
-  create(@Payload() createMusicianDto: CreateMusicianDto) {
-    return this.musiciansService.create(createMusicianDto);
+  create(@Payload() payload: CreateMusicianDto & { userId: string }) {
+    return this.musiciansService.create(payload);
   }
 
   @MessagePattern('findAllMusicians')
@@ -29,6 +29,13 @@ export class MusiciansController {
       updateMusicianDto.id,
       updateMusicianDto,
     );
+  }
+
+  @MessagePattern('updateMusicianProfile')
+  updateProfile(
+    @Payload() payload: Partial<UpdateMusicianDto> & { userId: string },
+  ) {
+    return this.musiciansService.updateProfile(payload);
   }
 
   @MessagePattern('removeMusician')

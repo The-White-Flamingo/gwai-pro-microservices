@@ -1,25 +1,38 @@
-import { IsNotEmpty, IsEnum } from 'class-validator';
-import { Genre } from '../../enums/genre.enum';
-import { Interest } from '../../enums/interest.enum';
+import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateClientDto {
   @IsNotEmpty()
+  @IsString()
   firstName: string;
 
   @IsNotEmpty()
+  @IsString()
   lastName: string;
 
   @IsNotEmpty()
-  contact: string;
+  @IsString()
+  username: string;
+
+  @IsNotEmpty()
+  @IsString()
+  phone: string;
 
   @IsNotEmpty()
   dateOfBirth: Date;
 
   @IsNotEmpty()
-  @IsEnum(Genre, { each: true })
-  genres: Genre[];
+  @IsString()
+  address: string;
 
-  @IsNotEmpty()
-  @IsEnum(Interest, { each: true })
-  interests: Interest[];
+  @IsArray()
+  @IsString({ each: true })
+  interests: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  genres: string[];
+
+  @IsOptional()
+  @IsString()
+  profilePicturePath?: string;
 }

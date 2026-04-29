@@ -3,13 +3,24 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
+import {
+  AdminSignInDto,
+  AdminSignUpDto,
+  ChangePasswordDto,
+} from '@app/iam';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ClientProxy } from '@nestjs/microservices';
 import { Repository } from 'typeorm';
 import { lastValueFrom, timeout } from 'rxjs';
-import { CreateMailerDto, MAILING_SERVICE } from '@app/shared';
+import {
+  CreateMailerDto,
+  CreateSmsDto,
+  MAILING_SERVICE,
+  SMS_SERVICE,
+} from '@app/shared';
 import { HashingService } from '../hashing/hashing.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import { SignInDto } from './dto/sign-in.dto';
@@ -17,6 +28,9 @@ import { VerifySignUpOtpDto } from './dto/verify-sign-up-otp.dto';
 import { ResendSignUpOtpDto } from './dto/resend-sign-up-otp.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { RequestAuthOtpDto } from './dto/request-auth-otp.dto';
+import { RequestSmsOtpDto } from './dto/request-sms-otp.dto';
+import { VerifyAuthOtpDto } from './dto/verify-auth-otp.dto';
 import { JwtService } from '@nestjs/jwt';
 import jwtConfig from '../config/jwt.config';
 import { ConfigType } from '@nestjs/config';
@@ -30,7 +44,6 @@ import { Role } from '../../users/enums/role.enum';
 import { Client } from '../../users/clients/entities/client.entity';
 import { Musician } from '../../users/musicians/entities/musician.entity';
 import { Studio } from '../../users/studios/entities/studio.entity';
-import { Admin } from '../../users/admins/entities/admin.entity';
 import { SignUpOtp } from './entities/sign-up-otp.entity';
 import { PasswordReset } from './entities/password-reset.entity';
 import { AdminSignInDto} from '@app/iam';
@@ -48,6 +61,12 @@ const PASSWORD_RESET_WINDOW_MINUTES = 15;
 const PASSWORD_RESET_RESEND_COOLDOWN_SECONDS = 60;
 const PASSWORD_RESET_BLOCK_DURATION_MINUTES = 15;
 const MAILER_RPC_TIMEOUT_MS = 10000;
+const SMS_RPC_TIMEOUT_MS = 10000;
+
+type OtpDeliveryDestination = {
+  channel: 'email' | 'sms';
+  target: string;
+};
 
 @Injectable()
 export class AuthenticationService {
@@ -59,13 +78,12 @@ export class AuthenticationService {
     private readonly musicianRepository: Repository<Musician>,
     @InjectRepository(Studio)
     private readonly studioRepository: Repository<Studio>,
-    @InjectRepository(Admin)
-    private readonly adminRepository: Repository<Admin>,
     @InjectRepository(SignUpOtp)
     private readonly signUpOtpRepository: Repository<SignUpOtp>,
     @InjectRepository(PasswordReset)
     private readonly passwordResetRepository: Repository<PasswordReset>,
     @Inject(MAILING_SERVICE) private readonly mailingClient: ClientProxy,
+    @Inject(SMS_SERVICE) private readonly smsClient: ClientProxy,
     private readonly hashingService: HashingService,
     private readonly jwtService: JwtService,
     @Inject(jwtConfig.KEY)
@@ -74,123 +92,223 @@ export class AuthenticationService {
   ) {}
 
   async signUp(signUpDto: SignUpDto) {
-    return this.requestSignUpOtp(signUpDto);
+    return this.requestOtp({
+      email: signUpDto.email,
+    });
   }
 
-  async requestSignUpOtp(signUpDto: SignUpDto) {
+  async requestOtp(requestAuthOtpDto: RequestAuthOtpDto) {
     try {
-      const existingUser = await this.userRepository.findOneBy({
-        email: signUpDto.email,
+      const email = this.normalizeEmail(requestAuthOtpDto.email);
+      const username = this.normalizeUsername(requestAuthOtpDto.username);
+
+      if (!email && !username) {
+        return new BadRequestException(
+          'Provide at least an email or username',
+        ).getResponse();
+      }
+
+      const existingUser = await this.findUserByEmailOrUsername({
+        email,
+        username,
       });
 
       if (existingUser) {
-        return new ConflictException('User already exists').getResponse();
-      }
-
-      if (!this.isValidRole(signUpDto.role)) {
-        return new BadRequestException('Invalid role').getResponse();
-      }
-
-      const passwordHash = await this.hashingService.hash(signUpDto.password);
-
-      const signUpOtp = await this.signUpOtpRepository.findOneBy({
-        email: signUpDto.email,
-      });
-
-      const requestGuardError = this.getOtpRequestGuardError(signUpOtp);
-      if (requestGuardError) {
-        if (signUpOtp?.blockedUntil) {
-          await this.signUpOtpRepository.save(signUpOtp);
+        const profileStatus = await this.getProfileStatus(existingUser);
+        const otpRecord = await this.prepareExistingUserOtpRecord(
+          existingUser,
+          username,
+        );
+        const requestGuardError = this.getOtpRequestGuardError(otpRecord);
+        if (requestGuardError) {
+          if (otpRecord?.blockedUntil) {
+            await this.signUpOtpRepository.save(otpRecord);
+          }
+          return requestGuardError;
         }
-        return requestGuardError;
-      }
 
-      if (signUpOtp) {
-        signUpOtp.passwordHash = passwordHash;
-        signUpOtp.role = signUpDto.role;
-        const sendOtpError = await this.saveAndSendOtp(signUpOtp, signUpDto.email);
+        const sendOtpError = await this.saveAndSendOtp(
+          otpRecord,
+          {
+            channel: 'email',
+            target: existingUser.email,
+          },
+        );
         if (sendOtpError) {
           return sendOtpError;
         }
-      } else {
-        const pendingSignUp = this.signUpOtpRepository.create({
-          email: signUpDto.email,
+
+        return {
+          status: true,
+          message: 'OTP sent successfully.',
+          data: {
+            email: existingUser.email,
+            isNewUser: false,
+            hasProfile: profileStatus.profileComplete,
+            profileType: profileStatus.profileType,
+          },
+        };
+      }
+
+      if (!email) {
+        return new BadRequestException(
+          'Email is required for new users',
+        ).getResponse();
+      }
+
+      const existingPendingOtp = await this.signUpOtpRepository.findOneBy({
+        email,
+      });
+
+      const otpRecord =
+        existingPendingOtp ??
+        this.signUpOtpRepository.create({
+          email,
           otpHash: '',
-          passwordHash,
-          role: signUpDto.role,
+          passwordHash: '',
+          role: Role.Pending,
           expiresAt: this.getOtpExpiryDate(),
           requestWindowStartedAt: new Date(),
           otpRequestCount: 0,
           verifyAttempts: 0,
         });
-        const sendOtpError = await this.saveAndSendOtp(pendingSignUp, signUpDto.email);
-        if (sendOtpError) {
-          return sendOtpError;
+
+      const requestGuardError = this.getOtpRequestGuardError(otpRecord);
+      if (requestGuardError) {
+        if (otpRecord?.blockedUntil) {
+          await this.signUpOtpRepository.save(otpRecord);
         }
+        return requestGuardError;
       }
 
-      return {
-        status: true,
-        message: 'OTP sent to email. Verify OTP to complete sign up.',
-      };
+      otpRecord.email = email;
+      otpRecord.username = undefined;
+      otpRecord.phoneNumber = undefined;
+      otpRecord.userId = undefined;
+      otpRecord.passwordHash = '';
+      otpRecord.role = Role.Pending;
+
+      const sendOtpError = await this.saveAndSendOtp(
+        otpRecord,
+        {
+          channel: 'email',
+          target: email,
+        },
+      );
+      if (sendOtpError) {
+        return sendOtpError;
+      }
+
+        return {
+          status: true,
+          message: 'OTP sent successfully.',
+          data: {
+            email,
+            isNewUser: true,
+            hasProfile: false,
+            profileType: null,
+          },
+        };
     } catch (error) {
+      if (error instanceof ServiceUnavailableException) {
+        return error.getResponse();
+      }
       return new BadRequestException(error.message).getResponse();
     }
   }
 
   async resendSignUpOtp(resendSignUpOtpDto: ResendSignUpOtpDto) {
+    return this.requestOtp(
+      this.mapIdentifierToRequest(resendSignUpOtpDto.identifier),
+    );
+  }
+
+  async requestSmsOtp(requestSmsOtpDto: RequestSmsOtpDto) {
     try {
-      const signUpOtp = await this.signUpOtpRepository.findOneBy({
-        email: resendSignUpOtpDto.email,
-      });
+      const phoneNumber = this.normalizePhoneNumber(requestSmsOtpDto.phoneNumber);
 
-      if (!signUpOtp) {
+      if (!phoneNumber) {
+        return new BadRequestException('Phone number is required').getResponse();
+      }
+
+      const existingUser = await this.userRepository.findOneBy({ phoneNumber });
+
+      if (!existingUser) {
+        return new BadRequestException('User not found').getResponse();
+      }
+
+      const profileStatus = await this.getProfileStatus(existingUser);
+      if (!profileStatus.profileComplete) {
         return new BadRequestException(
-          'No sign-up request found for this email',
+          'SMS OTP is only available for users with completed profiles',
         ).getResponse();
       }
 
-      if (new Date() > new Date(signUpOtp.expiresAt)) {
-        await this.signUpOtpRepository.delete({ id: signUpOtp.id });
+      const otpRecord = await this.prepareExistingUserOtpRecord(
+        existingUser,
+        existingUser.username ?? undefined,
+        phoneNumber,
+      );
+
+      if (!otpRecord.phoneNumber) {
         return new BadRequestException(
-          'OTP expired. Please sign up again to request a new OTP.',
+          'No phone number is available for SMS OTP delivery',
         ).getResponse();
       }
 
-      const requestGuardError = this.getOtpRequestGuardError(signUpOtp);
+      const requestGuardError = this.getOtpRequestGuardError(otpRecord);
       if (requestGuardError) {
-        if (signUpOtp.blockedUntil) {
-          await this.signUpOtpRepository.save(signUpOtp);
+        if (otpRecord?.blockedUntil) {
+          await this.signUpOtpRepository.save(otpRecord);
         }
         return requestGuardError;
       }
 
-      const sendOtpError = await this.saveAndSendOtp(
-        signUpOtp,
-        resendSignUpOtpDto.email,
-      );
+      const sendOtpError = await this.saveAndSendOtp(otpRecord, {
+        channel: 'sms',
+        target: otpRecord.phoneNumber,
+      });
       if (sendOtpError) {
         return sendOtpError;
       }
 
       return {
         status: true,
-        message: 'OTP resent successfully.',
+        message: 'OTP sent successfully.',
+        data: {
+          email: existingUser.email,
+          phoneNumber: otpRecord.phoneNumber,
+          deliveryChannel: 'sms',
+          deliveryTarget: otpRecord.phoneNumber,
+          isNewUser: false,
+          hasProfile: true,
+          profileType: profileStatus.profileType,
+        },
       };
     } catch (error) {
+      if (error instanceof ServiceUnavailableException) {
+        return error.getResponse();
+      }
       return new BadRequestException(error.message).getResponse();
     }
   }
 
   async verifySignUpOtp(verifySignUpOtpDto: VerifySignUpOtpDto) {
+    return this.verifyOtp({
+      identifier: verifySignUpOtpDto.identifier,
+      otp: verifySignUpOtpDto.otp,
+    });
+  }
+
+  async verifyOtp(verifyAuthOtpDto: VerifyAuthOtpDto) {
     try {
-      const signUpOtp = await this.signUpOtpRepository.findOneBy({
-        email: verifySignUpOtpDto.email,
-      });
+      const identifier = this.normalizeIdentifier(verifyAuthOtpDto.identifier);
+      const existingUser = await this.findUserByIdentifier(identifier);
+      const signUpOtp = await this.findOtpByIdentifier(identifier, existingUser);
 
       if (!signUpOtp) {
         return new BadRequestException(
-          'No sign-up OTP found for this email',
+          'No OTP found for this identifier',
         ).getResponse();
       }
 
@@ -205,7 +323,7 @@ export class AuthenticationService {
       }
 
       const isOtpValid = await this.hashingService.compare(
-        verifySignUpOtpDto.otp,
+        verifyAuthOtpDto.otp,
         signUpOtp.otpHash,
       );
 
@@ -223,52 +341,70 @@ export class AuthenticationService {
         return new BadRequestException('Invalid OTP').getResponse();
       }
 
-      const existingUser = await this.userRepository.findOneBy({
-        email: verifySignUpOtpDto.email,
-      });
-
-      if (existingUser) {
-        await this.signUpOtpRepository.delete({ id: signUpOtp.id });
-        return new ConflictException('User already exists').getResponse();
-      }
-
-      const signUpResult = await this.createUserWithRole({
-        email: signUpOtp.email,
-        passwordHash: signUpOtp.passwordHash,
-        role: signUpOtp.role,
-      });
-
-      const isSuccessResponse =
-        typeof signUpResult === 'object' &&
-        signUpResult !== null &&
-        'status' in signUpResult &&
-        signUpResult.status === true;
-
-      if (!isSuccessResponse) {
-        return signUpResult;
-      }
+      const user = existingUser ?? (await this.createUserFromOtp(signUpOtp));
+      const tokens = await this.generateTokens(user);
 
       await this.signUpOtpRepository.delete({ id: signUpOtp.id });
 
-      return signUpResult;
+      return this.buildAuthSuccessResponse(
+        user,
+        tokens,
+        'OTP verified successfully.',
+      );
     } catch (error) {
       return new BadRequestException(error.message).getResponse();
     }
   }
 
   async signIn(signInDto: SignInDto) {
-    const user = await this.userRepository.findOneBy({
-      email: signInDto.email,
-    });
+    return this.requestOtp(this.mapIdentifierToRequest(signInDto.identifier));
+  }
 
-    if (!user) {
-      return new BadRequestException('User does not exist').getResponse();
+  async adminSignUp(adminSignUpDto: AdminSignUpDto) {
+    try {
+      const email = this.normalizeEmail(adminSignUpDto.email);
+      const existingUser = await this.findUserByEmailOrUsername({ email });
+
+      if (existingUser) {
+        return new ConflictException('Admin already exists').getResponse();
+      }
+
+      const passwordHash = await this.hashingService.hash(adminSignUpDto.password);
+      const user = await this.createUserWithRole({
+        email,
+        passwordHash,
+        role: Role.Admin,
+      });
+      const tokens = await this.generateTokens(user);
+
+      return this.buildAuthSuccessResponse(
+        user,
+        tokens,
+        'Admin signed up successfully.',
+      );
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        return error.getResponse();
+      }
+      return new BadRequestException(error.message).getResponse();
     }
+  }
 
-    const isPasswordValid = await this.hashingService.compare(
-      signInDto.password,
-      user.password,
-    );
+  async adminSignIn(adminSignInDto: AdminSignInDto) {
+    try {
+      const email = this.normalizeEmail(adminSignInDto.email);
+      const user = email
+        ? await this.userRepository.findOneBy({ email })
+        : null;
+
+      if (!user || user.role !== Role.Admin || !user.password) {
+        return new UnauthorizedException('Invalid admin credentials').getResponse();
+      }
+
+      const passwordMatches = await this.hashingService.compare(
+        adminSignInDto.password,
+        user.password,
+      );
 
     if (!isPasswordValid) {
       return new BadRequestException('Password does not match').getResponse();
@@ -315,7 +451,17 @@ export class AuthenticationService {
       return await this.generateTokens(user);
     }
 
-    return await this.generateTokens(user);
+      return this.buildAuthSuccessResponse(
+        user,
+        tokens,
+        'Admin signed in successfully.',
+      );
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        return error.getResponse();
+      }
+      return new BadRequestException(error.message).getResponse();
+    }
   }
 // apps/users-service/src/iam/authentication/authentication.service.ts
 
@@ -372,6 +518,29 @@ async adminSignIn(adminSignInDto: AdminSignInDto) {
     };
   }
 
+  async buildAuthSuccessResponse(
+    user: User,
+    tokens: { accessToken: string; refreshToken: string },
+    message: string,
+  ) {
+    const profileStatus = await this.getProfileStatus(user);
+
+    return {
+      status: true,
+      message,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      data: {
+        nextAction: profileStatus.profileComplete
+          ? 'AUTHENTICATED'
+          : 'CREATE_PROFILE',
+        profileComplete: profileStatus.profileComplete,
+        profileType: profileStatus.profileType,
+        user: this.sanitizeUser(user),
+      },
+    };
+  }
+
   async refreshTokens(refreshTokenDto: RefreshTokenDto) {
     try {
       const { sub, refreshTokenId } = await this.jwtService.verifyAsync<
@@ -401,6 +570,9 @@ async adminSignIn(adminSignInDto: AdminSignInDto) {
 
       return await this.generateTokens(user);
     } catch (error) {
+      if (error instanceof ServiceUnavailableException) {
+        return error.getResponse();
+      }
       if (error instanceof InvalidateRefreshTokenError) {
         return new UnauthorizedException('Access denied').getResponse();
       }
@@ -538,6 +710,244 @@ async adminSignIn(adminSignInDto: AdminSignInDto) {
     }
   }
 
+  async changePassword(payload: ChangePasswordDto & { userId: string }) {
+    try {
+      const user = await this.userRepository.findOneBy({
+        id: payload.userId,
+      });
+
+      if (!user || user.role !== Role.Admin || !user.password) {
+        return new UnauthorizedException(
+          'Invalid user or unauthorized password change request',
+        ).getResponse();
+      }
+
+      const passwordMatches = await this.hashingService.compare(
+        payload.currentPassword,
+        user.password,
+      );
+
+      if (!passwordMatches) {
+        return new UnauthorizedException('Current password is incorrect').getResponse();
+      }
+
+      user.password = await this.hashingService.hash(payload.newPassword);
+      await this.userRepository.save(user);
+      await this.refreshTokenIdsStorage.invalidate(user.id);
+
+      return {
+        status: true,
+        message: 'Password changed successfully.',
+      };
+    } catch (error) {
+      return new BadRequestException(error.message).getResponse();
+    }
+  }
+
+  private mapIdentifierToRequest(identifier: string): RequestAuthOtpDto {
+    const normalizedIdentifier = this.normalizeIdentifier(identifier);
+
+    if (this.looksLikeEmail(normalizedIdentifier)) {
+      return { email: normalizedIdentifier };
+    }
+
+    return { username: normalizedIdentifier };
+  }
+
+  private async findUserByEmailOrUsername(params: {
+    email?: string;
+    username?: string;
+    phoneNumber?: string;
+  }) {
+    const userByEmail = params.email
+      ? await this.userRepository.findOneBy({ email: params.email })
+      : null;
+    const userByUsername = params.username
+      ? await this.userRepository.findOneBy({ username: params.username })
+      : null;
+    const userByPhone = params.phoneNumber
+      ? await this.userRepository.findOneBy({ phoneNumber: params.phoneNumber })
+      : null;
+
+    const matchedUsers = [userByEmail, userByUsername, userByPhone].filter(
+      (user): user is User => Boolean(user),
+    );
+    const uniqueUserIds = [...new Set(matchedUsers.map((user) => user.id))];
+
+    if (uniqueUserIds.length > 1) {
+      throw new BadRequestException(
+        'Provided identifiers belong to different users',
+      );
+    }
+
+    return userByEmail ?? userByUsername ?? userByPhone;
+  }
+
+  private async findUserByIdentifier(identifier: string) {
+    if (this.looksLikeEmail(identifier)) {
+      return this.userRepository.findOneBy({ email: identifier });
+    }
+
+    if (this.looksLikePhoneNumber(identifier)) {
+      return this.userRepository.findOneBy({ phoneNumber: identifier });
+    }
+
+    return this.userRepository.findOneBy({ username: identifier });
+  }
+
+  private async findOtpByIdentifier(identifier: string, user?: User | null) {
+    if (user?.email) {
+      return this.signUpOtpRepository.findOneBy({ email: user.email });
+    }
+
+    if (this.looksLikeEmail(identifier)) {
+      return this.signUpOtpRepository.findOneBy({ email: identifier });
+    }
+
+    if (this.looksLikePhoneNumber(identifier)) {
+      return this.signUpOtpRepository.findOneBy({ phoneNumber: identifier });
+    }
+
+    return this.signUpOtpRepository.findOneBy({ username: identifier });
+  }
+
+  private async prepareExistingUserOtpRecord(
+    user: User,
+    username?: string,
+    phoneNumber?: string,
+  ) {
+    const existingOtp = await this.signUpOtpRepository.findOneBy({
+      email: user.email,
+    });
+
+    const otpRecord =
+      existingOtp ??
+      this.signUpOtpRepository.create({
+        email: user.email,
+        expiresAt: this.getOtpExpiryDate(),
+        otpHash: '',
+        passwordHash: user.password ?? '',
+        requestWindowStartedAt: new Date(),
+        role: user.role ?? Role.Pending,
+        otpRequestCount: 0,
+        userId: user.id,
+        verifyAttempts: 0,
+      });
+
+    otpRecord.email = user.email;
+    otpRecord.username = user.username ?? username ?? undefined;
+    otpRecord.phoneNumber = user.phoneNumber ?? phoneNumber ?? undefined;
+    otpRecord.userId = user.id;
+    otpRecord.passwordHash = user.password ?? '';
+    otpRecord.role = user.role ?? Role.Pending;
+
+    return otpRecord;
+  }
+
+  private async createUserFromOtp(signUpOtp: SignUpOtp) {
+    const email = this.normalizeEmail(signUpOtp.email);
+
+    if (!email) {
+      throw new BadRequestException(
+        'OTP record is missing email',
+      );
+    }
+
+    const existingUser = await this.findUserByEmailOrUsername({
+      email,
+      phoneNumber: this.normalizePhoneNumber(signUpOtp.phoneNumber),
+    });
+    if (existingUser) {
+      return existingUser;
+    }
+
+    return this.userRepository.save(
+      this.userRepository.create({
+        email,
+        phoneNumber: this.normalizePhoneNumber(signUpOtp.phoneNumber),
+        role: signUpOtp.role ?? Role.Pending,
+      }),
+    );
+  }
+
+  private async getProfileStatus(user: User) {
+    if (user.role === Role.Admin) {
+      return { profileComplete: true, profileType: Role.Admin };
+    }
+
+    const profileChecks = await Promise.all([
+      this.clientRepository.findOne({ where: { user: { id: user.id } } }),
+      this.musicianRepository.findOne({ where: { user: { id: user.id } } }),
+      this.studioRepository.findOne({ where: { user: { id: user.id } } }),
+    ]);
+
+    if (profileChecks[0]) {
+      return { profileComplete: true, profileType: Role.Client };
+    }
+    if (profileChecks[1]) {
+      return { profileComplete: true, profileType: Role.Musician };
+    }
+    if (profileChecks[2]) {
+      return { profileComplete: true, profileType: Role.Studio };
+    }
+
+    return {
+      profileComplete: false,
+      profileType: null,
+    };
+  }
+
+  private sanitizeUser(user: User) {
+    const { password, ...safeUser } = user;
+    return safeUser;
+  }
+
+  private normalizeEmail(email?: string | null) {
+    return email?.trim().toLowerCase() || undefined;
+  }
+
+  private normalizeUsername(username?: string | null) {
+    return username?.trim().toLowerCase() || undefined;
+  }
+
+  private normalizePhoneNumber(phoneNumber?: string | null) {
+    if (!phoneNumber) {
+      return undefined;
+    }
+
+    const trimmedPhoneNumber = phoneNumber.trim();
+
+    if (!trimmedPhoneNumber) {
+      return undefined;
+    }
+
+    if (trimmedPhoneNumber.startsWith('+')) {
+      return `+${trimmedPhoneNumber.slice(1).replace(/\D/g, '')}`;
+    }
+
+    return trimmedPhoneNumber.replace(/\D/g, '');
+  }
+
+  private normalizeIdentifier(identifier?: string | null) {
+    const trimmedIdentifier = identifier?.trim() || '';
+
+    if (this.looksLikePhoneNumber(trimmedIdentifier)) {
+      return this.normalizePhoneNumber(trimmedIdentifier) ?? '';
+    }
+
+    return this.looksLikeEmail(trimmedIdentifier)
+      ? trimmedIdentifier.toLowerCase()
+      : trimmedIdentifier.toLowerCase();
+  }
+
+  private looksLikeEmail(value: string) {
+    return value.includes('@');
+  }
+
+  private looksLikePhoneNumber(value: string) {
+    return /^\+?\d{9,15}$/.test(value.replace(/[\s()-]/g, ''));
+  }
+
   private generateOtp(): string {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
@@ -604,7 +1014,7 @@ async adminSignIn(adminSignInDto: AdminSignInDto) {
 
   private async saveAndSendOtp(
     signUpOtp: SignUpOtp,
-    recipientEmail: string,
+    destination: OtpDeliveryDestination,
   ) {
     const otp = this.generateOtp();
     const otpHash = await this.hashingService.hash(otp);
@@ -620,18 +1030,32 @@ async adminSignIn(adminSignInDto: AdminSignInDto) {
     await this.signUpOtpRepository.save(signUpOtp);
 
     try {
-      await lastValueFrom(
-        this.mailingClient
-          .send<CreateMailerDto>('mailer.send', {
-            to: recipientEmail,
-            subject: 'Verify your GwaiPro account',
-            text: `Your verification code is ${otp}. It expires in ${SIGN_UP_OTP_TTL_MINUTES} minutes.`,
-          })
-          .pipe(timeout(MAILER_RPC_TIMEOUT_MS)),
-      );
-    } catch (mailError) {
+      if (destination.channel === 'sms') {
+        await lastValueFrom(
+          this.smsClient
+            .send<CreateSmsDto>('sms.send', {
+              to: destination.target,
+              message: `Your GwaiPro verification code is ${otp}. It expires in ${SIGN_UP_OTP_TTL_MINUTES} minutes.`,
+              purpose: 'otp',
+            })
+            .pipe(timeout(SMS_RPC_TIMEOUT_MS)),
+        );
+      } else {
+        await lastValueFrom(
+          this.mailingClient
+            .send<CreateMailerDto>('mailer.send', {
+              to: destination.target,
+              subject: 'Verify your GwaiPro account',
+              text: `Your verification code is ${otp}. It expires in ${SIGN_UP_OTP_TTL_MINUTES} minutes.`,
+            })
+            .pipe(timeout(MAILER_RPC_TIMEOUT_MS)),
+        );
+      }
+    } catch (deliveryError) {
       return new BadRequestException(
-        `OTP email could not be sent: ${mailError?.message ?? 'unknown error'}`,
+        destination.channel === 'sms'
+          ? `OTP SMS could not be sent: ${deliveryError?.message ?? 'unknown error'}`
+          : `OTP email could not be sent: ${deliveryError?.message ?? 'unknown error'}`,
       ).getResponse();
     }
 
@@ -782,7 +1206,7 @@ async adminSignIn(adminSignInDto: AdminSignInDto) {
     email: string;
     passwordHash: string;
     role: Role;
-  }) {
+  }): Promise<User> {
     const queryRunner =
       this.userRepository.manager.connection.createQueryRunner();
     await queryRunner.startTransaction();
@@ -811,27 +1235,21 @@ async adminSignIn(adminSignInDto: AdminSignInDto) {
         });
         await queryRunner.manager.save(studio);
       } else if (role === Role.Admin) {
-        const admin = this.adminRepository.create({
-          user,
-        });
-        await queryRunner.manager.save(admin);
+        // Admins are stored in the users table and do not need a profile row.
       } else {
-        return new UnauthorizedException().getResponse();
+        throw new UnauthorizedException();
       }
 
       await queryRunner.commitTransaction();
 
-      return {
-        status: true,
-        message: `${user.role} signed up successfully`,
-      };
+      return user;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       const pgUniqueViolationErrorCode = '23505';
       if (error.code === pgUniqueViolationErrorCode) {
-        return new ConflictException('User already exists').getResponse();
+        throw new ConflictException('User already exists');
       }
-      return new BadRequestException(error.message).getResponse();
+      throw new BadRequestException(error.message);
     } finally {
       await queryRunner.release();
     }

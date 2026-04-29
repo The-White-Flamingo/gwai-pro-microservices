@@ -1,4 +1,5 @@
 import { Body, Controller, Post } from '@nestjs/common';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { GoogleAuthenticationService } from './google-authentication.service';
 import { GoogleTokenDto } from '../dto/google-token.dto';
 import { Auth } from '../decorators/auth.decorator';
@@ -12,7 +13,12 @@ export class GoogleAuthenticationController {
   ) {}
 
   @Post()
-async authenticate(@Body() tokenDto: GoogleTokenDto) {
-  return await this.googleAuthenticationService.authenticate(tokenDto.token);
-}
+  authenticate(@Body() tokenDto: GoogleTokenDto) {
+    return this.googleAuthenticationService.authenticate(tokenDto.token);
+  }
+
+  @MessagePattern('auth.google')
+  authenticateMessage(@Payload() tokenDto: GoogleTokenDto) {
+    return this.googleAuthenticationService.authenticate(tokenDto.token);
+  }
 }

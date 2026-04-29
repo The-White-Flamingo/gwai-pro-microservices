@@ -15,11 +15,11 @@ export class StudiosService {
 
   constructor(@Inject(USERS_SERVICE) private readonly client: ClientProxy) {}
 
-  async create(createStudioDto: any) {
+  async create(createStudioDto: any, userId: string) {
     try {
       const result = await lastValueFrom(
         this.client
-          .send('createStudio', createStudioDto)
+          .send('createStudio', { ...createStudioDto, userId })
           .pipe(timeout(StudiosService.RMQ_TIMEOUT_MS)),
       );
       return result;
@@ -27,6 +27,27 @@ export class StudiosService {
       if (error instanceof TimeoutError) {
         throw new GatewayTimeoutException(
           'Request to users-service timed out for pattern createStudio',
+        );
+      }
+      if (error instanceof UnauthorizedException) {
+        throw new UnauthorizedException(this.getErrorMessage(error));
+      }
+      throw new BadRequestException(this.getErrorMessage(error));
+    }
+  }
+
+  async update(updateStudioDto: any, userId: string) {
+    try {
+      const result = await lastValueFrom(
+        this.client
+          .send('updateStudioProfile', { ...updateStudioDto, userId })
+          .pipe(timeout(StudiosService.RMQ_TIMEOUT_MS)),
+      );
+      return result;
+    } catch (error) {
+      if (error instanceof TimeoutError) {
+        throw new GatewayTimeoutException(
+          'Request to users-service timed out for pattern updateStudioProfile',
         );
       }
       if (error instanceof UnauthorizedException) {

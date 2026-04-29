@@ -26,7 +26,6 @@ services:
       - payment-service
       - posts-service
       - blog-service
-      - chat-service
     command: yarn start:dev api-gateway
 
   booking-service:
@@ -106,6 +105,7 @@ services:
       - users-db
       - redis
       - rabbitmq
+      - sms-service
     command: yarn start:dev users-service
 
   chat-service:
@@ -181,6 +181,27 @@ services:
       - rabbitmq
     command: yarn start:dev mailing-service
 
+  sms-service:
+    build:
+      context: .
+      dockerfile: ./apps/sms-service/Dockerfile
+      target: development
+      args:
+        - APP_NAME=sms-service
+    env_file:
+      - ./apps/sms-service/.env
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?frameMax=0
+    volumes:
+      - ./libs:/usr/src/app/libs
+      - ./package.json:/usr/src/app/package.json
+      - ./tsconfig.json:/usr/src/app/tsconfig.json
+      - ./node_modules:/usr/src/app/node_modules
+      - ./apps/sms-service:/usr/src/app/apps/sms-service
+    depends_on:
+      - rabbitmq
+    command: yarn start:dev sms-service
+
   posts-service:
     build:
       context: .
@@ -225,6 +246,30 @@ services:
       - ./node_modules:/usr/src/app/node_modules
       - ./apps/blog-service:/usr/src/app/apps/blog-service
     depends_on:
+      - rabbitmq
+    command: yarn start:dev blog-service
+
+  blog-service:
+    build:
+      context: .
+      dockerfile: ./apps/blog-service/Dockerfile
+      target: development
+      args:
+        - APP_NAME=blog-service
+    env_file:
+      - ./apps/blog-service/.env
+    environment:
+      - POSTGRES_HOST=blog-db
+      - POSTGRES_PORT=5432
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?frameMax=0
+    volumes:
+      - ./libs:/usr/src/app/libs
+      - ./package.json:/usr/src/app/package.json
+      - ./tsconfig.json:/usr/src/app/tsconfig.json
+      - ./node_modules:/usr/src/app/node_modules
+      - ./apps/blog-service:/usr/src/app/apps/blog-service
+    depends_on:
+      - blog-db
       - rabbitmq
     command: yarn start:dev blog-service
 
@@ -288,6 +333,18 @@ services:
       - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
       - posts_data:/var/lib/postgresql/data
+
+  blog-db:
+    image: postgres:alpine
+    ports:
+      - "5438:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=blog
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - blog_data:/var/lib/postgresql/data
     
   waitlist-db:
     image: postgres:alpine
@@ -339,6 +396,7 @@ volumes:
   users_data:
   chat_data:
   posts_data:
+  blog_data:
   waitlist_data:
   blog_data:
   redis_data:

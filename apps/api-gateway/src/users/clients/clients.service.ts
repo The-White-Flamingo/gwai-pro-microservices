@@ -15,11 +15,11 @@ export class ClientsService {
 
   constructor(@Inject(USERS_SERVICE) private readonly client: ClientProxy) {}
 
-  async create(createClientDto: any) {
+  async create(createClientDto: any, userId: string) {
     try {
       const result = await lastValueFrom(
         this.client
-          .send('createClient', createClientDto)
+          .send('createClient', { ...createClientDto, userId })
           .pipe(timeout(ClientsService.RMQ_TIMEOUT_MS)),
       );
       return result;
@@ -27,6 +27,27 @@ export class ClientsService {
       if (error instanceof TimeoutError) {
         throw new GatewayTimeoutException(
           'Request to users-service timed out for pattern createClient',
+        );
+      }
+      if (error instanceof UnauthorizedException) {
+        throw new UnauthorizedException(this.getErrorMessage(error));
+      }
+      throw new BadRequestException(this.getErrorMessage(error));
+    }
+  }
+
+  async update(updateClientDto: any, userId: string) {
+    try {
+      const result = await lastValueFrom(
+        this.client
+          .send('updateClientProfile', { ...updateClientDto, userId })
+          .pipe(timeout(ClientsService.RMQ_TIMEOUT_MS)),
+      );
+      return result;
+    } catch (error) {
+      if (error instanceof TimeoutError) {
+        throw new GatewayTimeoutException(
+          'Request to users-service timed out for pattern updateClientProfile',
         );
       }
       if (error instanceof UnauthorizedException) {

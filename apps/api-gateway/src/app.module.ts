@@ -13,12 +13,14 @@ import { PostsModule } from './posts/posts.module';
 import { WaitlistModule } from './waitlist/waitlist.module';
 import { ChatModule } from './chat/chat.module';
 import { BlogModule } from './blog/blog.module';
+import { join } from 'node:path';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: './apps/api-gateway/.env',
+      // envFilePath: './apps/api-gateway/.env',
+      envFilePath: join(process.cwd(), 'apps/api-gateway/.env'),
     }),
     JwtModule.registerAsync(jwtConfig.asProvider()),
     ConfigModule.forFeature(jwtConfig),
@@ -26,6 +28,7 @@ import { BlogModule } from './blog/blog.module';
     PaymentsModule,
     BookingsModule,
     PostsModule,
+    BlogModule,
     WaitlistModule,
     ChatModule,
     BlogModule,

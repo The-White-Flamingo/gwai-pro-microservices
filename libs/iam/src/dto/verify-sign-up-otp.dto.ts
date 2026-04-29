@@ -1,10 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNumberString, Length } from 'class-validator';
+import { IsNumberString, IsString, Length } from 'class-validator';
 
 export class VerifySignUpOtpDto {
   @ApiProperty()
-  @IsEmail()
-  email: string;
+  @IsString()
+  identifier: string;
 
   @ApiProperty()
   @IsNumberString()

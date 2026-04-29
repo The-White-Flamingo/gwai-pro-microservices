@@ -1,14 +1,32 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { PostsService } from './posts.service';
-import { CreatePostDto, FindPostQueryDto, UpdatePostDto } from '@app/posts';
+import {
+  CreateCommentDto,
+  CreatePostDto,
+  FindPostQueryDto,
+  FollowUserDto,
+  ReportPostDto,
+  ToggleLikeDto,
+  UpdatePostDto,
+} from '@app/posts';
 import { PaginationQueryDto } from '@app/shared';
 import { ActiveUserData } from '@app/iam';
+import { PostsService } from './posts.service';
 
-type FindAllPayload = {
+type FeedQueryPayload = {
   paginationQueryDto?: PaginationQueryDto;
   findPostQueryDto?: FindPostQueryDto;
   activeUser?: ActiveUserData;
+};
+
+type FindOnePayload = {
+  id: string;
+  activeUser?: ActiveUserData;
+};
+
+type RemovePayload = {
+  id: string;
+  activeUser: ActiveUserData;
 };
 
 @Controller()
@@ -21,7 +39,7 @@ export class PostsController {
   }
 
   @MessagePattern('posts.findAll')
-  findAll(@Payload() payload: FindAllPayload) {
+  findAll(@Payload() payload: FeedQueryPayload) {
     return this.postsService.findAll(
       payload?.paginationQueryDto ?? ({} as PaginationQueryDto),
       payload?.findPostQueryDto ?? ({} as FindPostQueryDto),
@@ -29,9 +47,17 @@ export class PostsController {
     );
   }
 
+  @MessagePattern('posts.findFollowingFeed')
+  findFollowingFeed(@Payload() payload: FeedQueryPayload) {
+    return this.postsService.findFollowingFeed(
+      payload?.paginationQueryDto ?? ({} as PaginationQueryDto),
+      payload?.activeUser as ActiveUserData,
+    );
+  }
+
   @MessagePattern('posts.findOne')
-  findOne(@Payload() id: string) {
-    return this.postsService.findOne(id);
+  findOne(@Payload() payload: FindOnePayload) {
+    return this.postsService.findOne(payload.id, payload.activeUser);
   }
 
   @MessagePattern('posts.update')
@@ -40,7 +66,32 @@ export class PostsController {
   }
 
   @MessagePattern('posts.remove')
-  remove(@Payload() id: string) {
-    return this.postsService.remove(id);
+  remove(@Payload() payload: RemovePayload) {
+    return this.postsService.remove(payload.id, payload.activeUser);
+  }
+
+  @MessagePattern('posts.toggleLike')
+  toggleLike(@Payload() toggleLikeDto: ToggleLikeDto) {
+    return this.postsService.toggleLike(toggleLikeDto);
+  }
+
+  @MessagePattern('posts.addComment')
+  addComment(@Payload() createCommentDto: CreateCommentDto) {
+    return this.postsService.addComment(createCommentDto);
+  }
+
+  @MessagePattern('posts.report')
+  report(@Payload() reportPostDto: ReportPostDto) {
+    return this.postsService.reportPost(reportPostDto);
+  }
+
+  @MessagePattern('posts.followUser')
+  followUser(@Payload() followUserDto: FollowUserDto) {
+    return this.postsService.followUser(followUserDto);
+  }
+
+  @MessagePattern('posts.unfollowUser')
+  unfollowUser(@Payload() followUserDto: FollowUserDto) {
+    return this.postsService.unfollowUser(followUserDto);
   }
 }

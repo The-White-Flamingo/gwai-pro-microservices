@@ -1,10 +1,18 @@
 import {
+  AdminSignInDto,
+  AdminSignUpDto,
+  AppleTokenDto,
+  FirebaseTokenDto,
   ForgotPasswordDto,
+  GoogleTokenDto,
+  RequestAuthOtpDto,
+  RequestSmsOtpDto,
   ResendSignUpOtpDto,
   ResetPasswordDto,
   RefreshTokenDto,
   SignInDto,
   SignUpDto,
+  VerifyAuthOtpDto,
   VerifySignUpOtpDto,
 } from '@app/iam';
 import { USERS_SERVICE } from '@app/shared';
@@ -14,6 +22,8 @@ import {
   GatewayTimeoutException,
   Inject,
   Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
@@ -45,35 +55,103 @@ export class AuthService {
     }
   }
 
+  private mapIdentifierToRequest(identifier: string): RequestAuthOtpDto {
+    const normalizedIdentifier = identifier.trim();
+
+    if (normalizedIdentifier.includes('@')) {
+      return { email: normalizedIdentifier.toLowerCase() };
+    }
+
+    return { username: normalizedIdentifier.toLowerCase() };
+  }
+
+  private getErrorStatus(error: any): number | undefined {
+    return (
+      error?.response?.statusCode ??
+      error?.status ??
+      error?.err?.response?.statusCode ??
+      error?.err?.status
+    );
+  }
+
+  private getErrorMessage(error: any): string {
+    return (
+      error?.response?.message ??
+      error?.message ??
+      error?.error?.message ??
+      error?.err?.response?.message ??
+      error?.err?.message ??
+      error?.err?.error?.message ??
+      (typeof error === 'string' ? error : JSON.stringify(error))
+    );
+  }
+
+  private rethrowMappedError(error: any): never {
+    if (error instanceof GatewayTimeoutException) {
+      throw error;
+    }
+
+    const status = this.getErrorStatus(error);
+    const message = this.getErrorMessage(error);
+
+    if (status === 401 || error instanceof UnauthorizedException) {
+      throw new UnauthorizedException(message);
+    }
+    if (status === 404 || error instanceof NotFoundException) {
+      throw new NotFoundException(message);
+    }
+    if (status === 409 || error instanceof ConflictException) {
+      throw new ConflictException(message);
+    }
+    if (status === 503 || error instanceof ServiceUnavailableException) {
+      throw new ServiceUnavailableException(message);
+    }
+
+    throw new BadRequestException(message);
+  }
+
   async signUp(signUpDto: SignUpDto) {
     try {
-      const user = await this.sendWithTimeout('auth.signUp', signUpDto);
+      const user = await this.sendWithTimeout('auth.requestOtp', signUpDto);
       return user;
     } catch (error) {
-      if (error instanceof GatewayTimeoutException) {
-        throw error;
-      }
-      if (error instanceof ConflictException) {
-        throw new ConflictException(error.message);
-      } else if (error instanceof UnauthorizedException) {
-        throw new UnauthorizedException(error.message);
-      }
-      throw new BadRequestException(error.message);
+      this.rethrowMappedError(error);
     }
   }
 
   async signIn(signInDto: SignInDto) {
     try {
-      const user = await this.sendWithTimeout('auth.signIn', signInDto);
+      const user = await this.sendWithTimeout(
+        'auth.requestOtp',
+        this.mapIdentifierToRequest(signInDto.identifier),
+      );
       return user;
     } catch (error) {
-      if (error instanceof GatewayTimeoutException) {
-        throw error;
-      }
-      if (error instanceof UnauthorizedException) {
-        throw new UnauthorizedException(error.message);
-      }
-      throw new BadRequestException(error.message);
+      this.rethrowMappedError(error);
+    }
+  }
+
+  async requestSmsOtp(requestSmsOtpDto: RequestSmsOtpDto) {
+    try {
+      return await this.sendWithTimeout('auth.requestSmsOtp', requestSmsOtpDto);
+    } catch (error) {
+      this.rethrowMappedError(error);
+    }
+  }
+
+  async adminSignUp(adminSignUpDto: AdminSignUpDto) {
+    try {
+      return await this.sendWithTimeout('auth.adminSignUp', adminSignUpDto);
+    } catch (error) {
+      this.rethrowMappedError(error);
+    }
+  }
+
+  async adminSignIn(adminSignInDto: AdminSignInDto) {
+    try {
+      return await this.sendWithTimeout('auth.adminSignIn', adminSignInDto);
+    } catch (error) {
+      this.rethrowMappedError(error);
     }
   }
 
@@ -95,38 +173,22 @@ export class AuthService {
   async verifySignUpOtp(verifySignUpOtpDto: VerifySignUpOtpDto) {
     try {
       return await this.sendWithTimeout(
-        'auth.verifySignUpOtp',
+        'auth.verifyOtp',
         verifySignUpOtpDto,
       );
     } catch (error) {
-      if (error instanceof GatewayTimeoutException) {
-        throw error;
-      }
-      if (error instanceof ConflictException) {
-        throw new ConflictException(error.message);
-      } else if (error instanceof UnauthorizedException) {
-        throw new UnauthorizedException(error.message);
-      }
-      throw new BadRequestException(error.message);
+      this.rethrowMappedError(error);
     }
   }
 
   async resendSignUpOtp(resendSignUpOtpDto: ResendSignUpOtpDto) {
     try {
       return await this.sendWithTimeout(
-        'auth.resendSignUpOtp',
-        resendSignUpOtpDto,
+        'auth.requestOtp',
+        this.mapIdentifierToRequest(resendSignUpOtpDto.identifier),
       );
     } catch (error) {
-      if (error instanceof GatewayTimeoutException) {
-        throw error;
-      }
-      if (error instanceof ConflictException) {
-        throw new ConflictException(error.message);
-      } else if (error instanceof UnauthorizedException) {
-        throw new UnauthorizedException(error.message);
-      }
-      throw new BadRequestException(error.message);
+      this.rethrowMappedError(error);
     }
   }
 
@@ -138,13 +200,7 @@ export class AuthService {
       );
       return tokens;
     } catch (error) {
-      if (error instanceof GatewayTimeoutException) {
-        throw error;
-      }
-      if (error instanceof UnauthorizedException) {
-        throw new UnauthorizedException(error.message);
-      }
-      throw new BadRequestException(error.message);
+      this.rethrowMappedError(error);
     }
   }
 
@@ -155,10 +211,7 @@ export class AuthService {
         forgotPasswordDto,
       );
     } catch (error) {
-      if (error instanceof GatewayTimeoutException) {
-        throw error;
-      }
-      throw new BadRequestException(error.message);
+      this.rethrowMappedError(error);
     }
   }
 
@@ -169,10 +222,47 @@ export class AuthService {
         resetPasswordDto,
       );
     } catch (error) {
-      if (error instanceof GatewayTimeoutException) {
-        throw error;
-      }
-      throw new BadRequestException(error.message);
+      this.rethrowMappedError(error);
+    }
+  }
+
+  async authenticateWithGoogle(googleTokenDto: GoogleTokenDto) {
+    try {
+      return await this.sendWithTimeout('auth.google', googleTokenDto);
+    } catch (error) {
+      this.rethrowMappedError(error);
+    }
+  }
+
+  async authenticateWithApple(appleTokenDto: AppleTokenDto) {
+    try {
+      return await this.sendWithTimeout('auth.apple', appleTokenDto);
+    } catch (error) {
+      this.rethrowMappedError(error);
+    }
+  }
+
+  async authenticateWithFirebase(firebaseTokenDto: FirebaseTokenDto) {
+    try {
+      return await this.sendWithTimeout('auth.firebase', firebaseTokenDto);
+    } catch (error) {
+      this.rethrowMappedError(error);
+    }
+  }
+
+  async requestOtp(requestAuthOtpDto: RequestAuthOtpDto) {
+    try {
+      return await this.sendWithTimeout('auth.requestOtp', requestAuthOtpDto);
+    } catch (error) {
+      this.rethrowMappedError(error);
+    }
+  }
+
+  async verifyOtp(verifyAuthOtpDto: VerifyAuthOtpDto) {
+    try {
+      return await this.sendWithTimeout('auth.verifyOtp', verifyAuthOtpDto);
+    } catch (error) {
+      this.rethrowMappedError(error);
     }
   }
 }

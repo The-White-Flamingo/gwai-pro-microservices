@@ -7,30 +7,53 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Comment } from './comment.entity';
+import { Like } from './like.entity';
+import { Report } from './report.entity';
 
-@Entity('posts')
+export enum FeedPostType {
+  TEXT = 'TEXT',
+  MEDIA = 'MEDIA',
+  MEDIA_WITH_CAPTION = 'MEDIA_WITH_CAPTION',
+}
+
+@Entity('feeds')
 export class Post {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ name: 'user_id' })
   userId: string;
 
-  @Column({ nullable: true })
-  mediaUrl: string;
+  @Column({ name: 'media_url', type: 'text', nullable: true })
+  mediaUrl?: string | null;
 
-  @Column({ nullable: true })
-  caption: string;
+  @Column({ type: 'text', nullable: true })
+  caption?: string | null;
 
-  @Column({ default: 0 })
-  likes: number;
+  @Column({
+    type: 'enum',
+    enum: FeedPostType,
+  })
+  type: FeedPostType;
 
-  @CreateDateColumn()
+  @Column({ name: 'likes_count', default: 0 })
+  likesCount: number;
+
+  @Column({ name: 'comments_count', default: 0 })
+  commentsCount: number;
+
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
   @OneToMany(() => Comment, (comment) => comment.post)
   comments: Comment[];
+
+  @OneToMany(() => Like, (like) => like.post)
+  likes: Like[];
+
+  @OneToMany(() => Report, (report) => report.post)
+  reports: Report[];
 }

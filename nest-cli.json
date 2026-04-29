@@ -127,6 +127,15 @@
         "tsConfigPath": "apps/mailing-service/tsconfig.app.json"
       }
     },
+    "sms-service": {
+      "type": "application",
+      "root": "apps/sms-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/sms-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/sms-service/tsconfig.app.json"
+      }
+    },
     "waitlist-service": {
       "type": "application",
       "root": "apps/waitlist-service",
@@ -134,6 +143,15 @@
       "sourceRoot": "apps/waitlist-service/src",
       "compilerOptions": {
         "tsConfigPath": "apps/waitlist-service/tsconfig.app.json"
+      }
+    },
+    "blog-service": {
+      "type": "application",
+      "root": "apps/blog-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/blog-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/blog-service/tsconfig.app.json"
       }
     }
   }

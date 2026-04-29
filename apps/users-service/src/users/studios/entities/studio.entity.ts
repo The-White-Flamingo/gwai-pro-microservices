@@ -8,7 +8,6 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../../entities/user.entity';
-import { Service } from '../enums/service.enum';
 
 @Entity('studios')
 export class Studio {
@@ -19,13 +18,25 @@ export class Studio {
   name: string;
 
   @Column({ nullable: true })
-  contact: string;
+  username: string;
 
   @Column({ nullable: true })
-  location: string;
+  phone: string;
+
+  @Column({ nullable: true })
+  address: string;
+
+  @Column({ nullable: true })
+  rate: string;
 
   @Column('simple-array', { nullable: true })
-  services: Service[];
+  services: string[];
+
+  @Column('simple-array', { nullable: true })
+  equipment: string[];
+
+  @Column({ nullable: true })
+  profilePicturePath: string;
 
   @CreateDateColumn()
   createdAt: Date;

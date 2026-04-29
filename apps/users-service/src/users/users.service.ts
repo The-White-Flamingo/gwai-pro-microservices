@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -34,7 +35,7 @@ export class UsersService {
       return {
         status: true,
         message: 'Users fetched successfully',
-        data: users,
+        data: users.map((user) => this.sanitizeUser(user)),
       };
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -54,7 +55,7 @@ export class UsersService {
       return {
         status: true,
         message: 'User fetched successfully',
-        data: user,
+        data: this.sanitizeUser(user),
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -74,15 +75,24 @@ export class UsersService {
         throw new NotFoundException('User not found');
       }
 
-      await this.usersRepository.update(updateUserDto.id, updateUserDto);
+      Object.assign(user, updateUserDto);
+      await this.usersRepository.save(user);
+
+      const updatedUser = await this.usersRepository.findOneByOrFail({
+        id: updateUserDto.id,
+      });
 
       return {
         status: true,
         message: 'User updated successfully',
+        data: this.sanitizeUser(updatedUser),
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw new NotFoundException(error.message);
+      }
+      if (error?.code === '23505') {
+        throw new ConflictException('Email, username, or phone number already exists');
       }
       throw new BadRequestException(error.message);
     }

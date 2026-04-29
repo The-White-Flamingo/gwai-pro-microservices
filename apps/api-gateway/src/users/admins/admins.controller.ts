@@ -102,11 +102,19 @@ inviteStaff(
   // ── Existing ──────────────────────────────────────────────────────────────
 
   @Post()
-  @ApiOperation({ summary: 'Create admin profile' })
+  @UseInterceptors(
+    FileInterceptor('profilePicture', profilePictureUploadOptions),
+  )
+  @ApiOperation({
+    summary: 'Create admin profile',
+    description:
+      'Creates the authenticated admin profile with contact details and uploads a profile picture to the server. Role is automatically set to Admin.',
+  })
+  @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
-      required: ['firstName', 'lastName', 'contact'],
+      required: ['profilePicture', 'firstName', 'lastName', 'phoneNumber'],
       properties: {
         firstName: { type: 'string', example: 'Ama' },
         lastName: { type: 'string', example: 'Boateng' },

@@ -1,14 +1,18 @@
-import { IsNotEmpty, IsUrl, IsUUID } from 'class-validator';
+import { Role } from '@app/users';
+import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class CreatePostDto {
-  @IsUrl()
-  @IsNotEmpty()
-  mediaUrl: string;
+  @IsOptional()
+  @IsString()
+  mediaUrl?: string;
 
-  @IsNotEmpty()
-  caption: string;
+  @IsOptional()
+  @IsString()
+  caption?: string;
 
   @IsUUID()
-  @IsNotEmpty()
   userId: string;
+
+  @IsEnum(Role)
+  userRole: Role;
 }

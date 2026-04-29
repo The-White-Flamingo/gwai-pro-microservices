@@ -4,9 +4,10 @@ import { MusiciansService } from './musicians.service';
 import { MusiciansController } from './musicians.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Musician } from './entities/musician.entity';
+import { User } from '../entities/user.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Musician])],
+  imports: [TypeOrmModule.forFeature([Musician, User])],
   controllers: [MusiciansController],
   providers: [MusiciansService],
 })

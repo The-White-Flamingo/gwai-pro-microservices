@@ -8,8 +8,6 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../../entities/user.entity';
-import { Genre } from '../../enums/genre.enum';
-import { Interest } from '../../enums/interest.enum';
 
 @Entity('musicians')
 export class Musician {
@@ -23,19 +21,28 @@ export class Musician {
   lastName: string;
 
   @Column({ nullable: true })
-  contact: string;
+  username: string;
 
   @Column({ nullable: true })
-  location: string;
+  phone: string;
 
   @Column({ nullable: true })
   dateOfBirth: Date;
 
-  @Column('simple-array', { nullable: true })
-  genres: Genre[];
+  @Column({ nullable: true })
+  address: string;
 
   @Column('simple-array', { nullable: true })
-  interests: Interest[];
+  interests: string[];
+
+  @Column('simple-array', { nullable: true })
+  genres: string[];
+
+  @Column({ nullable: true })
+  rate: string;
+
+  @Column({ nullable: true })
+  profilePicturePath: string;
 
   @CreateDateColumn()
   createdAt: Date;

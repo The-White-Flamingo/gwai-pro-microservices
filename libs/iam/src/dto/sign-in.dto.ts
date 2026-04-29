@@ -1,24 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsEmail,
-  IsNumberString,
-  IsOptional,
-  IsStrongPassword,
-  MinLength,
-} from 'class-validator';
+import { IsString } from 'class-validator';
 
 export class SignInDto {
-  @ApiProperty()
-  @IsEmail()
-  email: string;
-
-  @ApiProperty()
-  @IsStrongPassword()
-  @MinLength(8)
-  password: string;
-
-  @ApiProperty()
-  @IsOptional()
-  @IsNumberString()
-  tfaCode?: string;
+  @ApiProperty({
+    description: 'Email, username, or phone number used to request the OTP.',
+    example: '+233201234567',
+  })
+  @IsString()
+  identifier: string;
 }

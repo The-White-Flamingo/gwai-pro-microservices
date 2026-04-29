@@ -16,14 +16,26 @@ export class User {
   @Column({ unique: true })
   email: string;
 
+  @Column({ unique: true, nullable: true })
+  username: string;
+
+  @Column({ unique: true, nullable: true })
+  phoneNumber: string;
+
   @Column({ nullable: true })
   password: string;
 
-  @Column('enum', { enum: Role, default: Role.Client })
+  @Column('enum', { enum: Role, default: Role.Pending })
   role: Role;
 
   @Column({ nullable: true })
   googleId: string;
+
+  @Column({ nullable: true })
+  appleId: string;
+
+  @Column({ unique: true, nullable: true })
+  firebaseUid: string;
 
   @JoinTable()
   @OneToMany(() => ApiKey, (apiKey) => apiKey.user)

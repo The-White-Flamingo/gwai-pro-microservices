@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { HashingService } from './hashing/hashing.service';
 import { BcryptService } from './hashing/bcrypt.service';
 import { AuthenticationController } from './authentication/authentication.controller';
+import { AdminSeedService } from './authentication/admin-seed.service';
 import { AuthenticationService } from './authentication/authentication.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
@@ -17,6 +18,10 @@ import { ApiKeysService } from './authentication/api-keys.service';
 import { ApiKeyGuard } from './authentication/guards/api-key.guard';
 import { GoogleAuthenticationService } from './authentication/social/google-authentication.service';
 import { GoogleAuthenticationController } from './authentication/social/google-authentication.controller';
+import { AppleAuthenticationService } from './authentication/social/apple-authentication.service';
+import { AppleAuthenticationController } from './authentication/social/apple-authentication.controller';
+import { FirebaseAuthenticationService } from './authentication/social/firebase-authentication.service';
+import { FirebaseAuthenticationController } from './authentication/social/firebase-authentication.controller';
 import { User } from '../users/entities/user.entity';
 import { ApiKey } from '../users/api-keys/entities/api-key.entity';
 import { Client } from '../users/clients/entities/client.entity';
@@ -25,7 +30,7 @@ import { Studio } from '../users/studios/entities/studio.entity';
 import { Admin } from '../users/admins/entities/admin.entity';
 import { SignUpOtp } from './authentication/entities/sign-up-otp.entity';
 import { PasswordReset } from './authentication/entities/password-reset.entity';
-import { MAILING_SERVICE } from '@app/shared';
+import { MAILING_SERVICE, SMS_SERVICE } from '@app/shared';
 
 @Module({
   imports: [
@@ -51,6 +56,17 @@ import { MAILING_SERVICE } from '@app/shared';
           },
         },
       },
+      {
+        name: SMS_SERVICE,
+        transport: Transport.RMQ,
+        options: {
+          urls: [process.env.RABBITMQ_URL],
+          queue: 'sms-service',
+          queueOptions: {
+            durable: true,
+          },
+        },
+      },
     ]),
     JwtModule.registerAsync(jwtConfig.asProvider()),
     ConfigModule.forFeature(jwtConfig),
@@ -71,10 +87,18 @@ import { MAILING_SERVICE } from '@app/shared';
     AccessTokenGuard,
     ApiKeyGuard,
     RefreshTokenIdsStorage,
+    AdminSeedService,
     AuthenticationService,
     ApiKeysService,
     GoogleAuthenticationService,
+    AppleAuthenticationService,
+    FirebaseAuthenticationService,
   ],
-  controllers: [AuthenticationController, GoogleAuthenticationController],
+  controllers: [
+    AuthenticationController,
+    GoogleAuthenticationController,
+    AppleAuthenticationController,
+    FirebaseAuthenticationController,
+  ],
 })
 export class IamModule {}

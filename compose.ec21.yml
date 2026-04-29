@@ -10,6 +10,8 @@ services:
       - ./apps/api-gateway/.env
     environment:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?heartbeat=30&connection_timeout=30000&frameMax=0
+    volumes:
+      - api_gateway_uploads:/usr/src/app/uploads
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -21,9 +23,13 @@ services:
         condition: service_started
       posts-service:
         condition: service_started
+      blog-service:
+        condition: service_started
       chat-service:
         condition: service_started
       mailing-service:
+        condition: service_started
+      sms-service:
         condition: service_started
       waitlist-service:
         condition: service_started
@@ -77,6 +83,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      sms-service:
+        condition: service_started
     restart: unless-stopped
 
   chat-service:
@@ -113,6 +121,24 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  blog-service:
+    build:
+      context: .
+      dockerfile: ./apps/blog-service/Dockerfile
+      target: production
+    env_file:
+      - ./apps/blog-service/.env
+    environment:
+      - POSTGRES_HOST=blog-db
+      - POSTGRES_PORT=5432
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?heartbeat=30&connection_timeout=30000&frameMax=0
+    depends_on:
+      blog-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
   waitlist-service:
     build:
       context: .
@@ -143,8 +169,22 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  sms-service:
+    build:
+      context: .
+      dockerfile: ./apps/sms-service/Dockerfile
+      target: production
+    env_file:
+      - ./apps/sms-service/.env
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672?heartbeat=30&connection_timeout=30000&frameMax=0
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
   bookings-db:
-    image: postgres:alpine
+    image: postgres:16-alpine
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -153,15 +193,15 @@ services:
     volumes:
       - bookings_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d bookings"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
       interval: 5s
       timeout: 5s
-      retries: 20
-      start_period: 15s
+      retries: 30
+      start_period: 90s
     restart: unless-stopped
 
   payments-db:
-    image: postgres:alpine
+    image: postgres:16-alpine
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -170,15 +210,15 @@ services:
     volumes:
       - payments_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d payments"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
       interval: 5s
       timeout: 5s
-      retries: 20
-      start_period: 15s
+      retries: 30
+      start_period: 90s
     restart: unless-stopped
 
   users-db:
-    image: postgres:alpine
+    image: postgres:16-alpine
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -187,15 +227,15 @@ services:
     volumes:
       - users_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d users"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
       interval: 5s
       timeout: 5s
-      retries: 20
-      start_period: 15s
+      retries: 30
+      start_period: 90s
     restart: unless-stopped
 
   chat-db:
-    image: postgres:alpine
+    image: postgres:16-alpine
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -204,15 +244,15 @@ services:
     volumes:
       - chat_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d chats"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
       interval: 5s
       timeout: 5s
-      retries: 20
-      start_period: 15s
+      retries: 30
+      start_period: 90s
     restart: unless-stopped
 
   posts-db:
-    image: postgres:alpine
+    image: postgres:16-alpine
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -221,15 +261,32 @@ services:
     volumes:
       - posts_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d posts"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
       interval: 5s
       timeout: 5s
-      retries: 20
-      start_period: 15s
+      retries: 30
+      start_period: 90s
+    restart: unless-stopped
+
+  blog-db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=blog
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - blog_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
     restart: unless-stopped
 
   waitlist-db:
-    image: postgres:alpine
+    image: postgres:16-alpine
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -238,11 +295,11 @@ services:
     volumes:
       - waitlist_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d waitlist"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
       interval: 5s
       timeout: 5s
-      retries: 20
-      start_period: 15s
+      retries: 30
+      start_period: 90s
     restart: unless-stopped
 
   redis:
@@ -271,10 +328,12 @@ services:
     restart: unless-stopped
 
 volumes:
+  api_gateway_uploads:
   bookings_db_data:
   payments_db_data:
   users_db_data:
   chat_db_data:
   posts_db_data:
+  blog_db_data:
   waitlist_db_data:
   rabbitmq_data:

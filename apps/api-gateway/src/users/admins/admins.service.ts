@@ -100,7 +100,7 @@ async updateSystemSettings(updateDto: UpdateSystemSettingsDto) {
     try {
       const result = await lastValueFrom(
         this.client
-          .send('createAdmin', createAdminDto)
+          .send('createAdmin', { ...createAdminDto, userId })
           .pipe(timeout(AdminsService.RMQ_TIMEOUT_MS)),
       );
       return result;
