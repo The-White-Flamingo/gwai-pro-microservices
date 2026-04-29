@@ -28,6 +28,9 @@ import {
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom, timeout, TimeoutError } from 'rxjs';
+// apps/api-gateway/src/users/auth/auth.service.ts
+import { AdminSignInDto} from '@app/iam';
+
 
 @Injectable()
 export class AuthService {
@@ -151,6 +154,21 @@ export class AuthService {
       this.rethrowMappedError(error);
     }
   }
+
+  // admin sign-in
+  async adminSignIn(adminSignInDto: AdminSignInDto) {
+  try {
+    return await this.sendWithTimeout('auth.adminSignIn', adminSignInDto);
+  } catch (error) {
+    if (error instanceof GatewayTimeoutException) {
+      throw error;
+    }
+    if (error instanceof UnauthorizedException) {
+      throw new UnauthorizedException(error.message);
+    }
+    throw new BadRequestException(error.message);
+  }
+}
 
   async verifySignUpOtp(verifySignUpOtpDto: VerifySignUpOtpDto) {
     try {

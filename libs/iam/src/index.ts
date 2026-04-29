@@ -23,3 +23,6 @@ export * from './enums/auth-type.enum';
 export * from './guards/access-token.guard';
 export * from './guards/authentication.guard';
 export * from './interfaces/active-user-data.interface';
+// export admin sign in dto
+export * from './dto/admin-sign-in.dto';
+export * from './authorization/enums/role.enum';

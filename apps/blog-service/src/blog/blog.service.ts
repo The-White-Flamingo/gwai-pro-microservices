@@ -1,3 +1,4 @@
+// apps/blog-service/src/blog/blog.service.ts
 import {
   BadRequestException,
   Injectable,
@@ -24,7 +25,6 @@ export class BlogService {
         publishedAt:
           createBlogDto.status === BlogStatus.Published ? new Date() : null,
       });
-
       await this.blogRepository.save(blog);
       return this.formatSingle(blog);
     } catch (error) {
@@ -32,14 +32,16 @@ export class BlogService {
     }
   }
 
-  async findAll(paginateBlogDto: PaginateBlogDto = {}) {
-    const { page, limit, skip } = this.normalizePagination(paginateBlogDto);
+  async findAll(paginateBlogDto: PaginateBlogDto) {
+    const { page, limit } = paginateBlogDto;
+    const skip = (page - 1) * limit;
 
     const [posts, totalCount] = await this.blogRepository.findAndCount({
       where: { status: BlogStatus.Published },
-      order: { publishedAt: 'DESC', createdAt: 'DESC' },
+      order: { publishedAt: 'DESC' },
       skip,
       take: limit,
+      // Select only card-level fields — exclude content
       select: [
         'id',
         'title',
@@ -54,24 +56,7 @@ export class BlogService {
     return {
       data: posts,
       totalCount,
-      totalPages: Math.ceil(totalCount / limit) || 1,
-      currentPage: page,
-    };
-  }
-
-  async findAllAdmin(paginateBlogDto: PaginateBlogDto = {}) {
-    const { page, limit, skip } = this.normalizePagination(paginateBlogDto);
-
-    const [posts, totalCount] = await this.blogRepository.findAndCount({
-      order: { createdAt: 'DESC' },
-      skip,
-      take: limit,
-    });
-
-    return {
-      data: posts.map((post) => this.formatSingle(post)),
-      totalCount,
-      totalPages: Math.ceil(totalCount / limit) || 1,
+      totalPages: Math.ceil(totalCount / limit),
       currentPage: page,
     };
   }
@@ -90,21 +75,15 @@ export class BlogService {
       return new NotFoundException('Blog post not found').getResponse();
     }
 
+    // Set publishedAt only when status transitions to published for the first time
     const isBeingPublished =
       updateBlogDto.status === BlogStatus.Published &&
-      blog.status !== BlogStatus.Published;
-    const isBeingUnpublished =
-      updateBlogDto.status === BlogStatus.Draft &&
-      blog.status === BlogStatus.Published;
+      blog.status === BlogStatus.Draft;
 
     Object.assign(blog, updateBlogDto);
 
     if (isBeingPublished) {
       blog.publishedAt = new Date();
-    }
-
-    if (isBeingUnpublished) {
-      blog.publishedAt = null;
     }
 
     await this.blogRepository.save(blog);
@@ -120,42 +99,7 @@ export class BlogService {
     return { success: true, message: 'Blog post deleted successfully.' };
   }
 
-  async publish(id: string, lastEditedBy?: string) {
-    const blog = await this.blogRepository.findOneBy({ id });
-    if (!blog) {
-      return new NotFoundException('Blog post not found').getResponse();
-    }
-
-    blog.status = BlogStatus.Published;
-    blog.publishedAt = blog.publishedAt ?? new Date();
-    blog.lastEditedBy = lastEditedBy ?? blog.lastEditedBy;
-
-    await this.blogRepository.save(blog);
-    return this.formatSingle(blog);
-  }
-
-  async unpublish(id: string, lastEditedBy?: string) {
-    const blog = await this.blogRepository.findOneBy({ id });
-    if (!blog) {
-      return new NotFoundException('Blog post not found').getResponse();
-    }
-
-    blog.status = BlogStatus.Draft;
-    blog.publishedAt = null;
-    blog.lastEditedBy = lastEditedBy ?? blog.lastEditedBy;
-
-    await this.blogRepository.save(blog);
-    return this.formatSingle(blog);
-  }
-
-  private normalizePagination(paginateBlogDto: PaginateBlogDto) {
-    const page = paginateBlogDto.page ?? 1;
-    const limit = paginateBlogDto.limit ?? 9;
-    const skip = (page - 1) * limit;
-
-    return { page, limit, skip };
-  }
-
+  // Shapes the response to match the spec exactly
   private formatSingle(blog: Blog) {
     return {
       id: blog.id,

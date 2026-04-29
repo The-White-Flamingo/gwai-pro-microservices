@@ -1,3 +1,4 @@
+// apps/blog-service/src/blog/blog.controller.ts
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { BlogService } from './blog.service';
@@ -19,11 +20,6 @@ export class BlogController {
     return this.blogService.findAll(paginateBlogDto);
   }
 
-  @MessagePattern('blog.findAllAdmin')
-  findAllAdmin(@Payload() paginateBlogDto: PaginateBlogDto) {
-    return this.blogService.findAllAdmin(paginateBlogDto);
-  }
-
   @MessagePattern('blog.findOne')
   findOne(@Payload() payload: { id: string }) {
     return this.blogService.findOne(payload.id);
@@ -37,15 +33,5 @@ export class BlogController {
   @MessagePattern('blog.remove')
   remove(@Payload() payload: { id: string }) {
     return this.blogService.remove(payload.id);
-  }
-
-  @MessagePattern('blog.publish')
-  publish(@Payload() payload: { id: string; lastEditedBy?: string }) {
-    return this.blogService.publish(payload.id, payload.lastEditedBy);
-  }
-
-  @MessagePattern('blog.unpublish')
-  unpublish(@Payload() payload: { id: string; lastEditedBy?: string }) {
-    return this.blogService.unpublish(payload.id, payload.lastEditedBy);
   }
 }

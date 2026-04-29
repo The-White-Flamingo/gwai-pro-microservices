@@ -31,6 +31,7 @@ import { join } from 'node:path';
     BlogModule,
     WaitlistModule,
     ChatModule,
+    BlogModule,
   ],
   controllers: [ApiGatewayController],
   providers: [

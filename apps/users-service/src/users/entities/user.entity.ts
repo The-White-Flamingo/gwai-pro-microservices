@@ -40,4 +40,23 @@ export class User {
   @JoinTable()
   @OneToMany(() => ApiKey, (apiKey) => apiKey.user)
   apiKeys: ApiKey[];
+
+  // fields for password reset token and its expiration
+  @Column({ nullable: true })
+  passwordResetToken: string | null;
+
+  @Column({ nullable: true, type: 'timestamptz' })
+  passwordResetTokenExpiresAt: Date | null;
+
+// is email verified field?
+  @Column({ default: false })
+  isEmailVerified: boolean;
+
+  // fields for email verification token and its expiration
+  @Column({ nullable: true })
+  emailVerificationToken: string | null;
+
+  // store the expiration time of the email verification token
+  @Column({ nullable: true, type: 'timestamptz' })
+  emailVerificationTokenExpiresAt: Date | null;
 }

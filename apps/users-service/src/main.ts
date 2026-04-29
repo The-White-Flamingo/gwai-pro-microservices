@@ -2,6 +2,9 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import {seedAdmin} from './database/seeds/admin.seed';
+// datasource
+import { DataSource } from 'typeorm';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -35,9 +38,18 @@ async function bootstrap() {
     { inheritAppConfig: true },
   );
 
+  // initialize the app before accessing providers
+  await app.init();
+
+  // Run seed before accepting traffic
+  const dataSource = app.get(DataSource); // get TypeORM DataSource instance
+  await seedAdmin(dataSource);
+  
   await app.startAllMicroservices();
 
   await app.listen(3000);
+  // await new Promise(() => {});
+
 }
 bootstrap();
 

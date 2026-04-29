@@ -28,6 +28,11 @@ export class GoogleAuthenticationService implements OnModuleInit {
   }
 
   async authenticate(token: string) {
+    if (!this.oauthClient) {
+  const clientId = this.configService.get('GOOGLE_CLIENT_ID');
+  const clientSecret = this.configService.get('GOOGLE_CLIENT_SECRET');
+  this.oauthClient = new OAuth2Client(clientId, clientSecret);
+}
     try {
       const audiences = this.getAudiences();
       if (audiences.length === 0) {

@@ -1,96 +1,85 @@
+// apps/api-gateway/src/blog/blog.service.ts
 import { BLOG_SERVICE } from '@app/shared';
 import {
   BadRequestException,
-  GatewayTimeoutException,
-  HttpException,
   Inject,
   Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { lastValueFrom, TimeoutError, timeout } from 'rxjs';
+import { lastValueFrom } from 'rxjs';
 import { CreateBlogDto } from './dto/create-blog.dto';
 import { UpdateBlogDto } from './dto/update-blog.dto';
-import { PaginateBlogDto } from './dto/paginate-blog.dto';
-
-const BLOG_RPC_TIMEOUT_MS = 10000;
 
 @Injectable()
 export class BlogService {
-  constructor(@Inject(BLOG_SERVICE) private readonly client: ClientProxy) {}
+  constructor(
+    @Inject(BLOG_SERVICE) private readonly client: ClientProxy,
+  ) {}
 
   async create(createBlogDto: CreateBlogDto) {
-    return this.send('blog.create', createBlogDto);
+    try {
+      return await lastValueFrom(this.client.send('blog.create', createBlogDto));
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
-  async findAll(paginateBlogDto: PaginateBlogDto) {
-    return this.send('blog.findAll', paginateBlogDto);
+  async findAll() {
+    try {
+      return await lastValueFrom(this.client.send('blog.findAll', {}));
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
-  async findAllAdmin(paginateBlogDto: PaginateBlogDto) {
-    return this.send('blog.findAllAdmin', paginateBlogDto);
+  async findAllAdmin() {
+    try {
+      return await lastValueFrom(this.client.send('blog.findAllAdmin', {}));
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   async findOne(id: string) {
-    return this.send('blog.findOne', { id });
+    try {
+      return await lastValueFrom(this.client.send('blog.findOne', { id }));
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   async update(id: string, updateBlogDto: UpdateBlogDto) {
-    return this.send('blog.update', { id, updateBlogDto });
+    try {
+      return await lastValueFrom(
+        this.client.send('blog.update', { id, updateBlogDto }),
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   async remove(id: string) {
-    return this.send('blog.remove', { id });
-  }
-
-  async publish(id: string, lastEditedBy: string) {
-    return this.send('blog.publish', { id, lastEditedBy });
-  }
-
-  async unpublish(id: string, lastEditedBy: string) {
-    return this.send('blog.unpublish', { id, lastEditedBy });
-  }
-
-  private async send<TResult, TPayload>(pattern: string, payload: TPayload) {
     try {
-      return await lastValueFrom(
-        this.client.send<TResult, TPayload>(pattern, payload).pipe(
-          timeout(BLOG_RPC_TIMEOUT_MS),
-        ),
-      );
+      return await lastValueFrom(this.client.send('blog.remove', { id }));
     } catch (error) {
-      throw this.mapError(error);
+      throw new BadRequestException(error.message);
     }
   }
 
-  private mapError(error: unknown) {
-    if (error instanceof TimeoutError) {
-      return new GatewayTimeoutException(
-        `Blog service request timed out after ${BLOG_RPC_TIMEOUT_MS}ms`,
-      );
+  async publish(id: string) {
+    try {
+      return await lastValueFrom(this.client.send('blog.publish', { id }));
+    } catch (error) {
+      throw new BadRequestException(error.message);
     }
-
-    if (error instanceof HttpException) {
-      return error;
-    }
-
-    if (this.isHttpLikeError(error)) {
-      return new HttpException(error.message, error.statusCode);
-    }
-
-    const message =
-      error instanceof Error ? error.message : 'Blog service request failed';
-
-    return new BadRequestException(message);
   }
 
-  private isHttpLikeError(
-    error: unknown,
-  ): error is { statusCode: number; message: string | string[] } {
-    return (
-      typeof error === 'object' &&
-      error !== null &&
-      typeof (error as { statusCode?: unknown }).statusCode === 'number' &&
-      'message' in error
-    );
+  async unpublish(id: string) {
+    try {
+      return await lastValueFrom(this.client.send('blog.unpublish', { id }));
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 }

@@ -1,0 +1,21 @@
+GET http://localhost:3000/api
+###
+
+POST http://localhost:3000/api/auth/sign-up
+Content-Type: application/json
+
+{
+  "email": "johndoe@example.com",
+  "password": "JohnDoeRulez@123",
+  "role": "Client"
+}
+###
+
+POST http://localhost:3000/auth/admin/sign-in
+Content-Type: application/json
+
+{
+  "email": "developer@gwaipro.com",
+  "password": "admin@gwaipro"
+}
+###

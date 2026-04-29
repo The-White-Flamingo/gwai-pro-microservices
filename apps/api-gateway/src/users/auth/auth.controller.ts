@@ -21,6 +21,11 @@ import {
   Body,
   Controller,
   Post,
+  Res,
+  Get,
+  Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
@@ -29,6 +34,12 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+// import reset and forgot password dtos
+// import { ForgotPasswordDto } from './dto/forgot-password.dto';
+// import { ResetPasswordDto } from './dto/reset-password.dto';
+import { AdminSignInDto} from '@app/iam';
+
 
 @ApiTags('auth')
 @Auth(AuthType.None)
@@ -804,7 +815,49 @@ export class AuthController {
     return this.authenticationService.verifyOtp(verifyAuthOtpDto);
   }
 
-  /* @Post('resend-sign-up-otp')
+  // apps/api-gateway/src/users/auth/auth.controller.ts
+// import { AdminSignInDto, ... } from '@app/iam';
+// admin sign-in
+  @Post('admin/sign-in')
+  @ApiOperation({
+    summary: 'Admin sign in',
+    description: 'Authenticates an admin user with email and password only. No OTP or email verification required.',
+  })
+  @ApiBody({
+    type: AdminSignInDto,
+    examples: {
+      adminSignIn: {
+        summary: 'Admin login',
+        value: {
+          email: 'admin@gwaipro.com',
+          password: 'Admin@1234!',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Admin authenticated successfully',
+    schema: {
+      example: {
+        accessToken: 'eyJhbGc...',
+        refreshToken: 'eyJhbGc...',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid credentials',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Not an admin account',
+  })
+  adminSignIn(@Body() adminSignInDto: AdminSignInDto) {
+    return this.authenticationService.adminSignIn(adminSignInDto);
+  }
+
+  @Post('resend-sign-up-otp')
   @ApiOperation({
     summary: 'Resend signup OTP',
     description: 'Sends a new OTP for a pending signup, subject to rate limits.',

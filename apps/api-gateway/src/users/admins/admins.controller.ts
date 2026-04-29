@@ -1,18 +1,16 @@
-import {
-  ActiveUser,
-  ActiveUserData,
-  Auth,
-  AuthType,
-  ChangePasswordDto,
-} from '@app/iam';
+// apps/api-gateway/src/users/admins/admins.controller.ts
 import {
   Body,
   Controller,
+  Get,
+  Patch,
   Post,
   UploadedFile,
   UseInterceptors,
+  Delete,
+  Param,
 } from '@nestjs/common';
-import { AdminsService } from './admins.service';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -21,19 +19,87 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
-import {
-  ensureRequiredProfileFields,
-  profilePictureUploadOptions,
-  toProfilePicturePath,
-} from '../profile-payload.util';
+import { ActiveUser, ActiveUserData, Roles } from '@app/iam';
+import { Role } from '@app/iam'; // reuse your existing enum
+import { AdminsService } from './admins.service';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { CreateRoleDto } from './dto/create-role.dto';
+import { UpdateRoleDto } from './dto/update-role.dto';
+import { InviteStaffDto } from './dto/invite-staff.dto';
+import { UpdateSystemSettingsDto } from './dto/update-system-settings.dto';
 
 @ApiBearerAuth()
 @ApiTags('admins')
-@Auth(AuthType.Bearer)
+@Roles(Role.Admin)
 @Controller('admins')
 export class AdminsController {
   constructor(private readonly adminsService: AdminsService) {}
+
+  @Get('settings/system')
+  @ApiOperation({ summary: 'Get system settings' })
+  @ApiResponse({ status: 200, description: 'System settings fetched successfully' })
+  getSystemSettings() {
+    return this.adminsService.getSystemSettings();
+  }
+
+  @Patch('settings/system')
+  @ApiOperation({ summary: 'Update system settings' })
+  @ApiResponse({ status: 200, description: 'System settings updated successfully' })
+  updateSystemSettings(@Body() updateDto: UpdateSystemSettingsDto) {
+    return this.adminsService.updateSystemSettings(updateDto);
+  }
+
+  // ── Settings: Roles ───────────────────────────────────────────────────────
+
+@Get('settings/admins/roles')
+@ApiOperation({ summary: 'Get all admin roles' })
+@ApiResponse({ status: 200, description: 'Roles fetched successfully' })
+getRoles() {
+  return this.adminsService.getRoles();
+}
+
+@Post('settings/admins/roles')
+@ApiOperation({ summary: 'Create a new admin role' })
+@ApiResponse({ status: 201, description: 'Role created successfully' })
+@ApiResponse({ status: 409, description: 'Role already exists' })
+createRole(@Body() createRoleDto: CreateRoleDto) {
+  return this.adminsService.createRole(createRoleDto);
+}
+
+@Patch('settings/admins/roles/:id')
+@ApiOperation({ summary: 'Update an admin role' })
+@ApiResponse({ status: 200, description: 'Role updated successfully' })
+@ApiResponse({ status: 404, description: 'Role not found' })
+updateRole(
+  @Param('id') id: string,
+  @Body() updateRoleDto: UpdateRoleDto,
+) {
+  return this.adminsService.updateRole(id, updateRoleDto);
+}
+
+@Delete('settings/admins/roles/:id')
+@ApiOperation({ summary: 'Delete an admin role' })
+@ApiResponse({ status: 200, description: 'Role deleted successfully' })
+@ApiResponse({ status: 404, description: 'Role not found' })
+deleteRole(@Param('id') id: string) {
+  return this.adminsService.deleteRole(id);
+}
+
+// ── Settings: Staff ───────────────────────────────────────────────────────
+
+@Post('settings/admins/invite')
+@ApiOperation({ summary: 'Invite a new staff member' })
+@ApiResponse({ status: 201, description: 'Staff invited successfully' })
+@ApiResponse({ status: 409, description: 'Email already exists' })
+inviteStaff(
+  @Body() inviteStaffDto: InviteStaffDto,
+  @ActiveUser() activeUser: ActiveUserData,
+) {
+  return this.adminsService.inviteStaff(inviteStaffDto, activeUser.email);
+}
+
+  // ── Existing ──────────────────────────────────────────────────────────────
 
   @Post()
   @UseInterceptors(
@@ -50,221 +116,227 @@ export class AdminsController {
       type: 'object',
       required: ['profilePicture', 'firstName', 'lastName', 'phoneNumber'],
       properties: {
-        profilePicture: {
-          type: 'string',
-          format: 'binary',
-          description: 'Admin profile picture (JPEG, PNG). Max 5MB.',
-        },
-        firstName: {
-          type: 'string',
-          example: 'Ama',
-          description: 'Admin first name.',
-        },
-        lastName: {
-          type: 'string',
-          example: 'Boateng',
-          description: 'Admin last name.',
-        },
-        phoneNumber: {
-          type: 'string',
-          example: '+233501234567',
-          description: 'Admin contact number in +0123456789',
-        },
-        country: {
-          type: 'string',
-          example: 'Ghana',
-          description: 'Country (select from available countries list).',
-        },
-        address: {
-          type: 'string',
-          example: '123 Ring Road, Accra',
-          description: 'Residential address.',
-        },
-        postalAddress: {
-          type: 'string',
-          example: 'P.O. Box CT 1234',
-          description: 'Postal address.',
-        },
+        firstName: { type: 'string', example: 'Ama' },
+        lastName: { type: 'string', example: 'Boateng' },
+        contact: { type: 'string', example: '+233501234567' },
+        location: { type: 'string', example: 'Accra' },
+        role: { type: 'string', example: 'Super Admin' },
       },
     },
   })
-  @ApiResponse({
-    status: 201,
-    description: 'Admin profile created successfully',
-    schema: {
-      example: {
-        status: true,
-        message: 'Admin profile created successfully',
-        data: {
-          id: '47e55c1c-0f02-48cc-b4d5-4f6aa66cd99d',
-          profilePhoto:
-            '/uploads/profile-pictures/7e2e5d0b-2da0-40ea-9838-42b8c2d87615.jpg',
-          firstName: 'Ama',
-          lastName: 'Boateng',
-          phoneNumber: '+233501234567',
-          country: 'Ghana',
-          address: '123 Ring Road, Accra',
-          postalAddress: 'P.O. Box CT 1234',
-          role: 'Admin',
-          createdAt: '2026-04-11T10:30:00.000Z',
-          updatedAt: '2026-04-11T10:30:00.000Z',
-          user: {
-            id: '8746dd82-89f7-46e8-89dd-f81d7a68d4f9',
-            email: 'ama@example.com',
-          },
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Validation error or invalid file upload',
-    schema: {
-      example: {
-        message: 'Only image files are allowed for profile pictures',
-        error: 'Bad Request',
-        statusCode: 400,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized',
-    schema: {
-      example: {
-        message: 'Unauthorized',
-        error: 'Unauthorized',
-        statusCode: 401,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Authenticated user was not found',
-    schema: {
-      example: {
-        message: 'User not found',
-        error: 'Not Found',
-        statusCode: 404,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'Admin profile already exists',
-    schema: {
-      example: {
-        message: 'Admin profile already exists',
-        error: 'Conflict',
-        statusCode: 409,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 504,
-    description: 'Upstream users-service timeout',
-    schema: {
-      example: {
-        message: 'Request to users-service timed out for pattern createAdmin',
-        error: 'Gateway Timeout',
-        statusCode: 504,
-      },
-    },
-  })
-  create(
-    @Body() createAdminDto: any,
-    @UploadedFile() file: Express.Multer.File,
-    @ActiveUser() activeUser: ActiveUserData,
-  ) {
-    const payload = {
-      ...createAdminDto,
-      profilePhoto: toProfilePicturePath(file),
-    };
-
-    ensureRequiredProfileFields(payload, [
-      'profilePhoto',
-      'firstName',
-      'lastName',
-      'phoneNumber',
-    ]);
-
-    return this.adminsService.create(
-      payload,
-      activeUser.sub,
-    );
+  @ApiResponse({ status: 201, description: 'Admin created successfully' })
+  @ApiResponse({ status: 400, description: 'Validation or processing error' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 504, description: 'Upstream users-service timeout' })
+  create(@Body() createAdminDto: any) {
+    return this.adminsService.create(createAdminDto);
   }
 
-  @Post('change-password')
-  @ApiOperation({
-    summary: 'Change admin password',
-    description:
-      'Allows an authenticated admin to change their own password. Requires current password verification.',
-  })
+  // ── Settings: Profile ─────────────────────────────────────────────────────
+
+  @Get('settings/profile')
+  @ApiOperation({ summary: 'Get admin profile' })
+  @ApiResponse({ status: 200, description: 'Profile fetched successfully' })
+  getProfile(@ActiveUser() activeUser: ActiveUserData) {
+    return this.adminsService.getProfile(activeUser.sub);
+  }
+
+  @Patch('settings/profile')
+  @ApiOperation({ summary: 'Update admin profile' })
+  @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+  updateProfile(
+    @ActiveUser() activeUser: ActiveUserData,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    return this.adminsService.updateProfile(activeUser.sub, updateProfileDto);
+  }
+
+  @Post('settings/profile/photo')
+  @ApiOperation({ summary: 'Upload admin profile photo' })
+  @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
-      required: ['currentPassword', 'newPassword'],
       properties: {
-        currentPassword: {
-          type: 'string',
-          example: 'CurrentPassword123!',
-          description: 'Current admin password (at least 8 characters, strong).',
-        },
-        newPassword: {
-          type: 'string',
-          example: 'NewPassword123!',
-          description: 'New admin password (at least 8 characters, strong).',
-        },
+        photo: { type: 'string', format: 'binary' },
       },
     },
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Password changed successfully',
-    schema: {
-      example: {
-        status: true,
-        message: 'Password changed successfully.',
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized or invalid current password',
-    schema: {
-      example: {
-        message: 'Current password is incorrect',
-        error: 'Unauthorized',
-        statusCode: 401,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Validation error (new password too weak)',
-    schema: {
-      example: {
-        message: 'New password must be at least 8 characters',
-        error: 'Bad Request',
-        statusCode: 400,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 504,
-    description: 'Upstream users-service timeout',
-    schema: {
-      example: {
-        message: 'Request to users-service timed out for pattern auth.changePassword',
-        error: 'Gateway Timeout',
-        statusCode: 504,
-      },
-    },
-  })
-  changePassword(
-    @Body() changePasswordDto: ChangePasswordDto,
+  @ApiResponse({ status: 201, description: 'Photo uploaded successfully' })
+  @UseInterceptors(FileInterceptor('photo'))
+  async uploadProfilePhoto(
     @ActiveUser() activeUser: ActiveUserData,
+    @UploadedFile() file: Express.Multer.File,
   ) {
-    return this.adminsService.changePassword(changePasswordDto, activeUser);
+    const photoUrl = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+    return this.adminsService.updateProfilePhoto(activeUser.sub, photoUrl);
+  }
+
+  // ── Settings: Account ─────────────────────────────────────────────────────
+
+  @Post('settings/account/change-password')
+  @ApiOperation({ summary: 'Change admin password' })
+  @ApiResponse({ status: 201, description: 'Password changed successfully' })
+  @ApiResponse({ status: 400, description: 'Incorrect current password or passwords do not match' })
+  changePassword(
+    @ActiveUser() activeUser: ActiveUserData,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return this.adminsService.changePassword(activeUser.sub, changePasswordDto);
   }
 }
+
+/**
+ * // apps/api-gateway/src/users/admins/admins.controller.ts
+import { Delete, Param } from '@nestjs/common';
+import { CreateRoleDto } from './dto/create-role.dto';
+import { UpdateRoleDto } from './dto/update-role.dto';
+import { InviteStaffDto } from './dto/invite-staff.dto';
+
+// ── Settings: Roles ───────────────────────────────────────────────────────
+
+@Get('settings/admins/roles')
+@ApiOperation({ summary: 'Get all admin roles' })
+@ApiResponse({ status: 200, description: 'Roles fetched successfully' })
+getRoles() {
+  return this.adminsService.getRoles();
+}
+
+@Post('settings/admins/roles')
+@ApiOperation({ summary: 'Create a new admin role' })
+@ApiResponse({ status: 201, description: 'Role created successfully' })
+@ApiResponse({ status: 409, description: 'Role already exists' })
+createRole(@Body() createRoleDto: CreateRoleDto) {
+  return this.adminsService.createRole(createRoleDto);
+}
+
+@Patch('settings/admins/roles/:id')
+@ApiOperation({ summary: 'Update an admin role' })
+@ApiResponse({ status: 200, description: 'Role updated successfully' })
+@ApiResponse({ status: 404, description: 'Role not found' })
+updateRole(
+  @Param('id') id: string,
+  @Body() updateRoleDto: UpdateRoleDto,
+) {
+  return this.adminsService.updateRole(id, updateRoleDto);
+}
+
+@Delete('settings/admins/roles/:id')
+@ApiOperation({ summary: 'Delete an admin role' })
+@ApiResponse({ status: 200, description: 'Role deleted successfully' })
+@ApiResponse({ status: 404, description: 'Role not found' })
+deleteRole(@Param('id') id: string) {
+  return this.adminsService.deleteRole(id);
+}
+
+// ── Settings: Staff ───────────────────────────────────────────────────────
+
+@Post('settings/admins/invite')
+@ApiOperation({ summary: 'Invite a new staff member' })
+@ApiResponse({ status: 201, description: 'Staff invited successfully' })
+@ApiResponse({ status: 409, description: 'Email already exists' })
+inviteStaff(
+  @Body() inviteStaffDto: InviteStaffDto,
+  @ActiveUser() activeUser: ActiveUserData,
+) {
+  return this.adminsService.inviteStaff(inviteStaffDto, activeUser.email);
+}
+ */
+
+// import { Body, Controller, Post } from '@nestjs/common';
+// import { AdminsService } from './admins.service';
+// import {
+//   ApiBearerAuth,
+//   ApiBody,
+//   ApiOperation,
+//   ApiResponse,
+//   ApiTags,
+// } from '@nestjs/swagger';
+
+// @ApiBearerAuth()
+// @ApiTags('admins')
+// @Controller('admins')
+// export class AdminsController {
+//   constructor(private readonly adminsService: AdminsService) {}
+
+//   @Post()
+//   @ApiOperation({ summary: 'Create admin profile' })
+//   @ApiBody({
+//     schema: {
+//       type: 'object',
+//       required: ['firstName', 'lastName', 'contact'],
+//       properties: {
+//         firstName: { type: 'string', example: 'Ama' },
+//         lastName: { type: 'string', example: 'Boateng' },
+//         contact: { type: 'string', example: '+233501234567' },
+//         location: { type: 'string', example: 'Accra' },
+//         role: { type: 'string', example: 'Super Admin' },
+//       },
+//     },
+//     examples: {
+//       createAdmin: {
+//         summary: 'Admin payload',
+//         value: {
+//           firstName: 'Ama',
+//           lastName: 'Boateng',
+//           contact: '+233501234567',
+//           location: 'Accra',
+//           role: 'Super Admin',
+//         },
+//       },
+//     },
+//   })
+//   @ApiResponse({
+//     status: 201,
+//     description: 'Admin created successfully',
+//     schema: {
+//       example: {
+//         status: true,
+//         message: 'Admin profile created successfully',
+//         data: {
+//           firstName: 'Ama',
+//           lastName: 'Boateng',
+//           contact: '+233501234567',
+//           location: 'Accra',
+//           role: 'Super Admin',
+//         },
+//       },
+//     },
+//   })
+//   @ApiResponse({
+//     status: 400,
+//     description: 'Validation or processing error',
+//     schema: {
+//       example: {
+//         message: 'Validation failed',
+//         error: 'Bad Request',
+//         statusCode: 400,
+//       },
+//     },
+//   })
+//   @ApiResponse({
+//     status: 401,
+//     description: 'Unauthorized',
+//     schema: {
+//       example: {
+//         message: 'Unauthorized',
+//         error: 'Unauthorized',
+//         statusCode: 401,
+//       },
+//     },
+//   })
+//   @ApiResponse({
+//     status: 504,
+//     description: 'Upstream users-service timeout',
+//     schema: {
+//       example: {
+//         message: 'Request to users-service timed out for pattern createAdmin',
+//         error: 'Gateway Timeout',
+//         statusCode: 504,
+//       },
+//     },
+//   })
+//   create(@Body() createAdminDto: any) {
+//     return this.adminsService.create(createAdminDto);
+//   }
+// }

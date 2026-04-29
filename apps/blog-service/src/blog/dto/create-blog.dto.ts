@@ -1,3 +1,4 @@
+// apps/blog-service/src/blog/dto/create-blog.dto.ts
 import {
   IsArray,
   IsEnum,
@@ -18,7 +19,7 @@ export class CreateBlogDto {
 
   @IsOptional()
   @IsString()
-  image?: string;
+  image?: string; // populated by the service after file upload, not sent by client
 
   @IsOptional()
   @IsArray()
@@ -31,14 +32,9 @@ export class CreateBlogDto {
 
   @IsNotEmpty()
   @IsString()
-  authorName: string;
+  authorName: string; // from the form
 
-  // Injected server-side from JWT, never from the client body.
-  @IsNotEmpty()
-  @IsString()
+  // Injected server-side from JWT — never from the client body
   authorId: string;
-
-  @IsNotEmpty()
-  @IsString()
   authorRole: string;
 }
