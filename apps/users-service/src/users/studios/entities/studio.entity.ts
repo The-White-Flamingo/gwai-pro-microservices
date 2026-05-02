@@ -38,6 +38,33 @@ export class Studio {
   @Column({ nullable: true })
   profilePicturePath: string;
 
+  @Column({ nullable: true })
+  coverVideoPath: string;
+
+  @Column({ type: 'text', nullable: true })
+  bio: string;
+
+  @Column({ nullable: true })
+  paymentMethodType: string;
+
+  @Column({ nullable: true })
+  bankName: string;
+
+  @Column({ nullable: true })
+  bankAccountNumber: string;
+
+  @Column({ nullable: true })
+  bankAccountName: string;
+
+  @Column({ nullable: true })
+  mobileMoneyNetworkProvider: string;
+
+  @Column({ nullable: true })
+  mobileMoneyPhoneNumber: string;
+
+  @Column({ nullable: true })
+  mobileMoneyAccountName: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

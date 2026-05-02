@@ -1,10 +1,15 @@
 import { Role } from '@app/users';
-import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsArray, IsIn, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class CreatePostDto {
   @IsOptional()
-  @IsString()
-  mediaUrl?: string;
+  @IsArray()
+  @IsString({ each: true })
+  mediaUrls?: string[];
+
+  @IsOptional()
+  @IsIn(['IMAGE', 'VIDEO'])
+  mediaKind?: 'IMAGE' | 'VIDEO';
 
   @IsOptional()
   @IsString()

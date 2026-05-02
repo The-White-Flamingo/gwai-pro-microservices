@@ -25,7 +25,7 @@ export class AdminsController {
 
   @MessagePattern('updateAdmin')
   update(@Payload() updateAdminDto: UpdateAdminDto) {
-    return this.adminsService.update(updateAdminDto.id, updateAdminDto);
+    return this.adminsService.updateProfile(updateAdminDto as UpdateAdminDto & { userId: string });
   }
 
   @MessagePattern('removeAdmin')

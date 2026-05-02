@@ -18,6 +18,7 @@ import {
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { access } from 'fs/promises';
+import { readFile } from 'fs/promises';
 import { lastValueFrom, timeout, TimeoutError } from 'rxjs';
 import { join, resolve } from 'path';
 import sharp from 'sharp';
@@ -167,14 +168,20 @@ export class PostsService {
     }
   }
 
-  async downloadPostMedia(postId: string, activeUser: ActiveUserData) {
+  async downloadPostMedia(
+    postId: string,
+    activeUser: ActiveUserData,
+    mediaIndex = 0,
+  ) {
     const postResponse = (await this.findOne(postId, activeUser)) as {
-      data?: { mediaUrl?: string };
+      data?: { mediaUrls?: string[]; mediaKind?: 'IMAGE' | 'VIDEO' | null };
     };
-    const mediaUrl = postResponse?.data?.mediaUrl as string | undefined;
+    const mediaUrls = postResponse?.data?.mediaUrls ?? [];
+    const mediaKind = postResponse?.data?.mediaKind ?? null;
+    const mediaUrl = mediaUrls[mediaIndex];
 
     if (!mediaUrl) {
-      throw new BadRequestException('This post does not have downloadable media');
+      throw new BadRequestException('Requested media item was not found');
     }
 
     const uploadsRoot = resolve(join(process.cwd(), 'uploads'));
@@ -187,6 +194,23 @@ export class PostsService {
     }
 
     await access(absoluteFilePath);
+
+    if (mediaKind === 'VIDEO') {
+      const fileBuffer = await readFile(absoluteFilePath);
+      const extension = absoluteFilePath.split('.').pop()?.toLowerCase();
+      const contentType =
+        extension === 'mov'
+          ? 'video/quicktime'
+          : extension === 'webm'
+            ? 'video/webm'
+            : 'video/mp4';
+
+      return {
+        fileName: `gwai-pro-post-${postId}.${extension ?? 'mp4'}`,
+        contentType,
+        buffer: fileBuffer,
+      };
+    }
 
     const image = sharp(absoluteFilePath);
     const metadata = await image.metadata();

@@ -35,4 +35,12 @@ export class CreateClientDto {
   @IsOptional()
   @IsString()
   profilePicturePath?: string;
+
+  @IsOptional()
+  @IsString()
+  coverVideoPath?: string;
+
+  @IsOptional()
+  @IsString()
+  bio?: string;
 }

@@ -23,16 +23,21 @@ export const postMediaUploadOptions = {
     },
   }),
   limits: {
-    fileSize: 10 * 1024 * 1024,
+    fileSize: 50 * 1024 * 1024,
   },
   fileFilter: (
     _req: any,
     file: Express.Multer.File,
     callback: (error: Error | null, acceptFile: boolean) => void,
   ) => {
-    if (!file.mimetype.startsWith('image/')) {
+    if (
+      !file.mimetype.startsWith('image/') &&
+      !file.mimetype.startsWith('video/')
+    ) {
       callback(
-        new BadRequestException('Only image uploads are supported for posts'),
+        new BadRequestException(
+          'Only image or video uploads are supported for posts',
+        ),
         false,
       );
       return;
@@ -44,4 +49,31 @@ export const postMediaUploadOptions = {
 
 export function toPostMediaPath(file?: Express.Multer.File) {
   return file ? `/uploads/post-media/${file.filename}` : undefined;
+}
+
+export function buildPostMediaPayload(files?: Express.Multer.File[]) {
+  if (!files || files.length === 0) {
+    return {
+      mediaUrls: undefined,
+      mediaKind: undefined,
+    };
+  }
+
+  const imageFiles = files.filter((file) => file.mimetype.startsWith('image/'));
+  const videoFiles = files.filter((file) => file.mimetype.startsWith('video/'));
+
+  if (imageFiles.length > 0 && videoFiles.length > 0) {
+    throw new BadRequestException(
+      'A post can contain either images or a single video, not both',
+    );
+  }
+
+  if (videoFiles.length > 1) {
+    throw new BadRequestException('Only one video can be uploaded per post');
+  }
+
+  return {
+    mediaUrls: files.map((file) => `/uploads/post-media/${file.filename}`),
+    mediaKind: videoFiles.length === 1 ? 'VIDEO' : 'IMAGE',
+  } as const;
 }

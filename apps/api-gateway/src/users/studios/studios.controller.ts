@@ -4,7 +4,7 @@ import {
   Controller,
   Patch,
   Post,
-  UploadedFile,
+  UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
 import { StudiosService } from './studios.service';
@@ -16,11 +16,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import {
+  coverVideoUploadOptions,
   ensureRequiredProfileFields,
   omitUndefinedFields,
   normalizeStringArrayField,
+  toCoverVideoPath,
   profilePictureUploadOptions,
   toProfilePicturePath,
 } from '../profile-payload.util';
@@ -34,7 +36,41 @@ export class StudiosController {
 
   @Post()
   @UseInterceptors(
-    FileInterceptor('profilePicture', profilePictureUploadOptions),
+    FileFieldsInterceptor(
+      [
+        { name: 'profilePicture', maxCount: 1 },
+        { name: 'coverVideo', maxCount: 1 },
+      ],
+      {
+        limits: {
+          fileSize: Math.max(
+            profilePictureUploadOptions.limits.fileSize,
+            coverVideoUploadOptions.limits.fileSize,
+          ),
+        },
+        fileFilter: (req, file, callback) => {
+          if (file.fieldname === 'coverVideo') {
+            coverVideoUploadOptions.fileFilter(req, file as Express.Multer.File, callback);
+            return;
+          }
+          profilePictureUploadOptions.fileFilter(req, file as Express.Multer.File, callback);
+        },
+        storage: {
+          _handleFile(req, file, callback) {
+            if (file.fieldname === 'coverVideo') {
+              return (coverVideoUploadOptions.storage as any)._handleFile(req, file as any, callback);
+            }
+            return (profilePictureUploadOptions.storage as any)._handleFile(req, file as any, callback);
+          },
+          _removeFile(req, file, callback) {
+            if (file.fieldname === 'coverVideo') {
+              return (coverVideoUploadOptions.storage as any)._removeFile(req, file as any, callback);
+            }
+            return (profilePictureUploadOptions.storage as any)._removeFile(req, file as any, callback);
+          },
+        },
+      },
+    ),
   )
   @ApiOperation({
     summary: 'Create studio profile',
@@ -73,6 +109,18 @@ export class StudiosController {
           type: 'string',
           format: 'binary',
         },
+        coverVideo: {
+          type: 'string',
+          format: 'binary',
+        },
+        bio: { type: 'string', example: 'High-end recording and mastering studio.' },
+        paymentMethodType: { type: 'string', example: 'bank' },
+        bankName: { type: 'string', example: 'Ecobank' },
+        bankAccountNumber: { type: 'string', example: '1234567890' },
+        bankAccountName: { type: 'string', example: 'Echo Chamber Studios' },
+        mobileMoneyNetworkProvider: { type: 'string', example: 'TELECEL' },
+        mobileMoneyPhoneNumber: { type: 'string', example: '+233201998877' },
+        mobileMoneyAccountName: { type: 'string', example: 'Echo Chamber Studios' },
       },
     },
   })
@@ -160,14 +208,18 @@ export class StudiosController {
   })
   create(
     @Body() createStudioDto: any,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFiles()
+    files: { profilePicture?: Express.Multer.File[]; coverVideo?: Express.Multer.File[] },
     @ActiveUser() activeUser: ActiveUserData,
   ) {
+    const profilePictureFile = files?.profilePicture?.[0] as Express.Multer.File | undefined;
+    const coverVideoFile = files?.coverVideo?.[0] as Express.Multer.File | undefined;
     const payload = {
       ...createStudioDto,
       services: normalizeStringArrayField(createStudioDto.services),
       equipment: normalizeStringArrayField(createStudioDto.equipment),
-      profilePicturePath: toProfilePicturePath(file),
+      profilePicturePath: toProfilePicturePath(profilePictureFile),
+      coverVideoPath: toCoverVideoPath(coverVideoFile),
     };
 
     ensureRequiredProfileFields(payload, [
@@ -189,7 +241,41 @@ export class StudiosController {
 
   @Patch()
   @UseInterceptors(
-    FileInterceptor('profilePicture', profilePictureUploadOptions),
+    FileFieldsInterceptor(
+      [
+        { name: 'profilePicture', maxCount: 1 },
+        { name: 'coverVideo', maxCount: 1 },
+      ],
+      {
+        limits: {
+          fileSize: Math.max(
+            profilePictureUploadOptions.limits.fileSize,
+            coverVideoUploadOptions.limits.fileSize,
+          ),
+        },
+        fileFilter: (req, file, callback) => {
+          if (file.fieldname === 'coverVideo') {
+            coverVideoUploadOptions.fileFilter(req, file as Express.Multer.File, callback);
+            return;
+          }
+          profilePictureUploadOptions.fileFilter(req, file as Express.Multer.File, callback);
+        },
+        storage: {
+          _handleFile(req, file, callback) {
+            if (file.fieldname === 'coverVideo') {
+              return (coverVideoUploadOptions.storage as any)._handleFile(req, file as any, callback);
+            }
+            return (profilePictureUploadOptions.storage as any)._handleFile(req, file as any, callback);
+          },
+          _removeFile(req, file, callback) {
+            if (file.fieldname === 'coverVideo') {
+              return (coverVideoUploadOptions.storage as any)._removeFile(req, file as any, callback);
+            }
+            return (profilePictureUploadOptions.storage as any)._removeFile(req, file as any, callback);
+          },
+        },
+      },
+    ),
   )
   @ApiOperation({
     summary: 'Update studio profile',
@@ -218,6 +304,21 @@ export class StudiosController {
           type: 'string',
           format: 'binary',
         },
+        coverVideo: {
+          type: 'string',
+          format: 'binary',
+        },
+        bio: {
+          type: 'string',
+          example: 'High-end recording and mastering studio.',
+        },
+        paymentMethodType: { type: 'string', example: 'momo' },
+        bankName: { type: 'string', example: 'Ecobank' },
+        bankAccountNumber: { type: 'string', example: '1234567890' },
+        bankAccountName: { type: 'string', example: 'Echo Chamber Studios' },
+        mobileMoneyNetworkProvider: { type: 'string', example: 'MTN' },
+        mobileMoneyPhoneNumber: { type: 'string', example: '+233201998877' },
+        mobileMoneyAccountName: { type: 'string', example: 'Echo Chamber Studios' },
       },
     },
   })
@@ -307,14 +408,18 @@ export class StudiosController {
   update(
     @Body() updateStudioDto: any,
     @ActiveUser() activeUser: ActiveUserData,
-    @UploadedFile() file?: Express.Multer.File,
+    @UploadedFiles()
+    files?: { profilePicture?: Express.Multer.File[]; coverVideo?: Express.Multer.File[] },
   ) {
+    const profilePictureFile = files?.profilePicture?.[0] as Express.Multer.File | undefined;
+    const coverVideoFile = files?.coverVideo?.[0] as Express.Multer.File | undefined;
     return this.studiosService.update(
       omitUndefinedFields({
         ...updateStudioDto,
         services: normalizeStringArrayField(updateStudioDto.services),
         equipment: normalizeStringArrayField(updateStudioDto.equipment),
-        profilePicturePath: toProfilePicturePath(file),
+        profilePicturePath: toProfilePicturePath(profilePictureFile),
+        coverVideoPath: toCoverVideoPath(coverVideoFile),
       }),
       activeUser.sub,
     );

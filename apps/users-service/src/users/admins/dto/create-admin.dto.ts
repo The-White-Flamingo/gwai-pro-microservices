@@ -5,6 +5,14 @@ export class CreateAdminDto {
   @IsString()
   profilePhoto?: string;
 
+  @IsOptional()
+  @IsString()
+  coverVideoPath?: string;
+
+  @IsOptional()
+  @IsString()
+  bio?: string;
+
   @IsNotEmpty()
   @IsString()
   firstName: string;

@@ -4,7 +4,7 @@ import {
   Controller,
   Patch,
   Post,
-  UploadedFile,
+  UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
 import { MusiciansService } from './musicians.service';
@@ -16,12 +16,14 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import {
+  coverVideoUploadOptions,
   ensureRequiredProfileFields,
   omitUndefinedFields,
   normalizeDateField,
   normalizeStringArrayField,
+  toCoverVideoPath,
   profilePictureUploadOptions,
   toProfilePicturePath,
 } from '../profile-payload.util';
@@ -35,7 +37,41 @@ export class MusiciansController {
 
   @Post()
   @UseInterceptors(
-    FileInterceptor('profilePicture', profilePictureUploadOptions),
+    FileFieldsInterceptor(
+      [
+        { name: 'profilePicture', maxCount: 1 },
+        { name: 'coverVideo', maxCount: 1 },
+      ],
+      {
+        limits: {
+          fileSize: Math.max(
+            profilePictureUploadOptions.limits.fileSize,
+            coverVideoUploadOptions.limits.fileSize,
+          ),
+        },
+        fileFilter: (req, file, callback) => {
+          if (file.fieldname === 'coverVideo') {
+            coverVideoUploadOptions.fileFilter(req, file as Express.Multer.File, callback);
+            return;
+          }
+          profilePictureUploadOptions.fileFilter(req, file as Express.Multer.File, callback);
+        },
+        storage: {
+          _handleFile(req, file, callback) {
+            if (file.fieldname === 'coverVideo') {
+              return (coverVideoUploadOptions.storage as any)._handleFile(req, file as any, callback);
+            }
+            return (profilePictureUploadOptions.storage as any)._handleFile(req, file as any, callback);
+          },
+          _removeFile(req, file, callback) {
+            if (file.fieldname === 'coverVideo') {
+              return (coverVideoUploadOptions.storage as any)._removeFile(req, file as any, callback);
+            }
+            return (profilePictureUploadOptions.storage as any)._removeFile(req, file as any, callback);
+          },
+        },
+      },
+    ),
   )
   @ApiOperation({
     summary: 'Create musician profile',
@@ -82,6 +118,18 @@ export class MusiciansController {
           type: 'string',
           format: 'binary',
         },
+        coverVideo: {
+          type: 'string',
+          format: 'binary',
+        },
+        bio: { type: 'string', example: 'Session bassist and arranger.' },
+        paymentMethodType: { type: 'string', example: 'momo' },
+        bankName: { type: 'string', example: 'GCB Bank' },
+        bankAccountNumber: { type: 'string', example: '0123456789' },
+        bankAccountName: { type: 'string', example: 'Kojo Asare' },
+        mobileMoneyNetworkProvider: { type: 'string', example: 'MTN' },
+        mobileMoneyPhoneNumber: { type: 'string', example: '+233241112233' },
+        mobileMoneyAccountName: { type: 'string', example: 'Kojo Asare' },
       },
     },
   })
@@ -172,15 +220,19 @@ export class MusiciansController {
   })
   create(
     @Body() createMusicianDto: any,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFiles()
+    files: { profilePicture?: Express.Multer.File[]; coverVideo?: Express.Multer.File[] },
     @ActiveUser() activeUser: ActiveUserData,
   ) {
+    const profilePictureFile = files?.profilePicture?.[0] as Express.Multer.File | undefined;
+    const coverVideoFile = files?.coverVideo?.[0] as Express.Multer.File | undefined;
     const payload = {
       ...createMusicianDto,
       dateOfBirth: normalizeDateField(createMusicianDto.dateOfBirth),
       interests: normalizeStringArrayField(createMusicianDto.interests),
       genres: normalizeStringArrayField(createMusicianDto.genres),
-      profilePicturePath: toProfilePicturePath(file),
+      profilePicturePath: toProfilePicturePath(profilePictureFile),
+      coverVideoPath: toCoverVideoPath(coverVideoFile),
     };
 
     ensureRequiredProfileFields(payload, [
@@ -204,7 +256,41 @@ export class MusiciansController {
 
   @Patch()
   @UseInterceptors(
-    FileInterceptor('profilePicture', profilePictureUploadOptions),
+    FileFieldsInterceptor(
+      [
+        { name: 'profilePicture', maxCount: 1 },
+        { name: 'coverVideo', maxCount: 1 },
+      ],
+      {
+        limits: {
+          fileSize: Math.max(
+            profilePictureUploadOptions.limits.fileSize,
+            coverVideoUploadOptions.limits.fileSize,
+          ),
+        },
+        fileFilter: (req, file, callback) => {
+          if (file.fieldname === 'coverVideo') {
+            coverVideoUploadOptions.fileFilter(req, file as Express.Multer.File, callback);
+            return;
+          }
+          profilePictureUploadOptions.fileFilter(req, file as Express.Multer.File, callback);
+        },
+        storage: {
+          _handleFile(req, file, callback) {
+            if (file.fieldname === 'coverVideo') {
+              return (coverVideoUploadOptions.storage as any)._handleFile(req, file as any, callback);
+            }
+            return (profilePictureUploadOptions.storage as any)._handleFile(req, file as any, callback);
+          },
+          _removeFile(req, file, callback) {
+            if (file.fieldname === 'coverVideo') {
+              return (coverVideoUploadOptions.storage as any)._removeFile(req, file as any, callback);
+            }
+            return (profilePictureUploadOptions.storage as any)._removeFile(req, file as any, callback);
+          },
+        },
+      },
+    ),
   )
   @ApiOperation({
     summary: 'Update musician profile',
@@ -239,6 +325,21 @@ export class MusiciansController {
           type: 'string',
           format: 'binary',
         },
+        coverVideo: {
+          type: 'string',
+          format: 'binary',
+        },
+        bio: {
+          type: 'string',
+          example: 'Session bassist and arranger.',
+        },
+        paymentMethodType: { type: 'string', example: 'bank' },
+        bankName: { type: 'string', example: 'GCB Bank' },
+        bankAccountNumber: { type: 'string', example: '0123456789' },
+        bankAccountName: { type: 'string', example: 'Kojo Asare' },
+        mobileMoneyNetworkProvider: { type: 'string', example: 'MTN' },
+        mobileMoneyPhoneNumber: { type: 'string', example: '+233241112233' },
+        mobileMoneyAccountName: { type: 'string', example: 'Kojo Asare' },
       },
     },
   })
@@ -330,15 +431,19 @@ export class MusiciansController {
   update(
     @Body() updateMusicianDto: any,
     @ActiveUser() activeUser: ActiveUserData,
-    @UploadedFile() file?: Express.Multer.File,
+    @UploadedFiles()
+    files?: { profilePicture?: Express.Multer.File[]; coverVideo?: Express.Multer.File[] },
   ) {
+    const profilePictureFile = files?.profilePicture?.[0] as Express.Multer.File | undefined;
+    const coverVideoFile = files?.coverVideo?.[0] as Express.Multer.File | undefined;
     return this.musiciansService.update(
       omitUndefinedFields({
         ...updateMusicianDto,
         dateOfBirth: normalizeDateField(updateMusicianDto.dateOfBirth),
         interests: normalizeStringArrayField(updateMusicianDto.interests),
         genres: normalizeStringArrayField(updateMusicianDto.genres),
-        profilePicturePath: toProfilePicturePath(file),
+        profilePicturePath: toProfilePicturePath(profilePictureFile),
+        coverVideoPath: toCoverVideoPath(coverVideoFile),
       }),
       activeUser.sub,
     );

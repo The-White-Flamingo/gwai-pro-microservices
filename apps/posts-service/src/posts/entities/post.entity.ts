@@ -16,6 +16,11 @@ export enum FeedPostType {
   MEDIA_WITH_CAPTION = 'MEDIA_WITH_CAPTION',
 }
 
+export enum FeedMediaKind {
+  IMAGE = 'IMAGE',
+  VIDEO = 'VIDEO',
+}
+
 @Entity('feeds')
 export class Post {
   @PrimaryGeneratedColumn('uuid')
@@ -24,8 +29,16 @@ export class Post {
   @Column({ name: 'user_id' })
   userId: string;
 
-  @Column({ name: 'media_url', type: 'text', nullable: true })
-  mediaUrl?: string | null;
+  @Column('simple-array', { name: 'media_urls', nullable: true })
+  mediaUrls?: string[] | null;
+
+  @Column({
+    name: 'media_kind',
+    type: 'enum',
+    enum: FeedMediaKind,
+    nullable: true,
+  })
+  mediaKind?: FeedMediaKind | null;
 
   @Column({ type: 'text', nullable: true })
   caption?: string | null;

@@ -1,4 +1,4 @@
-import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateStudioDto {
   @IsNotEmpty()
@@ -32,4 +32,40 @@ export class CreateStudioDto {
   @IsOptional()
   @IsString()
   profilePicturePath?: string;
+
+  @IsOptional()
+  @IsString()
+  coverVideoPath?: string;
+
+  @IsOptional()
+  @IsString()
+  bio?: string;
+
+  @IsOptional()
+  @IsIn(['bank', 'momo'])
+  paymentMethodType?: string;
+
+  @IsOptional()
+  @IsString()
+  bankName?: string;
+
+  @IsOptional()
+  @IsString()
+  bankAccountNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  bankAccountName?: string;
+
+  @IsOptional()
+  @IsString()
+  mobileMoneyNetworkProvider?: string;
+
+  @IsOptional()
+  @IsString()
+  mobileMoneyPhoneNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  mobileMoneyAccountName?: string;
 }

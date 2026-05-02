@@ -72,8 +72,33 @@ export class AdminsService {
     return `This action returns a #${id} admin`;
   }
 
-  update(id: string, updateAdminDto: UpdateAdminDto) {
-    return `This action updates a #${id} admin`;
+  async updateProfile(updateAdminDto: Partial<UpdateAdminDto> & { userId: string }) {
+    try {
+      const { userId, ...profilePayload } = updateAdminDto;
+      const admin = await this.adminsRepository.findOne({
+        where: { user: { id: userId } },
+        relations: ['user'],
+      });
+
+      if (!admin) {
+        throw new NotFoundException('Admin profile not found');
+      }
+
+      admin.role = Role.Admin;
+      Object.assign(admin, profilePayload);
+      const updatedAdmin = await this.adminsRepository.save(admin);
+
+      return {
+        status: true,
+        message: 'Admin profile updated successfully',
+        data: updatedAdmin,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(error.message);
+    }
   }
 
   remove(id: string) {

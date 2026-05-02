@@ -9,10 +9,21 @@ const profilePicturesDirectory = join(
   'uploads',
   'profile-pictures',
 );
+const coverVideosDirectory = join(
+  process.cwd(),
+  'uploads',
+  'cover-videos',
+);
 
 function ensureProfilePicturesDirectory() {
   if (!existsSync(profilePicturesDirectory)) {
     mkdirSync(profilePicturesDirectory, { recursive: true });
+  }
+}
+
+function ensureCoverVideosDirectory() {
+  if (!existsSync(coverVideosDirectory)) {
+    mkdirSync(coverVideosDirectory, { recursive: true });
   }
 }
 
@@ -48,8 +59,42 @@ export const profilePictureUploadOptions = {
   },
 };
 
+export const coverVideoUploadOptions = {
+  storage: diskStorage({
+    destination: (_req, _file, callback) => {
+      ensureCoverVideosDirectory();
+      callback(null, coverVideosDirectory);
+    },
+    filename: (_req, file, callback) => {
+      callback(null, `${randomUUID()}${extname(file.originalname || '')}`);
+    },
+  }),
+  limits: {
+    fileSize: 25 * 1024 * 1024,
+  },
+  fileFilter: (
+    _req: any,
+    file: Express.Multer.File,
+    callback: (error: Error | null, acceptFile: boolean) => void,
+  ) => {
+    if (!file.mimetype.startsWith('video/')) {
+      callback(
+        new BadRequestException('Only video files are allowed for cover videos'),
+        false,
+      );
+      return;
+    }
+
+    callback(null, true);
+  },
+};
+
 export function toProfilePicturePath(file?: Express.Multer.File) {
   return file ? `/uploads/profile-pictures/${file.filename}` : undefined;
+}
+
+export function toCoverVideoPath(file?: Express.Multer.File) {
+  return file ? `/uploads/cover-videos/${file.filename}` : undefined;
 }
 
 export function normalizeStringArrayField(value: unknown) {

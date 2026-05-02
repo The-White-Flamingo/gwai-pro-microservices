@@ -4,6 +4,7 @@ import {
   GatewayTimeoutException,
   Inject,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
@@ -29,6 +30,30 @@ export class AdminsService {
         throw new GatewayTimeoutException(
           'Request to users-service timed out for pattern createAdmin',
         );
+      }
+      if (error instanceof UnauthorizedException) {
+        throw new UnauthorizedException(this.getErrorMessage(error));
+      }
+      throw new BadRequestException(this.getErrorMessage(error));
+    }
+  }
+
+  async update(updateAdminDto: any, userId: string) {
+    try {
+      const result = await lastValueFrom(
+        this.client
+          .send('updateAdmin', { ...updateAdminDto, userId })
+          .pipe(timeout(AdminsService.RMQ_TIMEOUT_MS)),
+      );
+      return result;
+    } catch (error) {
+      if (error instanceof TimeoutError) {
+        throw new GatewayTimeoutException(
+          'Request to users-service timed out for pattern updateAdmin',
+        );
+      }
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(this.getErrorMessage(error));
       }
       if (error instanceof UnauthorizedException) {
         throw new UnauthorizedException(this.getErrorMessage(error));

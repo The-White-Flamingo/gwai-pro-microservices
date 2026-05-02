@@ -41,6 +41,12 @@ export class Client {
   @Column({ nullable: true })
   profilePicturePath: string;
 
+  @Column({ nullable: true })
+  coverVideoPath: string;
+
+  @Column({ type: 'text', nullable: true })
+  bio: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

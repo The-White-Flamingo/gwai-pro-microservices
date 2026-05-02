@@ -8,8 +8,9 @@ import {
 import {
   Body,
   Controller,
+  Patch,
   Post,
-  UploadedFile,
+  UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
 import { AdminsService } from './admins.service';
@@ -21,9 +22,12 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import {
+  coverVideoUploadOptions,
   ensureRequiredProfileFields,
+  omitUndefinedFields,
+  toCoverVideoPath,
   profilePictureUploadOptions,
   toProfilePicturePath,
 } from '../profile-payload.util';
@@ -37,7 +41,41 @@ export class AdminsController {
 
   @Post()
   @UseInterceptors(
-    FileInterceptor('profilePicture', profilePictureUploadOptions),
+    FileFieldsInterceptor(
+      [
+        { name: 'profilePicture', maxCount: 1 },
+        { name: 'coverVideo', maxCount: 1 },
+      ],
+      {
+        limits: {
+          fileSize: Math.max(
+            profilePictureUploadOptions.limits.fileSize,
+            coverVideoUploadOptions.limits.fileSize,
+          ),
+        },
+        fileFilter: (req, file, callback) => {
+          if (file.fieldname === 'coverVideo') {
+            coverVideoUploadOptions.fileFilter(req, file as Express.Multer.File, callback);
+            return;
+          }
+          profilePictureUploadOptions.fileFilter(req, file as Express.Multer.File, callback);
+        },
+        storage: {
+          _handleFile(req, file, callback) {
+            if (file.fieldname === 'coverVideo') {
+              return (coverVideoUploadOptions.storage as any)._handleFile(req, file as any, callback);
+            }
+            return (profilePictureUploadOptions.storage as any)._handleFile(req, file as any, callback);
+          },
+          _removeFile(req, file, callback) {
+            if (file.fieldname === 'coverVideo') {
+              return (coverVideoUploadOptions.storage as any)._removeFile(req, file as any, callback);
+            }
+            return (profilePictureUploadOptions.storage as any)._removeFile(req, file as any, callback);
+          },
+        },
+      },
+    ),
   )
   @ApiOperation({
     summary: 'Create admin profile',
@@ -54,6 +92,11 @@ export class AdminsController {
           type: 'string',
           format: 'binary',
           description: 'Admin profile picture (JPEG, PNG). Max 5MB.',
+        },
+        coverVideo: {
+          type: 'string',
+          format: 'binary',
+          description: 'Optional admin cover video.',
         },
         firstName: {
           type: 'string',
@@ -84,6 +127,10 @@ export class AdminsController {
           type: 'string',
           example: 'P.O. Box CT 1234',
           description: 'Postal address.',
+        },
+        bio: {
+          type: 'string',
+          example: 'Platform operations and content moderation.',
         },
       },
     },
@@ -173,12 +220,16 @@ export class AdminsController {
   })
   create(
     @Body() createAdminDto: any,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFiles()
+    files: { profilePicture?: Express.Multer.File[]; coverVideo?: Express.Multer.File[] },
     @ActiveUser() activeUser: ActiveUserData,
   ) {
+    const profilePictureFile = files?.profilePicture?.[0] as Express.Multer.File | undefined;
+    const coverVideoFile = files?.coverVideo?.[0] as Express.Multer.File | undefined;
     const payload = {
       ...createAdminDto,
-      profilePhoto: toProfilePicturePath(file),
+      profilePhoto: toProfilePicturePath(profilePictureFile),
+      coverVideoPath: toCoverVideoPath(coverVideoFile),
     };
 
     ensureRequiredProfileFields(payload, [
@@ -193,6 +244,115 @@ export class AdminsController {
       activeUser.sub,
     );
   }
+
+  // @Patch()
+  // @UseInterceptors(
+  //   FileFieldsInterceptor(
+  //     [
+  //       { name: 'profilePicture', maxCount: 1 },
+  //       { name: 'coverVideo', maxCount: 1 },
+  //     ],
+  //     {
+  //       limits: {
+  //         fileSize: Math.max(
+  //           profilePictureUploadOptions.limits.fileSize,
+  //           coverVideoUploadOptions.limits.fileSize,
+  //         ),
+  //       },
+  //       fileFilter: (req, file, callback) => {
+  //         if (file.fieldname === 'coverVideo') {
+  //           coverVideoUploadOptions.fileFilter(req, file as Express.Multer.File, callback);
+  //           return;
+  //         }
+  //         profilePictureUploadOptions.fileFilter(req, file as Express.Multer.File, callback);
+  //       },
+  //       storage: {
+  //         _handleFile(req, file, callback) {
+  //           if (file.fieldname === 'coverVideo') {
+  //             return (coverVideoUploadOptions.storage as any)._handleFile(req, file as any, callback);
+  //           }
+  //           return (profilePictureUploadOptions.storage as any)._handleFile(req, file as any, callback);
+  //         },
+  //         _removeFile(req, file, callback) {
+  //           if (file.fieldname === 'coverVideo') {
+  //             return (coverVideoUploadOptions.storage as any)._removeFile(req, file as any, callback);
+  //           }
+  //           return (profilePictureUploadOptions.storage as any)._removeFile(req, file as any, callback);
+  //         },
+  //       },
+  //     },
+  //   ),
+  // )
+  // @ApiOperation({
+  //   summary: 'Update admin profile',
+  //   description:
+  //     'Updates the authenticated admin profile. All fields are optional and omitted fields keep their current values.',
+  // })
+  // @ApiConsumes('multipart/form-data')
+  // @ApiBody({
+  //   schema: {
+  //     type: 'object',
+  //     properties: {
+  //       profilePicture: {
+  //         type: 'string',
+  //         format: 'binary',
+  //       },
+  //       coverVideo: {
+  //         type: 'string',
+  //         format: 'binary',
+  //       },
+  //       firstName: { type: 'string', example: 'Ama' },
+  //       lastName: { type: 'string', example: 'Boateng' },
+  //       phoneNumber: { type: 'string', example: '+233501234567' },
+  //       country: { type: 'string', example: 'Ghana' },
+  //       address: { type: 'string', example: '123 Ring Road, Accra' },
+  //       postalAddress: { type: 'string', example: 'P.O. Box CT 1234' },
+  //       bio: {
+  //         type: 'string',
+  //         example: 'Platform operations and content moderation.',
+  //       },
+  //     },
+  //   },
+  // })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'Admin profile updated successfully',
+  //   schema: {
+  //     example: {
+  //       status: true,
+  //       message: 'Admin profile updated successfully',
+  //       data: {
+  //         id: '47e55c1c-0f02-48cc-b4d5-4f6aa66cd99d',
+  //         profilePhoto:
+  //           '/uploads/profile-pictures/7e2e5d0b-2da0-40ea-9838-42b8c2d87615.jpg',
+  //         coverVideoPath:
+  //           '/uploads/cover-videos/8f12c950-c58e-4d49-a6cd-f42eef4d9f4c.mp4',
+  //         firstName: 'Ama',
+  //         lastName: 'Boateng',
+  //         phoneNumber: '+233501234567',
+  //         bio: 'Platform operations and content moderation.',
+  //         role: 'Admin',
+  //       },
+  //     },
+  //   },
+  // })
+  // update(
+  //   @Body() updateAdminDto: any,
+  //   @UploadedFiles()
+  //   files: { profilePicture?: Express.Multer.File[]; coverVideo?: Express.Multer.File[] },
+  //   @ActiveUser() activeUser: ActiveUserData,
+  // ) {
+  //   const profilePictureFile = files?.profilePicture?.[0] as Express.Multer.File | undefined;
+  //   const coverVideoFile = files?.coverVideo?.[0] as Express.Multer.File | undefined;
+  //   return this.adminsService.update(
+  //     omitUndefinedFields({
+  //       ...updateAdminDto,
+  //       profilePhoto: toProfilePicturePath(profilePictureFile),
+  //       coverVideoPath: toCoverVideoPath(coverVideoFile),
+  //     }),
+  //     activeUser.sub,
+  //   );
+  // }
 
   @Post('change-password')
   @ApiOperation({

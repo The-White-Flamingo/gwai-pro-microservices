@@ -26,7 +26,7 @@ import { In, Repository } from 'typeorm';
 import { Comment } from './entities/comment.entity';
 import { Follow } from './entities/follow.entity';
 import { Like } from './entities/like.entity';
-import { FeedPostType, Post } from './entities/post.entity';
+import { FeedMediaKind, FeedPostType, Post } from './entities/post.entity';
 import { Report } from './entities/report.entity';
 
 const USERS_RPC_TIMEOUT_MS = 10000;
@@ -52,14 +52,16 @@ export class PostsService {
       this.ensureCanPublish(createPostDto.userRole);
 
       const caption = this.normalizeText(createPostDto.caption);
-      const mediaUrl = this.normalizeText(createPostDto.mediaUrl);
-      this.ensurePostHasContent(caption, mediaUrl);
+      const mediaUrls = this.normalizeMediaUrls(createPostDto.mediaUrls);
+      this.ensurePostHasContent(caption, mediaUrls);
+      this.ensureValidMediaPayload(createPostDto.mediaKind, mediaUrls);
 
       const post = this.postsRepository.create({
         userId: createPostDto.userId,
         caption,
-        mediaUrl,
-        type: this.resolvePostType(caption, mediaUrl),
+        mediaUrls,
+        mediaKind: mediaUrls ? (createPostDto.mediaKind as FeedMediaKind) : null,
+        type: this.resolvePostType(caption, mediaUrls),
         likesCount: 0,
         commentsCount: 0,
       });
@@ -203,16 +205,24 @@ export class PostsService {
         updatePostDto.caption !== undefined
           ? this.normalizeText(updatePostDto.caption)
           : post.caption ?? null;
-      const nextMediaUrl =
-        updatePostDto.mediaUrl !== undefined
-          ? this.normalizeText(updatePostDto.mediaUrl)
-          : post.mediaUrl ?? null;
+      const nextMediaUrls =
+        updatePostDto.mediaUrls !== undefined
+          ? this.normalizeMediaUrls(updatePostDto.mediaUrls)
+          : post.mediaUrls ?? null;
+      const nextMediaKind =
+        updatePostDto.mediaUrls !== undefined
+          ? nextMediaUrls
+            ? (updatePostDto.mediaKind as FeedMediaKind | undefined) ?? post.mediaKind ?? null
+            : null
+          : post.mediaKind ?? null;
 
-      this.ensurePostHasContent(nextCaption, nextMediaUrl);
+      this.ensurePostHasContent(nextCaption, nextMediaUrls);
+      this.ensureValidMediaPayload(nextMediaKind, nextMediaUrls);
 
       post.caption = nextCaption;
-      post.mediaUrl = nextMediaUrl;
-      post.type = this.resolvePostType(nextCaption, nextMediaUrl);
+      post.mediaUrls = nextMediaUrls;
+      post.mediaKind = nextMediaUrls ? nextMediaKind : null;
+      post.type = this.resolvePostType(nextCaption, nextMediaUrls);
 
       const updatedPost = await this.postsRepository.save(post);
 
@@ -366,12 +376,8 @@ export class PostsService {
       }
 
       const targetUser = await this.findUserById(followUserDto.followingId);
-      if (
-        ![Role.Client, Role.Musician, Role.Studio].includes(targetUser.role as Role)
-      ) {
-        throw new BadRequestException(
-          'You can only follow clients, musicians, or studios',
-        );
+      if (![Role.Musician, Role.Studio].includes(targetUser.role as Role)) {
+        throw new BadRequestException('Only musicians and studios can be followed');
       }
 
       const existingFollow = await this.followsRepository.findOneBy({
@@ -451,9 +457,9 @@ export class PostsService {
 
   private ensurePostHasContent(
     caption?: string | null,
-    mediaUrl?: string | null,
+    mediaUrls?: string[] | null,
   ) {
-    if (!caption && !mediaUrl) {
+    if (!caption && (!mediaUrls || mediaUrls.length === 0)) {
       throw new BadRequestException(
         'A post must contain a caption, media, or both',
       );
@@ -462,13 +468,13 @@ export class PostsService {
 
   private resolvePostType(
     caption?: string | null,
-    mediaUrl?: string | null,
+    mediaUrls?: string[] | null,
   ): FeedPostType {
-    if (caption && mediaUrl) {
+    if (caption && mediaUrls && mediaUrls.length > 0) {
       return FeedPostType.MEDIA_WITH_CAPTION;
     }
 
-    if (mediaUrl) {
+    if (mediaUrls && mediaUrls.length > 0) {
       return FeedPostType.MEDIA;
     }
 
@@ -478,6 +484,39 @@ export class PostsService {
   private normalizeText(value?: string | null) {
     const trimmedValue = value?.trim();
     return trimmedValue ? trimmedValue : null;
+  }
+
+  private normalizeMediaUrls(values?: string[] | null) {
+    if (!values) {
+      return null;
+    }
+
+    const normalizedValues = values
+      .map((value) => value?.trim())
+      .filter((value): value is string => Boolean(value));
+
+    return normalizedValues.length > 0 ? normalizedValues : null;
+  }
+
+  private ensureValidMediaPayload(
+    mediaKind?: FeedMediaKind | 'IMAGE' | 'VIDEO' | null,
+    mediaUrls?: string[] | null,
+  ) {
+    if (!mediaUrls || mediaUrls.length === 0) {
+      return;
+    }
+
+    if (!mediaKind) {
+      throw new BadRequestException('mediaKind is required when media is uploaded');
+    }
+
+    if (mediaKind === FeedMediaKind.VIDEO && mediaUrls.length !== 1) {
+      throw new BadRequestException('Only one video can be uploaded per post');
+    }
+
+    if (mediaKind === FeedMediaKind.IMAGE && mediaUrls.length > 10) {
+      throw new BadRequestException('A post can contain up to 10 images');
+    }
   }
 
   private resolveLimit(limit?: number) {
@@ -554,7 +593,9 @@ export class PostsService {
     return {
       id: post.id,
       userId: post.userId,
-      mediaUrl: post.mediaUrl,
+      mediaUrl: post.mediaUrls?.[0] ?? null,
+      mediaUrls: post.mediaUrls ?? [],
+      mediaKind: post.mediaKind ?? null,
       caption: post.caption,
       type: post.type,
       likesCount: post.likesCount,

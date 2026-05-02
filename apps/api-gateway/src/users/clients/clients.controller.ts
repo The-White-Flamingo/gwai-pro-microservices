@@ -4,7 +4,7 @@ import {
   Controller,
   Patch,
   Post,
-  UploadedFile,
+  UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
 import { ClientsService } from './clients.service';
@@ -16,12 +16,14 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import {
+  coverVideoUploadOptions,
   ensureRequiredProfileFields,
   omitUndefinedFields,
   normalizeDateField,
   normalizeStringArrayField,
+  toCoverVideoPath,
   profilePictureUploadOptions,
   toProfilePicturePath,
 } from '../profile-payload.util';
@@ -35,7 +37,57 @@ export class ClientsController {
 
   @Post()
   @UseInterceptors(
-    FileInterceptor('profilePicture', profilePictureUploadOptions),
+    FileFieldsInterceptor(
+      [
+        { name: 'profilePicture', maxCount: 1 },
+        { name: 'coverVideo', maxCount: 1 },
+      ],
+      {
+        limits: {
+          fileSize: Math.max(
+            profilePictureUploadOptions.limits.fileSize,
+            coverVideoUploadOptions.limits.fileSize,
+          ),
+        },
+        fileFilter: (req, file, callback) => {
+          if (file.fieldname === 'coverVideo') {
+            coverVideoUploadOptions.fileFilter(req, file as Express.Multer.File, callback);
+            return;
+          }
+          profilePictureUploadOptions.fileFilter(req, file as Express.Multer.File, callback);
+        },
+        storage: {
+          _handleFile(req, file, callback) {
+            if (file.fieldname === 'coverVideo') {
+              return (coverVideoUploadOptions.storage as any)._handleFile(
+                req,
+                file as any,
+                callback,
+              );
+            }
+            return (profilePictureUploadOptions.storage as any)._handleFile(
+              req,
+              file as any,
+              callback,
+            );
+          },
+          _removeFile(req, file, callback) {
+            if (file.fieldname === 'coverVideo') {
+              return (coverVideoUploadOptions.storage as any)._removeFile(
+                req,
+                file as any,
+                callback,
+              );
+            }
+            return (profilePictureUploadOptions.storage as any)._removeFile(
+              req,
+              file as any,
+              callback,
+            );
+          },
+        },
+      },
+    ),
   )
   @ApiOperation({
     summary: 'Create client profile',
@@ -80,6 +132,11 @@ export class ClientsController {
           type: 'string',
           format: 'binary',
         },
+        coverVideo: {
+          type: 'string',
+          format: 'binary',
+        },
+        bio: { type: 'string', example: 'Music lover and event regular.' },
       },
     },
   })
@@ -168,15 +225,19 @@ export class ClientsController {
   })
   create(
     @Body() createClientDto: any,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFiles()
+    files: { profilePicture?: Express.Multer.File[]; coverVideo?: Express.Multer.File[] },
     @ActiveUser() activeUser: ActiveUserData,
   ) {
+    const profilePictureFile = files?.profilePicture?.[0] as Express.Multer.File | undefined;
+    const coverVideoFile = files?.coverVideo?.[0] as Express.Multer.File | undefined;
     const payload = {
       ...createClientDto,
       dateOfBirth: normalizeDateField(createClientDto.dateOfBirth),
       interests: normalizeStringArrayField(createClientDto.interests),
       genres: normalizeStringArrayField(createClientDto.genres),
-      profilePicturePath: toProfilePicturePath(file),
+      profilePicturePath: toProfilePicturePath(profilePictureFile),
+      coverVideoPath: toCoverVideoPath(coverVideoFile),
     };
 
     ensureRequiredProfileFields(payload, [
@@ -199,7 +260,57 @@ export class ClientsController {
 
   @Patch()
   @UseInterceptors(
-    FileInterceptor('profilePicture', profilePictureUploadOptions),
+    FileFieldsInterceptor(
+      [
+        { name: 'profilePicture', maxCount: 1 },
+        { name: 'coverVideo', maxCount: 1 },
+      ],
+      {
+        limits: {
+          fileSize: Math.max(
+            profilePictureUploadOptions.limits.fileSize,
+            coverVideoUploadOptions.limits.fileSize,
+          ),
+        },
+        fileFilter: (req, file, callback) => {
+          if (file.fieldname === 'coverVideo') {
+            coverVideoUploadOptions.fileFilter(req, file as Express.Multer.File, callback);
+            return;
+          }
+          profilePictureUploadOptions.fileFilter(req, file as Express.Multer.File, callback);
+        },
+        storage: {
+          _handleFile(req, file, callback) {
+            if (file.fieldname === 'coverVideo') {
+              return (coverVideoUploadOptions.storage as any)._handleFile(
+                req,
+                file as any,
+                callback,
+              );
+            }
+            return (profilePictureUploadOptions.storage as any)._handleFile(
+              req,
+              file as any,
+              callback,
+            );
+          },
+          _removeFile(req, file, callback) {
+            if (file.fieldname === 'coverVideo') {
+              return (coverVideoUploadOptions.storage as any)._removeFile(
+                req,
+                file as any,
+                callback,
+              );
+            }
+            return (profilePictureUploadOptions.storage as any)._removeFile(
+              req,
+              file as any,
+              callback,
+            );
+          },
+        },
+      },
+    ),
   )
   @ApiOperation({
     summary: 'Update client profile',
@@ -232,6 +343,14 @@ export class ClientsController {
         profilePicture: {
           type: 'string',
           format: 'binary',
+        },
+        coverVideo: {
+          type: 'string',
+          format: 'binary',
+        },
+        bio: {
+          type: 'string',
+          example: 'Music lover and event regular.',
         },
       },
     },
@@ -323,15 +442,19 @@ export class ClientsController {
   update(
     @Body() updateClientDto: any,
     @ActiveUser() activeUser: ActiveUserData,
-    @UploadedFile() file?: Express.Multer.File,
+    @UploadedFiles()
+    files?: { profilePicture?: Express.Multer.File[]; coverVideo?: Express.Multer.File[] },
   ) {
+    const profilePictureFile = files?.profilePicture?.[0] as Express.Multer.File | undefined;
+    const coverVideoFile = files?.coverVideo?.[0] as Express.Multer.File | undefined;
     return this.clientsService.update(
       omitUndefinedFields({
         ...updateClientDto,
         dateOfBirth: normalizeDateField(updateClientDto.dateOfBirth),
         interests: normalizeStringArrayField(updateClientDto.interests),
         genres: normalizeStringArrayField(updateClientDto.genres),
-        profilePicturePath: toProfilePicturePath(file),
+        profilePicturePath: toProfilePicturePath(profilePictureFile),
+        coverVideoPath: toCoverVideoPath(coverVideoFile),
       }),
       activeUser.sub,
     );

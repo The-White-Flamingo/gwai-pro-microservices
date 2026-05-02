@@ -19,6 +19,12 @@ export class Admin {
   profilePhoto: string;
 
   @Column({ nullable: true })
+  coverVideoPath: string;
+
+  @Column({ type: 'text', nullable: true })
+  bio: string;
+
+  @Column({ nullable: true })
   firstName: string;
 
   @Column({ nullable: true })
