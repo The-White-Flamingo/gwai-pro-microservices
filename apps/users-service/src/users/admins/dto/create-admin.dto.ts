@@ -27,6 +27,10 @@ export class CreateAdminDto {
 
   @IsOptional()
   @IsString()
+  contact?: string;
+
+  @IsOptional()
+  @IsString()
   country?: string;
 
   @IsOptional()
@@ -36,4 +40,12 @@ export class CreateAdminDto {
   @IsOptional()
   @IsString()
   postalAddress?: string;
+
+  @IsOptional()
+  @IsString()
+  location?: string;
+
+  @IsOptional()
+  @IsString()
+  adminRoleName?: string;
 }

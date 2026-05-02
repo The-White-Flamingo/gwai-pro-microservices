@@ -48,6 +48,9 @@ export class Admin {
   @Column({ nullable: true })
   location: string;
 
+  @Column({ nullable: true })
+  adminRoleName: string;
+
   @Column('enum', { enum: Role, default: Role.Admin })
   role: Role;
 
