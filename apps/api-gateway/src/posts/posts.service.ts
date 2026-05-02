@@ -142,6 +142,20 @@ export class PostsService {
     }
   }
 
+  async findReportedPosts(
+    paginationQueryDto: PaginationQueryDto,
+    activeUser: ActiveUserData,
+  ) {
+    try {
+      return await this.sendWithTimeout('posts.findReported', {
+        paginationQueryDto,
+        activeUser,
+      });
+    } catch (error) {
+      this.throwGatewayError(error, 'Failed to fetch reported posts');
+    }
+  }
+
   async followUser(followingId: string, activeUser: ActiveUserData) {
     const payload: FollowUserDto = {
       followerId: activeUser.sub,

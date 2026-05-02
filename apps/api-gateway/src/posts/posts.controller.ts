@@ -204,6 +204,63 @@ export class PostsController {
     return this.postsService.findFollowingFeed(paginationQueryDto, user);
   }
 
+  @Get('reported')
+  @Roles(Role.Admin)
+  @ApiOperation({
+    summary: 'Get all reported posts',
+    description:
+      'Returns the moderation queue of reported posts. Admin access only.',
+  })
+  @ApiQuery({ name: 'limit', required: false, example: 20 })
+  @ApiQuery({ name: 'offset', required: false, example: 0 })
+  @ApiResponse({
+    status: 200,
+    description: 'Reported posts retrieved successfully',
+    schema: {
+      example: {
+        status: true,
+        message: 'Reported posts retrieved successfully',
+        data: {
+          items: [
+            {
+              id: 'efb1f4c6-5d89-46ea-997c-fde564ca02d0',
+              postId: '93ad17a6-fd32-4e85-a22b-1d0f88b28b18',
+              reportedByUserId: '29b23bd0-d325-41aa-ab61-d12e3642f288',
+              reason: 'Copyright infringement',
+              createdAt: '2026-05-02T09:15:00.000Z',
+              post: {
+                id: '93ad17a6-fd32-4e85-a22b-1d0f88b28b18',
+                userId: 'e10f6b2c-3d58-4c87-84fd-beff956831c9',
+                mediaUrl: '/uploads/post-media/5c26968d-91dd-438e-b77b-5f8c1d9fae9d.png',
+                mediaUrls: [
+                  '/uploads/post-media/5c26968d-91dd-438e-b77b-5f8c1d9fae9d.png',
+                ],
+                mediaKind: 'IMAGE',
+                caption: 'New studio setup ready for tonight.',
+                type: 'MEDIA_WITH_CAPTION',
+                likesCount: 6,
+                commentsCount: 3,
+                likedByCurrentUser: false,
+                isOwner: false,
+                createdAt: '2026-04-27T18:10:00.000Z',
+                updatedAt: '2026-04-27T18:10:00.000Z',
+              },
+            },
+          ],
+          total: 1,
+          limit: 20,
+          offset: 0,
+        },
+      },
+    },
+  })
+  findReportedPosts(
+    @Query() paginationQueryDto: PaginationQueryDto,
+    @ActiveUser() user: ActiveUserData,
+  ) {
+    return this.postsService.findReportedPosts(paginationQueryDto, user);
+  }
+
   @Post('follows/:followingId')
   @ApiOperation({
     summary: 'Follow a user',

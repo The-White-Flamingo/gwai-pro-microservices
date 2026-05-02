@@ -85,6 +85,14 @@ export class PostsController {
     return this.postsService.reportPost(reportPostDto);
   }
 
+  @MessagePattern('posts.findReported')
+  findReported(@Payload() payload: FeedQueryPayload) {
+    return this.postsService.findReportedPosts(
+      payload?.paginationQueryDto ?? ({} as PaginationQueryDto),
+      payload?.activeUser as ActiveUserData,
+    );
+  }
+
   @MessagePattern('posts.followUser')
   followUser(@Payload() followUserDto: FollowUserDto) {
     return this.postsService.followUser(followUserDto);

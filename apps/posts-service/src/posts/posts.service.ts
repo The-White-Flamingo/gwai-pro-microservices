@@ -369,6 +369,37 @@ export class PostsService {
     }
   }
 
+  async findReportedPosts(
+    paginationQueryDto: PaginationQueryDto,
+    activeUser?: ActiveUserData,
+  ) {
+    try {
+      const limit = this.resolveLimit(paginationQueryDto.limit);
+      const offset = this.resolveOffset(paginationQueryDto.offset);
+
+      const [reports, total] = await this.reportsRepository
+        .createQueryBuilder('report')
+        .leftJoinAndSelect('report.post', 'post')
+        .orderBy('report.createdAt', 'DESC')
+        .skip(offset)
+        .take(limit)
+        .getManyAndCount();
+
+      return {
+        status: true,
+        message: 'Reported posts retrieved successfully',
+        data: {
+          items: await this.toReportedPostItems(reports, activeUser?.sub),
+          total,
+          limit,
+          offset,
+        },
+      };
+    } catch (error) {
+      this.throwServiceError(error);
+    }
+  }
+
   async followUser(followUserDto: FollowUserDto) {
     try {
       if (followUserDto.followerId === followUserDto.followingId) {
@@ -563,26 +594,55 @@ export class PostsService {
 
   private async enrichPosts(posts: Post[], currentUserId?: string) {
     const postIds = posts.map((post) => post.id);
-    const likedPostIds =
-      postIds.length > 0 && currentUserId
-        ? new Set(
-            (
-              await this.likesRepository.find({
-                where: {
-                  feedId: In(postIds),
-                  userId: currentUserId,
-                },
-                select: ['feedId'],
-              })
-            ).map((like) => like.feedId),
-          )
-        : new Set<string>();
+    const likedPostIds = await this.findLikedPostIds(postIds, currentUserId);
 
     return posts.map((post) =>
       this.toPostSummary(post, {
         likedByCurrentUser: likedPostIds.has(post.id),
         isOwner: currentUserId === post.userId,
       }),
+    );
+  }
+
+  private async toReportedPostItems(reports: Report[], currentUserId?: string) {
+    const posts = reports
+      .map((report) => report.post)
+      .filter((post): post is Post => Boolean(post));
+    const likedPostIds = await this.findLikedPostIds(
+      posts.map((post) => post.id),
+      currentUserId,
+    );
+
+    return reports.map((report) => ({
+      id: report.id,
+      postId: report.feedId,
+      reportedByUserId: report.userId,
+      reason: report.reason ?? null,
+      createdAt: report.createdAt,
+      post: report.post
+        ? this.toPostSummary(report.post, {
+            likedByCurrentUser: likedPostIds.has(report.post.id),
+            isOwner: currentUserId === report.post.userId,
+          })
+        : null,
+    }));
+  }
+
+  private async findLikedPostIds(postIds: string[], currentUserId?: string) {
+    if (postIds.length === 0 || !currentUserId) {
+      return new Set<string>();
+    }
+
+    return new Set(
+      (
+        await this.likesRepository.find({
+          where: {
+            feedId: In(postIds),
+            userId: currentUserId,
+          },
+          select: ['feedId'],
+        })
+      ).map((like) => like.feedId),
     );
   }
 
