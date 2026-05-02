@@ -48,7 +48,7 @@ export class PostsController {
   @ApiOperation({
     summary: 'Create a feed post',
     description:
-      'Only musicians and studios can create feed posts. A post can be caption-only, media-only, or media plus caption. Only images for now boss',
+      'Only musicians and studios can create feed posts. A post can be caption-only, media-only, or media plus caption. Videos added',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -69,7 +69,7 @@ export class PostsController {
       captionOnly: {
         summary: 'Caption only',
         value: {
-          caption: 'Live session at 8pm.',
+          caption: 'Caption here',
         },
       },
     },
@@ -134,7 +134,7 @@ export class PostsController {
               id: '93ad17a6-fd32-4e85-a22b-1d0f88b28b18',
               userId: 'e10f6b2c-3d58-4c87-84fd-beff956831c9',
               mediaUrl: '/uploads/post-media/5c26968d-91dd-438e-b77b-5f8c1d9fae9d.png',
-              caption: 'New studio setup ready for tonight.',
+              caption: 'caption captured.',
               type: 'MEDIA_WITH_CAPTION',
               likesCount: 6,
               commentsCount: 3,
@@ -202,63 +202,6 @@ export class PostsController {
     @ActiveUser() user: ActiveUserData,
   ) {
     return this.postsService.findFollowingFeed(paginationQueryDto, user);
-  }
-
-  @Get('reported')
-  @Roles(Role.Admin)
-  @ApiOperation({
-    summary: 'Get all reported posts',
-    description:
-      'Returns the moderation queue of reported posts. Admin access only.',
-  })
-  @ApiQuery({ name: 'limit', required: false, example: 20 })
-  @ApiQuery({ name: 'offset', required: false, example: 0 })
-  @ApiResponse({
-    status: 200,
-    description: 'Reported posts retrieved successfully',
-    schema: {
-      example: {
-        status: true,
-        message: 'Reported posts retrieved successfully',
-        data: {
-          items: [
-            {
-              id: 'efb1f4c6-5d89-46ea-997c-fde564ca02d0',
-              postId: '93ad17a6-fd32-4e85-a22b-1d0f88b28b18',
-              reportedByUserId: '29b23bd0-d325-41aa-ab61-d12e3642f288',
-              reason: 'Copyright infringement',
-              createdAt: '2026-05-02T09:15:00.000Z',
-              post: {
-                id: '93ad17a6-fd32-4e85-a22b-1d0f88b28b18',
-                userId: 'e10f6b2c-3d58-4c87-84fd-beff956831c9',
-                mediaUrl: '/uploads/post-media/5c26968d-91dd-438e-b77b-5f8c1d9fae9d.png',
-                mediaUrls: [
-                  '/uploads/post-media/5c26968d-91dd-438e-b77b-5f8c1d9fae9d.png',
-                ],
-                mediaKind: 'IMAGE',
-                caption: 'New studio setup ready for tonight.',
-                type: 'MEDIA_WITH_CAPTION',
-                likesCount: 6,
-                commentsCount: 3,
-                likedByCurrentUser: false,
-                isOwner: false,
-                createdAt: '2026-04-27T18:10:00.000Z',
-                updatedAt: '2026-04-27T18:10:00.000Z',
-              },
-            },
-          ],
-          total: 1,
-          limit: 20,
-          offset: 0,
-        },
-      },
-    },
-  })
-  findReportedPosts(
-    @Query() paginationQueryDto: PaginationQueryDto,
-    @ActiveUser() user: ActiveUserData,
-  ) {
-    return this.postsService.findReportedPosts(paginationQueryDto, user);
   }
 
   @Post('follows/:followingId')
@@ -406,75 +349,75 @@ export class PostsController {
     return this.postsService.addComment(id, body, user);
   }
 
-  // @Post(':id/report')
-  // @ApiOperation({
-  //   summary: 'Report a post',
-  //   description: 'Reports a post for moderation review.',
-  // })
-  // @ApiParam({
-  //   name: 'id',
-  //   example: '93ad17a6-fd32-4e85-a22b-1d0f88b28b18',
-  // })
-  // @ApiBody({
-  //   schema: {
-  //     type: 'object',
-  //     properties: {
-  //       reason: {
-  //         type: 'string',
-  //         example: 'Copyrighted content',
-  //       },
-  //     },
-  //   },
-  // })
-  // @ApiResponse({
-  //   status: 201,
-  //   description: 'Post reported successfully',
-  //   schema: {
-  //     example: {
-  //       status: true,
-  //       message: 'Post reported successfully',
-  //       data: {
-  //         postId: '93ad17a6-fd32-4e85-a22b-1d0f88b28b18',
-  //         reported: true,
-  //       },
-  //     },
-  //   },
-  // })
-  // reportPost(
-  //   @Param('id') id: string,
-  //   @Body() body: { reason?: string },
-  //   @ActiveUser() user: ActiveUserData,
-  // ) {
-  //   return this.postsService.reportPost(id, body, user);
-  // }
+  @Post(':id/report')
+  @ApiOperation({
+    summary: 'Report a post',
+    description: 'Reports a post for review.',
+  })
+  @ApiParam({
+    name: 'id',
+    example: '93ad17a6-fd32-4e85-a22b-1d0f88b28b18',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        reason: {
+          type: 'string',
+          example: 'why are you reporting here',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Post reported successfully',
+    schema: {
+      example: {
+        status: true,
+        message: 'Post reported successfully',
+        data: {
+          postId: '93ad17a6-fd32-4e85-a22b-1d0f88b28b18',
+          reported: true,
+        },
+      },
+    },
+  })
+  reportPost(
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+    @ActiveUser() user: ActiveUserData,
+  ) {
+    return this.postsService.reportPost(id, body, user);
+  }
 
-  // @Get(':id/download')
-  // @ApiOperation({
-  //   summary: 'Download a watermarked post image',
-  //   description:
-  //     'Downloads the post media with a GwaiPro watermark applied. Caption-only posts cannot be downloaded.',
-  // })
-  // @ApiParam({
-  //   name: 'id',
-  //   example: '93ad17a6-fd32-4e85-a22b-1d0f88b28b18',
-  // })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: 'Watermarked media download',
-  // })
-  // async download(
-  //   @Param('id') id: string,
-  //   @ActiveUser() user: ActiveUserData,
-  //   @Res() response: Response,
-  // ) {
-  //   const download = await this.postsService.downloadPostMedia(id, user);
-  //   response.setHeader('Content-Type', download.contentType);
-  //   response.setHeader(
-  //     'Content-Disposition',
-  //     `attachment; filename="${download.fileName}"`,
-  //   );
-  //   response.send(download.buffer);
-  // }
+  @Get(':id/download')
+  @ApiOperation({
+    summary: 'Download a watermarked post image',
+    description:
+      'Downloads the post media with a GwaiPro watermark applied. Caption-only posts cannot be downloaded.',
+  })
+  @ApiParam({
+    name: 'id',
+    example: '93ad17a6-fd32-4e85-a22b-1d0f88b28b18',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Watermarked media download',
+  })
+  async download(
+    @Param('id') id: string,
+    @ActiveUser() user: ActiveUserData,
+    @Res() response: Response,
+  ) {
+    const download = await this.postsService.downloadPostMedia(id, user);
+    response.setHeader('Content-Type', download.contentType);
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${download.fileName}"`,
+    );
+    response.send(download.buffer);
+  }
 
   @Get(':id')
   @ApiOperation({
